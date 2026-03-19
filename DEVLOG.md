@@ -60,7 +60,7 @@ scripts/
 
 ## Status
 
-**Phase 5 of 7 complete.** Phases 6 (Send UI) and 7 (Polish) remain.
+**Phase 6 of 7 complete.** Phase 7 (Polish) remains.
 
 ---
 
@@ -110,3 +110,15 @@ scripts/
 - `SignMessage.tsx`: shows method badge, decoded message (hex→text for personal_sign, formatted JSON for typed data), eth_sign warning, signing account
 - `TxResult.tsx` / `SignResult.tsx`: display real tx hash or signature from sessionStorage
 - Dev mode preserves mock-driven UI for local development
+
+### Phase 6 — Send ETH/Tokens from Popup ✅
+
+- **No new message types** — reuses existing `RPC_REQUEST` with `eth_sendTransaction` for both ETH and ERC-20 transfers
+- `Send.tsx` rewritten: token selector dropdown (ETH + ERC-20s), recipient address validation via `isAddress`, amount input with live balance + MAX button
+- ERC-20 transfers: encodes `transfer(address,uint256)` via viem `encodeFunctionData` + `erc20Abi`, sends as `eth_sendTransaction` to the token contract
+- ETH transfers: standard `{ to, value }` params with `parseEther`
+- Popup-originated requests: `rpc-handler.ts` recognizes `POPUP_ORIGIN`, skips dApp origin check, returns immediately after creating pending approval (so Send.tsx can navigate to TxApproval)
+- `TxApproval.tsx`: detects popup origin — shows "Confirm Send" title, hides origin bar, reject navigates to `/home` instead of `window.close()`
+- `TxResult.tsx`: real TX status tracking — polls `eth_getTransactionReceipt` + `eth_blockNumber` via existing RPC proxy, shows live confirmation count, detects reverts, links to block explorer
+- Block explorer URLs added to all 8 pre-configured networks
+- `Token` type updated with `decimals` field for proper ERC-20 amount parsing

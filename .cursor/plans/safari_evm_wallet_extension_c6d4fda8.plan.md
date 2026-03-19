@@ -19,7 +19,7 @@ todos:
     status: pending
   - id: send-ui
     content: "Phase 6: Send ETH/tokens from popup — recipient input, amount, gas estimation, TX status tracking"
-    status: pending
+    status: completed
   - id: polish
     content: "Phase 7: Security hardening (auto-lock, CSP, rate limiting), dApp compatibility testing, UI polish"
     status: pending

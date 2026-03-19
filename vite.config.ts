@@ -8,6 +8,7 @@ export default defineConfig({
   root: "src/popup",
   resolve: {
     alias: {
+      "@shared": resolve(__dirname, "src/shared"),
       "@": resolve(__dirname, "src/popup"),
     },
   },
@@ -15,6 +16,7 @@ export default defineConfig({
     port: 5173,
     open: true,
   },
+  base: "./",
   build: {
     outDir: resolve(__dirname, "dist/popup"),
     emptyOutDir: true,

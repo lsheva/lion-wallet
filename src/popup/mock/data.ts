@@ -23,13 +23,14 @@ export interface Token {
   usdValue: string;
   color: string;
   address?: string;
+  decimals: number;
 }
 
 export const MOCK_TOKENS: Token[] = [
-  { symbol: "ETH", name: "Ethereum", balance: "3.4521", usdValue: "$8,234.12", color: "#627EEA" },
-  { symbol: "USDC", name: "USD Coin", balance: "1,200.00", usdValue: "$1,200.00", color: "#2775CA", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
-  { symbol: "UNI", name: "Uniswap", balance: "45.20", usdValue: "$312.50", color: "#FF007A", address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984" },
-  { symbol: "LINK", name: "Chainlink", balance: "120.00", usdValue: "$1,560.00", color: "#2A5ADA", address: "0x514910771AF9Ca656af840dff83E8264EcF986CA" },
+  { symbol: "ETH", name: "Ethereum", balance: "3.4521", usdValue: "$8,234.12", color: "#627EEA", decimals: 18 },
+  { symbol: "USDC", name: "USD Coin", balance: "1,200.00", usdValue: "$1,200.00", color: "#2775CA", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6 },
+  { symbol: "UNI", name: "Uniswap", balance: "45.20", usdValue: "$312.50", color: "#FF007A", address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", decimals: 18 },
+  { symbol: "LINK", name: "Chainlink", balance: "120.00", usdValue: "$1,560.00", color: "#2A5ADA", address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", decimals: 18 },
 ];
 
 export interface Network {

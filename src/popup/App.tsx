@@ -29,19 +29,37 @@ export const pendingApprovalData = signal<Record<string, unknown> | null>(null);
 export function App() {
   useEffect(() => {
     if (import.meta.env.DEV) return;
-    sendMessage({ type: "GET_PENDING_APPROVAL" }).then((res) => {
-      if (!res.ok || !res.data) return;
-      const data = res.data as Record<string, unknown>;
-      const approval = data.approval as { method: string } | undefined;
-      if (!approval) return;
 
-      pendingApprovalData.value = data;
+    sendMessage({ type: "GET_STATE" }).then((stateRes) => {
+      const state = stateRes.ok ? (stateRes.data as { hasVault?: boolean; isUnlocked?: boolean } | undefined) : undefined;
 
-      if (TX_METHODS.has(approval.method)) {
-        route("/tx-approval");
-      } else if (SIGN_METHODS.has(approval.method)) {
-        route("/sign-message");
+      if (!state?.hasVault) {
+        route("/", true);
+        return;
       }
+      if (!state.isUnlocked) {
+        route("/unlock", true);
+        return;
+      }
+
+      sendMessage({ type: "GET_PENDING_APPROVAL" }).then((res) => {
+        if (res.ok && res.data) {
+          const data = res.data as Record<string, unknown>;
+          const approval = data.approval as { method: string } | undefined;
+          if (approval) {
+            pendingApprovalData.value = data;
+            if (TX_METHODS.has(approval.method)) {
+              route("/tx-approval", true);
+            } else if (SIGN_METHODS.has(approval.method)) {
+              route("/sign-message", true);
+            } else {
+              route("/home", true);
+            }
+            return;
+          }
+        }
+        route("/home", true);
+      });
     });
   }, []);
 
@@ -50,6 +68,7 @@ export function App() {
       <div class="h-[600px] overflow-y-auto overflow-x-hidden">
         <Router>
           <Route path="/" component={Welcome} />
+          <Route default component={Welcome} />
           <Route path="/set-password" component={SetPassword} />
           <Route path="/seed-phrase" component={SeedPhrase} />
           <Route path="/confirm-seed" component={ConfirmSeed} />

@@ -7,6 +7,7 @@ import {
   getNetworkConfig,
 } from "./networks";
 import { createPendingApproval } from "./approval";
+import { POPUP_ORIGIN } from "../shared/constants";
 
 export interface RpcError {
   code: number;
@@ -138,7 +139,8 @@ export async function handleRpc(
       if (!wallet.isUnlocked()) {
         return err(4100, "Wallet is locked");
       }
-      if (!connectedOrigins.has(ctx.origin)) {
+      const isPopup = ctx.origin === POPUP_ORIGIN;
+      if (!isPopup && !connectedOrigins.has(ctx.origin)) {
         return err(4100, "Unauthorized — connect first via eth_requestAccounts");
       }
 
@@ -149,6 +151,10 @@ export async function handleRpc(
         ctx.origin,
         chainId,
       );
+
+      if (isPopup) {
+        return ok({ pending: true });
+      }
 
       if (onApprovalCreated) onApprovalCreated();
 

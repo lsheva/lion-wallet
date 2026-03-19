@@ -68,6 +68,7 @@ export function AddToken({ open, onClose }: AddTokenProps) {
         usdValue: "--",
         color: randomColor(),
         address: address.trim(),
+        decimals: detected.decimals,
       },
     ];
     handleClose();

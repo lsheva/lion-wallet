@@ -12,6 +12,7 @@ import { AddressDisplay } from "../components/AddressDisplay";
 import { pendingApprovalData } from "../App";
 import { sendMessage } from "@shared/messages";
 import type { GasSpeed, GasPresets, PendingApproval, TransactionParams, SerializedAccount } from "@shared/types";
+import { POPUP_ORIGIN } from "@shared/constants";
 import { MOCK_TX_REQUEST } from "../mock/data";
 
 const GAS_ICONS = { slow: Gauge, normal: Zap, fast: Rocket } as const;
@@ -108,6 +109,8 @@ export function TxApproval() {
     }
   }
 
+  const isPopupOrigin = data?.approval.origin === POPUP_ORIGIN;
+
   async function handleReject() {
     if (isDev) {
       route("/home");
@@ -117,7 +120,11 @@ export function TxApproval() {
       await sendMessage({ type: "REJECT_REQUEST", id: data.approval.id });
       pendingApprovalData.value = null;
     }
-    window.close();
+    if (isPopupOrigin) {
+      route("/home");
+    } else {
+      window.close();
+    }
   }
 
   if (loading) {
@@ -151,14 +158,20 @@ export function TxApproval() {
     <div class="flex flex-col h-[600px]">
       <div class="text-center py-3 border-b border-divider">
         <h1 class="text-base font-semibold text-text-primary">
-          {approval.method === "eth_signTransaction" ? "Sign Transaction" : "Transaction Request"}
+          {isPopupOrigin
+            ? "Confirm Send"
+            : approval.method === "eth_signTransaction"
+              ? "Sign Transaction"
+              : "Transaction Request"}
         </h1>
       </div>
 
-      <div class="flex items-center gap-2 px-4 py-2.5 bg-surface border-b border-divider">
-        <Globe size={16} class="text-text-tertiary" />
-        <span class="text-sm text-text-secondary">{approval.origin}</span>
-      </div>
+      {!isPopupOrigin && (
+        <div class="flex items-center gap-2 px-4 py-2.5 bg-surface border-b border-divider">
+          <Globe size={16} class="text-text-tertiary" />
+          <span class="text-sm text-text-secondary">{approval.origin}</span>
+        </div>
+      )}
 
       <div class="flex-1 overflow-y-auto px-4 pt-4 space-y-3">
         {/* Value transfer */}

@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:ext": "node --experimental-strip-types scripts/build.ts",
+    "build:safari": "pnpm build:ext && xcodebuild -project xcode/SafariEVMWallet/SafariEVMWallet.xcodeproj -scheme SafariEVMWallet -configuration Debug build",
+    "run:safari": "pnpm build:safari && open \"$(xcodebuild -project xcode/SafariEVMWallet/SafariEVMWallet.xcodeproj -scheme SafariEVMWallet -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/SafariEVMWallet.app\"",
     "icons": "node --experimental-strip-types scripts/icons.ts",
     "preview": "vite preview"
   },
