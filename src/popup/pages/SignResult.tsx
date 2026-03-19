@@ -1,9 +1,9 @@
 import { useEffect } from "preact/hooks";
-import { route } from "preact-router";
 import { CheckCircle2, XCircle } from "lucide-preact";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
+import { routeToNextApprovalOrClose, closePopup } from "../App";
 
 interface SignResultProps {
   status?: "success" | "error";
@@ -68,8 +68,8 @@ export function SignResult({ status = "success" }: SignResultProps) {
       )}
 
       <div class="w-full space-y-3">
-        <Button onClick={() => route("/home")} size="lg">
-          {isSuccess ? "Done" : "Back to Wallet"}
+        <Button onClick={() => routeToNextApprovalOrClose(closePopup)} size="lg">
+          Done
         </Button>
       </div>
     </div>

@@ -7,7 +7,7 @@ interface PendingEntry {
   reject: (error: RpcError) => void;
 }
 
-let pendingEntry: PendingEntry | null = null;
+const pendingQueue = new Map<string, PendingEntry>();
 let idCounter = 0;
 
 export function createPendingApproval(
@@ -16,45 +16,47 @@ export function createPendingApproval(
   origin: string,
   chainId: number,
 ): { id: string; promise: Promise<{ result: unknown } | { error: RpcError }> } {
-  if (pendingEntry) {
-    pendingEntry.reject({ code: 4001, message: "Request superseded by new approval" });
-    pendingEntry = null;
-  }
-
   const id = `approval-${++idCounter}-${Date.now()}`;
 
   const promise = new Promise<{ result: unknown } | { error: RpcError }>((resolve) => {
-    pendingEntry = {
+    pendingQueue.set(id, {
       approval: { id, method, params, origin, timestamp: Date.now(), chainId },
       resolve: (result: unknown) => resolve({ result }),
       reject: (error: RpcError) => resolve({ error }),
-    };
+    });
   });
 
   return { id, promise };
 }
 
 export function getPendingApproval(): PendingApproval | null {
-  return pendingEntry?.approval ?? null;
+  const first = pendingQueue.values().next();
+  return first.done ? null : first.value.approval;
+}
+
+export function getPendingCount(): number {
+  return pendingQueue.size;
 }
 
 export function resolvePendingApproval(id: string, result: unknown): boolean {
-  if (!pendingEntry || pendingEntry.approval.id !== id) return false;
-  pendingEntry.resolve(result);
-  pendingEntry = null;
+  const entry = pendingQueue.get(id);
+  if (!entry) return false;
+  entry.resolve(result);
+  pendingQueue.delete(id);
   return true;
 }
 
 export function rejectPendingApproval(id: string, reason?: string): boolean {
-  if (!pendingEntry || pendingEntry.approval.id !== id) return false;
-  pendingEntry.reject({ code: 4001, message: reason ?? "User rejected the request" });
-  pendingEntry = null;
+  const entry = pendingQueue.get(id);
+  if (!entry) return false;
+  entry.reject({ code: 4001, message: reason ?? "User rejected the request" });
+  pendingQueue.delete(id);
   return true;
 }
 
 export function clearAllPending(): void {
-  if (pendingEntry) {
-    pendingEntry.reject({ code: 4001, message: "Wallet locked" });
-    pendingEntry = null;
+  for (const entry of pendingQueue.values()) {
+    entry.reject({ code: 4001, message: "Wallet locked" });
   }
+  pendingQueue.clear();
 }

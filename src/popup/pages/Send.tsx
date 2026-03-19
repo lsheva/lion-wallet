@@ -168,7 +168,7 @@ export function Send() {
         origin: POPUP_ORIGIN,
       });
 
-      route("/tx-approval");
+      route("/approve");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create transaction");
       setSubmitting(false);

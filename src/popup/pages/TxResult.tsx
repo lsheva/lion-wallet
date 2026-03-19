@@ -7,6 +7,7 @@ import { AddressDisplay } from "../components/AddressDisplay";
 import { sendMessage } from "@shared/messages";
 import { POPUP_ORIGIN, NETWORKS } from "@shared/constants";
 import { walletState } from "../store";
+import { routeToNextApprovalOrClose, closePopup } from "../App";
 
 interface TxResultProps {
   status?: "success" | "error";
@@ -140,8 +141,8 @@ export function TxResult({ status = "success" }: TxResultProps) {
           </p>
         </Card>
         <div class="w-full space-y-3">
-          <Button onClick={() => route("/home")} size="lg">
-            Back to Wallet
+          <Button onClick={() => routeToNextApprovalOrClose(closePopup)} size="lg">
+            {isDev ? "Back to Wallet" : "Done"}
           </Button>
         </div>
       </div>
@@ -210,7 +211,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
 
       <div class="w-full">
         <Button
-          onClick={() => route("/home")}
+          onClick={() => routeToNextApprovalOrClose(closePopup)}
           size="lg"
           variant={mined ? "primary" : "secondary"}
         >

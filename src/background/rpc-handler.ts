@@ -7,6 +7,7 @@ import {
   getNetworkConfig,
 } from "./networks";
 import { createPendingApproval } from "./approval";
+import { isVaultInitialized } from "./vault";
 import { POPUP_ORIGIN } from "../shared/constants";
 
 export interface RpcError {
@@ -46,6 +47,36 @@ export function setApprovalCreatedCallback(cb: () => void): void {
   onApprovalCreated = cb;
 }
 
+const UNLOCK_TIMEOUT_MS = 120_000;
+const unlockWaiters = new Set<{ resolve: () => void; reject: (e: RpcError) => void }>();
+
+export function notifyUnlocked(): void {
+  for (const w of unlockWaiters) w.resolve();
+  unlockWaiters.clear();
+}
+
+export function rejectUnlockWaiters(): void {
+  for (const w of unlockWaiters) w.reject({ code: 4001, message: "User rejected the request" });
+  unlockWaiters.clear();
+}
+
+function waitForUnlock(): Promise<RpcResult | null> {
+  return new Promise<RpcResult | null>((resolve) => {
+    const timer = setTimeout(() => {
+      unlockWaiters.delete(entry);
+      resolve(err(4001, "Unlock timed out"));
+    }, UNLOCK_TIMEOUT_MS);
+
+    const entry = {
+      resolve: () => { clearTimeout(timer); resolve(null); },
+      reject: (e: RpcError) => { clearTimeout(timer); resolve({ error: e }); },
+    };
+    unlockWaiters.add(entry);
+
+    if (onApprovalCreated) onApprovalCreated();
+  });
+}
+
 export async function handleRpc(
   method: string,
   params: unknown[] | undefined,
@@ -55,7 +86,11 @@ export async function handleRpc(
     switch (method) {
       case "eth_requestAccounts": {
         if (!wallet.isUnlocked()) {
-          return err(4100, "Wallet is locked");
+          if (!(await isVaultInitialized())) {
+            return err(4100, "Wallet is not set up");
+          }
+          const lockErr = await waitForUnlock();
+          if (lockErr) return lockErr;
         }
         const accounts = wallet.getAccounts();
         if (accounts.length === 0) {
@@ -109,7 +144,11 @@ export async function handleRpc(
 
       case "wallet_requestPermissions": {
         if (!wallet.isUnlocked()) {
-          return err(4100, "Wallet is locked");
+          if (!(await isVaultInitialized())) {
+            return err(4100, "Wallet is not set up");
+          }
+          const lockErr = await waitForUnlock();
+          if (lockErr) return lockErr;
         }
         const accounts = wallet.getAccounts();
         if (accounts.length === 0) {

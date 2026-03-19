@@ -11,8 +11,7 @@ import { Unlock } from "./pages/Unlock";
 import { Home } from "./pages/Home";
 import { Send } from "./pages/Send";
 import { Receive } from "./pages/Receive";
-import { TxApproval } from "./pages/TxApproval";
-import { SignMessage } from "./pages/SignMessage";
+import { Approve } from "./pages/Approve";
 import { Settings } from "./pages/Settings";
 import { TxResult } from "./pages/TxResult";
 import { SignResult } from "./pages/SignResult";
@@ -22,10 +21,35 @@ import { ShowRecoveryPhrase } from "./pages/ShowRecoveryPhrase";
 import { sendMessage } from "@shared/messages";
 import { fetchState } from "./store";
 
-const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
-const SIGN_METHODS = new Set(["personal_sign", "eth_sign", "eth_signTypedData_v4", "eth_signTypedData"]);
+const APPROVAL_METHODS = new Set([
+  "eth_sendTransaction", "eth_signTransaction",
+  "personal_sign", "eth_sign", "eth_signTypedData_v4", "eth_signTypedData",
+]);
 
 export const pendingApprovalData = signal<Record<string, unknown> | null>(null);
+
+export async function routeToNextApprovalOrClose(fallback: () => void): Promise<void> {
+  try {
+    const res = await sendMessage({ type: "GET_PENDING_APPROVAL" });
+    if (res.ok && res.data) {
+      const data = res.data as Record<string, unknown>;
+      const approval = data.approval as { method: string } | undefined;
+      if (approval && APPROVAL_METHODS.has(approval.method)) {
+        pendingApprovalData.value = data;
+        route("/approve", true);
+        return;
+      }
+    }
+  } catch {
+    // background unavailable — fall through to fallback
+  }
+  fallback();
+}
+
+export function closePopup(): void {
+  window.close();
+  setTimeout(() => route("/home", true), 100);
+}
 
 export function App() {
   useEffect(() => {
@@ -47,15 +71,9 @@ export function App() {
         if (res.ok && res.data) {
           const data = res.data as Record<string, unknown>;
           const approval = data.approval as { method: string } | undefined;
-          if (approval) {
+          if (approval && APPROVAL_METHODS.has(approval.method)) {
             pendingApprovalData.value = data;
-            if (TX_METHODS.has(approval.method)) {
-              route("/tx-approval", true);
-            } else if (SIGN_METHODS.has(approval.method)) {
-              route("/sign-message", true);
-            } else {
-              route("/home", true);
-            }
+            route("/approve", true);
             return;
           }
         }
@@ -78,8 +96,7 @@ export function App() {
           <Route path="/home" component={Home} />
           <Route path="/send" component={Send} />
           <Route path="/receive" component={Receive} />
-          <Route path="/tx-approval" component={TxApproval} />
-          <Route path="/sign-message" component={SignMessage} />
+          <Route path="/approve" component={Approve} />
           <Route path="/tx-success" component={() => <TxResult status="success" />} />
           <Route path="/tx-error" component={() => <TxResult status="error" />} />
           <Route path="/sign-success" component={() => <SignResult status="success" />} />

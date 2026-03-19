@@ -11,9 +11,10 @@ import {
   getPublicClient,
 } from "./networks";
 import { formatEther, numberToHex, type Address } from "viem";
-import { handleRpc, setApprovalCreatedCallback } from "./rpc-handler";
+import { handleRpc, setApprovalCreatedCallback, notifyUnlocked, rejectUnlockWaiters } from "./rpc-handler";
 import {
   getPendingApproval,
+  getPendingCount,
   resolvePendingApproval,
   rejectPendingApproval,
   clearAllPending,
@@ -35,6 +36,7 @@ function resetAutoLock(): void {
     autoLockTimer = setTimeout(() => {
       wallet.clearState();
       clearAllPending();
+      rejectUnlockWaiters();
       clearCachedPassword();
       broadcastEvent("accountsChanged", []);
       console.log("[background] auto-locked due to inactivity");
@@ -58,12 +60,20 @@ function broadcastEvent(event: string, data: unknown): void {
   });
 }
 
+function updateBadge(): void {
+  const count = getPendingCount();
+  browser.action.setBadgeText({ text: count > 0 ? String(count) : "" });
+  if (count > 0) {
+    browser.action.setBadgeBackgroundColor({ color: "#6366f1" });
+  }
+}
+
 setApprovalCreatedCallback(() => {
+  updateBadge();
   try {
     (browser.action as { openPopup?: () => void }).openPopup?.();
   } catch {
-    browser.action.setBadgeText({ text: "1" });
-    browser.action.setBadgeBackgroundColor({ color: "#6366f1" });
+    // popup couldn't be opened programmatically; badge already updated
   }
 });
 
@@ -124,12 +134,12 @@ async function executeApproval(
     }
 
     resolvePendingApproval(id, result);
-    browser.action.setBadgeText({ text: "" });
+    updateBadge();
     return { ok: true, data: { result } };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Signing failed";
     rejectPendingApproval(id, msg);
-    browser.action.setBadgeText({ text: "" });
+    updateBadge();
     return { ok: false, error: msg };
   }
 }
@@ -200,6 +210,7 @@ async function handleMessage(
     case "UNLOCK": {
       const data = await decryptVault(message.password);
       wallet.loadState(data);
+      notifyUnlocked();
       const state = await getWalletState();
       const accounts = wallet.getAccounts();
       if (accounts.length > 0) {
@@ -212,6 +223,7 @@ async function handleMessage(
     case "LOCK": {
       wallet.clearState();
       clearAllPending();
+      rejectUnlockWaiters();
       clearCachedPassword();
       if (autoLockTimer) clearTimeout(autoLockTimer);
       broadcastEvent("accountsChanged", []);
@@ -299,6 +311,7 @@ async function handleMessage(
           approval: pending,
           gasPresets,
           account: activeAccount,
+          queueSize: getPendingCount(),
         },
       };
     }
@@ -309,7 +322,7 @@ async function handleMessage(
 
     case "REJECT_REQUEST": {
       const rejected = rejectPendingApproval(message.id);
-      browser.action.setBadgeText({ text: "" });
+      updateBadge();
       if (!rejected) {
         return { ok: false, error: "No matching pending approval" };
       }
@@ -319,6 +332,7 @@ async function handleMessage(
     case "RESET_WALLET": {
       wallet.clearState();
       clearAllPending();
+      rejectUnlockWaiters();
       clearCachedPassword();
       await clearVault();
       if (autoLockTimer) clearTimeout(autoLockTimer);
