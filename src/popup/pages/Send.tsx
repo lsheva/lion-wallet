@@ -18,8 +18,7 @@ import { Card } from "../components/Card";
 import { Banner } from "../components/Banner";
 import { sendMessage } from "@shared/messages";
 import { POPUP_ORIGIN } from "@shared/constants";
-import { walletState } from "../mock/state";
-import type { Token } from "../mock/data";
+import { walletState, type Token } from "../store";
 
 const isNative = (token: Token) => !token.address;
 
@@ -45,7 +44,6 @@ function buildTxParams(
 }
 
 export function Send() {
-  const isDev = import.meta.env.DEV;
   const tokens = walletState.tokens.value;
   const network = walletState.activeNetwork.value;
 
@@ -71,7 +69,6 @@ export function Send() {
     !submitting;
 
   const fetchBalance = useCallback(async () => {
-    if (isDev) return;
     setLoadingBalance(true);
     try {
       if (isNative(selectedToken)) {
@@ -112,7 +109,7 @@ export function Send() {
     } finally {
       setLoadingBalance(false);
     }
-  }, [isDev, selectedToken, network.id]);
+  }, [selectedToken, network.id]);
 
   useEffect(() => {
     setBalance(null);
@@ -151,11 +148,6 @@ export function Send() {
     }
     if (insufficientBalance) {
       setError("Insufficient balance");
-      return;
-    }
-
-    if (isDev) {
-      route("/tx-approval");
       return;
     }
 

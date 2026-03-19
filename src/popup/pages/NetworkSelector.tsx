@@ -3,13 +3,17 @@ import { Check, Plus, ArrowLeft, Loader2 } from "lucide-preact";
 import { Modal } from "../components/Modal";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
-import { walletState, showNetworkSelector, networks } from "../mock/state";
+import { walletState, showNetworkSelector, networks } from "../store";
 
 async function fetchChainId(rpcUrl: string): Promise<number> {
-  // In production this calls the real RPC; mock simulates a delay + returns a random chain ID
-  await new Promise((r) => setTimeout(r, 800));
-  const mockId = 1000 + Math.floor(Math.random() * 9000);
-  return mockId;
+  const res = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method: "eth_chainId", params: [], id: 1 }),
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message);
+  return parseInt(json.result, 16);
 }
 
 export function NetworkSelector() {

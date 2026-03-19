@@ -6,7 +6,8 @@ import { Card } from "../components/Card";
 import { Identicon } from "../components/Identicon";
 import { CopyButton } from "../components/CopyButton";
 import { Button } from "../components/Button";
-import { walletState, showNetworkSelector } from "../mock/state";
+import { walletState, showNetworkSelector } from "../store";
+import { sendMessage } from "@shared/messages";
 import { NetworkSelector } from "./NetworkSelector";
 
 function SettingsRow({ label, onClick }: { label: string; onClick?: () => void }) {
@@ -98,7 +99,10 @@ export function Settings() {
                 )}
               </button>
             ))}
-            <button class="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-base/50 transition-colors cursor-pointer">
+            <button
+              onClick={() => walletState.addAccount()}
+              class="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-base/50 transition-colors cursor-pointer"
+            >
               <Plus size={16} />
               <span class="text-sm font-medium">Add Account</span>
             </button>
@@ -130,8 +134,8 @@ export function Settings() {
 
         <Button
           variant="ghost"
-          onClick={() => {
-            walletState.lock();
+          onClick={async () => {
+            await walletState.lock();
             route("/unlock");
           }}
         >

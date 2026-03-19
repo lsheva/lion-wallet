@@ -20,6 +20,7 @@ import { AutoLockTimer } from "./pages/AutoLockTimer";
 import { ExportPrivateKey } from "./pages/ExportPrivateKey";
 import { ShowRecoveryPhrase } from "./pages/ShowRecoveryPhrase";
 import { sendMessage } from "@shared/messages";
+import { fetchState } from "./store";
 
 const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
 const SIGN_METHODS = new Set(["personal_sign", "eth_sign", "eth_signTypedData_v4", "eth_signTypedData"]);
@@ -31,9 +32,9 @@ export function App() {
     if (import.meta.env.DEV) return;
 
     sendMessage({ type: "GET_STATE" }).then((stateRes) => {
-      const state = stateRes.ok ? (stateRes.data as { hasVault?: boolean; isUnlocked?: boolean } | undefined) : undefined;
+      const state = stateRes.ok ? (stateRes.data as { isInitialized?: boolean; isUnlocked?: boolean } | undefined) : undefined;
 
-      if (!state?.hasVault) {
+      if (!state?.isInitialized) {
         route("/", true);
         return;
       }
@@ -58,7 +59,7 @@ export function App() {
             return;
           }
         }
-        route("/home", true);
+        fetchState().then(() => route("/home", true));
       });
     });
   }, []);

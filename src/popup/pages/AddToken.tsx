@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-preact";
 import { Modal } from "../components/Modal";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
-import { tokens } from "../mock/state";
+import { tokens } from "../store";
 
 interface AddTokenProps {
   open: boolean;

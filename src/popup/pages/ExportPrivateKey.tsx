@@ -6,23 +6,41 @@ import { Banner } from "../components/Banner";
 import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
 import { Eye, EyeOff } from "lucide-preact";
-import { walletState } from "../mock/state";
-
-const MOCK_PRIVATE_KEY = "0x4c0883a69102937d6231471b5dbb6204fe512961708279f23efb3d5a8c7b4a92";
+import { walletState } from "../store";
+import { sendMessage } from "@shared/messages";
 
 export function ExportPrivateKey() {
   const [password, setPassword] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [privateKey, setPrivateKey] = useState("");
   const account = walletState.activeAccount.value;
 
-  const handleReveal = () => {
+  const handleReveal = async () => {
     if (password.length < 4) {
       setError("Incorrect password");
       return;
     }
     setError("");
+    setLoading(true);
+
+    const res = await sendMessage({
+      type: "EXPORT_PRIVATE_KEY",
+      accountIndex: walletState.activeAccountIndex.value,
+      password,
+    });
+
+    setLoading(false);
+
+    if (!res.ok) {
+      setError((res as { error?: string }).error ?? "Incorrect password");
+      return;
+    }
+
+    const data = res.data as { privateKey: string };
+    setPrivateKey(data.privateKey);
     setRevealed(true);
   };
 
@@ -54,7 +72,7 @@ export function ExportPrivateKey() {
               error={error}
               autoFocus
             />
-            <Button onClick={handleReveal} size="lg">
+            <Button onClick={handleReveal} size="lg" loading={loading}>
               Reveal Private Key
             </Button>
           </>
@@ -70,11 +88,11 @@ export function ExportPrivateKey() {
                   >
                     {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
-                  <CopyButton text={MOCK_PRIVATE_KEY} size={14} />
+                  <CopyButton text={privateKey} size={14} />
                 </div>
               </div>
               <p class="font-mono text-xs text-text-primary break-all leading-relaxed select-all">
-                {showKey ? MOCK_PRIVATE_KEY : "•".repeat(66)}
+                {showKey ? privateKey : "•".repeat(66)}
               </p>
             </Card>
           </div>

@@ -11,7 +11,7 @@ import { pendingApprovalData } from "../App";
 import { sendMessage } from "@shared/messages";
 import type { PendingApproval, SerializedAccount } from "@shared/types";
 import { MOCK_SIGN_REQUEST } from "../mock/data";
-import { walletState } from "../mock/state";
+import { walletState } from "../store";
 
 interface ApprovalData {
   approval: PendingApproval;

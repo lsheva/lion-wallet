@@ -1,11 +1,11 @@
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { route } from "preact-router";
 import { Settings, ArrowUpRight, ArrowDownLeft, Plus } from "lucide-preact";
 import { Identicon } from "../components/Identicon";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { NetworkBadge } from "../components/NetworkBadge";
 import { TokenRow } from "../components/TokenRow";
-import { walletState, showNetworkSelector } from "../mock/state";
+import { walletState, showNetworkSelector, refreshAll } from "../store";
 import { NetworkSelector } from "./NetworkSelector";
 import { AddToken } from "./AddToken";
 
@@ -13,6 +13,10 @@ export function Home() {
   const account = walletState.activeAccount.value;
   const network = walletState.activeNetwork.value;
   const [showAddToken, setShowAddToken] = useState(false);
+
+  useEffect(() => {
+    refreshAll();
+  }, []);
 
   return (
     <div class="flex flex-col h-[600px]">

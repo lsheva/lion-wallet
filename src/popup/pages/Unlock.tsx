@@ -3,21 +3,35 @@ import { route } from "preact-router";
 import { Shield } from "lucide-preact";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
-import { walletState } from "../mock/state";
+import { walletState } from "../store";
 
 export function Unlock() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("Wrong password");
   const [shaking, setShaking] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
     if (password.length < 4) {
       setError(true);
       setShaking(true);
       setTimeout(() => setShaking(false), 300);
       return;
     }
-    walletState.unlock();
+
+    setLoading(true);
+    const res = await walletState.unlock(password);
+    setLoading(false);
+
+    if (!res.ok) {
+      setError(true);
+      setErrorMsg(res.error ?? "Wrong password");
+      setShaking(true);
+      setTimeout(() => setShaking(false), 300);
+      return;
+    }
+
     route("/home");
   };
 
@@ -40,13 +54,13 @@ export function Unlock() {
           placeholder="Enter password"
           value={password}
           onInput={(v) => { setPassword(v); setError(false); }}
-          error={error ? "Wrong password" : undefined}
+          error={error ? errorMsg : undefined}
           autoFocus
         />
       </div>
 
       <div class="w-full mt-4">
-        <Button onClick={handleUnlock} size="lg">Unlock</Button>
+        <Button onClick={handleUnlock} size="lg" loading={loading}>Unlock</Button>
       </div>
 
       <button

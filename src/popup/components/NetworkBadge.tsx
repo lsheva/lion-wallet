@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-preact";
-import { activeNetwork, showNetworkSelector } from "../mock/state";
+import { activeNetwork, showNetworkSelector } from "../store";
 
 interface NetworkBadgeProps {
   clickable?: boolean;

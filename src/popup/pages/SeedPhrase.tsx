@@ -1,13 +1,22 @@
-import { useState } from "preact/hooks";
+import { useState, useMemo } from "preact/hooks";
 import { route } from "preact-router";
 import { Header } from "../components/Header";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { CopyButton } from "../components/CopyButton";
-import { MOCK_SEED_PHRASE } from "../mock/data";
 
 export function SeedPhrase() {
   const [confirmed, setConfirmed] = useState(false);
+
+  const words = useMemo(() => {
+    const mnemonic = sessionStorage.getItem("onboarding_mnemonic") ?? "";
+    return mnemonic.split(" ").filter(Boolean);
+  }, []);
+
+  if (words.length === 0) {
+    route("/");
+    return null;
+  }
 
   return (
     <div class="flex flex-col h-[600px]">
@@ -15,11 +24,11 @@ export function SeedPhrase() {
 
       <div class="flex-1 px-4 pt-2 space-y-4 overflow-y-auto">
         <Banner variant="warning">
-          Write down these 12 words in order and store them safely. Never share them with anyone.
+          Write down these {words.length} words in order and store them safely. Never share them with anyone.
         </Banner>
 
         <div class="grid grid-cols-3 gap-2">
-          {MOCK_SEED_PHRASE.map((word, i) => (
+          {words.map((word, i) => (
             <div
               key={i}
               class="flex items-center gap-1.5 bg-surface rounded-[var(--radius-chip)] px-2.5 py-2 shadow-sm"
@@ -32,7 +41,7 @@ export function SeedPhrase() {
 
         <div class="flex justify-center">
           <button class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-accent transition-colors cursor-pointer">
-            <CopyButton text={MOCK_SEED_PHRASE.join(" ")} size={14} />
+            <CopyButton text={words.join(" ")} size={14} />
             <span>Copy to clipboard</span>
           </button>
         </div>

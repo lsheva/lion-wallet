@@ -3,6 +3,8 @@ import { route } from "preact-router";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
+import { Banner } from "../components/Banner";
+import { sendMessage } from "@shared/messages";
 
 function getStrength(pw: string): { level: number; label: string; color: string } {
   if (pw.length === 0) return { level: 0, label: "", color: "bg-divider" };
@@ -20,9 +22,28 @@ function getStrength(pw: string): { level: number; label: string; color: string 
 export function SetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const strength = getStrength(password);
   const match = password.length > 0 && password === confirm;
   const canContinue = match && strength.level >= 2;
+
+  const handleContinue = async () => {
+    setLoading(true);
+    setError("");
+    const res = await sendMessage({ type: "CREATE_WALLET", password });
+    setLoading(false);
+
+    if (!res.ok) {
+      setError((res as { error?: string }).error ?? "Failed to create wallet");
+      return;
+    }
+
+    const data = res.data as { mnemonic: string };
+    sessionStorage.setItem("onboarding_mnemonic", data.mnemonic);
+    sessionStorage.setItem("onboarding_password", password);
+    route("/seed-phrase");
+  };
 
   return (
     <div class="flex flex-col h-[600px]">
@@ -67,12 +88,19 @@ export function SetPassword() {
             <p class="text-xs text-text-tertiary">{strength.label}</p>
           </div>
         )}
+
+        {error && (
+          <div class="mt-3">
+            <Banner variant="danger">{error}</Banner>
+          </div>
+        )}
       </div>
 
       <div class="px-4 py-4">
         <Button
           disabled={!canContinue}
-          onClick={() => route("/seed-phrase")}
+          onClick={handleContinue}
+          loading={loading}
           size="lg"
         >
           Continue

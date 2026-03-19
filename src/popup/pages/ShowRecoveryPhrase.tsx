@@ -5,20 +5,38 @@ import { Button } from "../components/Button";
 import { Banner } from "../components/Banner";
 import { CopyButton } from "../components/CopyButton";
 import { Eye, EyeOff } from "lucide-preact";
-import { MOCK_SEED_PHRASE } from "../mock/data";
+import { sendMessage } from "@shared/messages";
 
 export function ShowRecoveryPhrase() {
   const [password, setPassword] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [blurred, setBlurred] = useState(true);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [words, setWords] = useState<string[]>([]);
 
-  const handleReveal = () => {
+  const handleReveal = async () => {
     if (password.length < 4) {
       setError("Incorrect password");
       return;
     }
     setError("");
+    setLoading(true);
+
+    const res = await sendMessage({
+      type: "EXPORT_MNEMONIC",
+      password,
+    });
+
+    setLoading(false);
+
+    if (!res.ok) {
+      setError((res as { error?: string }).error ?? "Incorrect password");
+      return;
+    }
+
+    const data = res.data as { mnemonic: string };
+    setWords(data.mnemonic.split(" "));
     setRevealed(true);
   };
 
@@ -42,7 +60,7 @@ export function ShowRecoveryPhrase() {
               error={error}
               autoFocus
             />
-            <Button onClick={handleReveal} size="lg">
+            <Button onClick={handleReveal} size="lg" loading={loading}>
               Reveal Recovery Phrase
             </Button>
           </>
@@ -56,11 +74,11 @@ export function ShowRecoveryPhrase() {
                 {blurred ? <Eye size={14} /> : <EyeOff size={14} />}
                 {blurred ? "Show words" : "Hide words"}
               </button>
-              <CopyButton text={MOCK_SEED_PHRASE.join(" ")} size={14} />
+              <CopyButton text={words.join(" ")} size={14} />
             </div>
 
             <div class={`grid grid-cols-3 gap-2 transition-all duration-200 ${blurred ? "blur-md select-none" : ""}`}>
-              {MOCK_SEED_PHRASE.map((word, i) => (
+              {words.map((word, i) => (
                 <div
                   key={i}
                   class="flex items-center gap-1.5 bg-surface rounded-[var(--radius-chip)] px-2.5 py-2 shadow-sm"

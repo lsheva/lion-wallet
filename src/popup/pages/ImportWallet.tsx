@@ -4,8 +4,10 @@ import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Tabs } from "../components/Tabs";
 import { Button } from "../components/Button";
+import { Banner } from "../components/Banner";
 import { Clipboard } from "lucide-preact";
-import { walletState } from "../mock/state";
+import { sendMessage } from "@shared/messages";
+import { refreshAll } from "../store";
 
 const TABS = [
   { id: "mnemonic", label: "Mnemonic" },
@@ -16,7 +18,9 @@ export function ImportWallet() {
   const [tab, setTab] = useState("mnemonic");
   const [mnemonic, setMnemonic] = useState("");
   const [privateKey, setPrivateKey] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handlePaste = async () => {
     const text = await navigator.clipboard.readText();
@@ -24,7 +28,7 @@ export function ImportWallet() {
     else setPrivateKey(text);
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (tab === "mnemonic") {
       const words = mnemonic.trim().split(/\s+/);
       if (words.length !== 12 && words.length !== 24) {
@@ -37,8 +41,38 @@ export function ImportWallet() {
         return;
       }
     }
+
+    if (password.length < 4) {
+      setError("Password must be at least 4 characters");
+      return;
+    }
+
     setError("");
-    walletState.unlock();
+    setLoading(true);
+
+    let res;
+    if (tab === "mnemonic") {
+      res = await sendMessage({
+        type: "IMPORT_WALLET",
+        mnemonic: mnemonic.trim(),
+        password,
+      });
+    } else {
+      res = await sendMessage({
+        type: "IMPORT_PRIVATE_KEY",
+        privateKey: privateKey.trim() as `0x${string}`,
+        password,
+      });
+    }
+
+    setLoading(false);
+
+    if (!res.ok) {
+      setError((res as { error?: string }).error ?? "Import failed");
+      return;
+    }
+
+    await refreshAll();
     route("/home");
   };
 
@@ -46,7 +80,7 @@ export function ImportWallet() {
     <div class="flex flex-col h-[600px]">
       <Header title="Import Wallet" onBack="/" />
 
-      <div class="flex-1 px-4 pt-4 space-y-4">
+      <div class="flex-1 px-4 pt-4 space-y-4 overflow-y-auto">
         <Tabs items={TABS} active={tab} onChange={(id) => { setTab(id); setError(""); }} />
 
         {tab === "mnemonic" ? (
@@ -58,7 +92,6 @@ export function ImportWallet() {
             multiline
             rows={4}
             mono
-            error={error}
             autoFocus
           />
         ) : (
@@ -68,7 +101,6 @@ export function ImportWallet() {
             value={privateKey}
             onInput={(v) => { setPrivateKey(v); setError(""); }}
             mono
-            error={error}
             autoFocus
             rightSlot={
               <button
@@ -80,10 +112,22 @@ export function ImportWallet() {
             }
           />
         )}
+
+        <Input
+          label="Password"
+          type="password"
+          placeholder="Set a password to encrypt your wallet"
+          value={password}
+          onInput={(v) => { setPassword(v); setError(""); }}
+        />
+
+        {error && <Banner variant="danger">{error}</Banner>}
       </div>
 
       <div class="px-4 py-4">
-        <Button onClick={handleImport} size="lg">Import</Button>
+        <Button onClick={handleImport} size="lg" loading={loading}>
+          Import
+        </Button>
       </div>
     </div>
   );

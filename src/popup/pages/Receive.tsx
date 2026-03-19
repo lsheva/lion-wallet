@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { Header } from "../components/Header";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { NetworkBadge } from "../components/NetworkBadge";
-import { walletState } from "../mock/state";
+import { walletState } from "../store";
 
 export function Receive() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

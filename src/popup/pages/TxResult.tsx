@@ -6,7 +6,7 @@ import { Card } from "../components/Card";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { sendMessage } from "@shared/messages";
 import { POPUP_ORIGIN, NETWORKS } from "@shared/constants";
-import { walletState } from "../mock/state";
+import { walletState } from "../store";
 
 interface TxResultProps {
   status?: "success" | "error";

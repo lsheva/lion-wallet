@@ -2,16 +2,25 @@ import { useState, useMemo } from "preact/hooks";
 import { route } from "preact-router";
 import { Header } from "../components/Header";
 import { Button } from "../components/Button";
-import { MOCK_SEED_PHRASE } from "../mock/data";
-import { walletState } from "../mock/state";
+import { refreshAll } from "../store";
 
 export function ConfirmSeed() {
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState(false);
 
-  const shuffled = useMemo(() => {
-    return [...MOCK_SEED_PHRASE].sort(() => Math.random() - 0.5);
+  const seedWords = useMemo(() => {
+    const mnemonic = sessionStorage.getItem("onboarding_mnemonic") ?? "";
+    return mnemonic.split(" ").filter(Boolean);
   }, []);
+
+  const shuffled = useMemo(() => {
+    return [...seedWords].sort(() => Math.random() - 0.5);
+  }, [seedWords]);
+
+  if (seedWords.length === 0) {
+    route("/");
+    return null;
+  }
 
   const remaining = shuffled.filter((w) => {
     const selectedCounts = selected.reduce<Record<string, number>>((acc, s) => {
@@ -38,8 +47,8 @@ export function ConfirmSeed() {
     const next = [...selected, word];
     setSelected(next);
 
-    if (next.length === MOCK_SEED_PHRASE.length) {
-      const correct = next.every((w, i) => w === MOCK_SEED_PHRASE[i]);
+    if (next.length === seedWords.length) {
+      const correct = next.every((w, i) => w === seedWords[i]);
       if (!correct) {
         setError(true);
         setTimeout(() => {
@@ -55,8 +64,15 @@ export function ConfirmSeed() {
     setError(false);
   };
 
-  const isComplete = selected.length === MOCK_SEED_PHRASE.length;
-  const isCorrect = isComplete && selected.every((w, i) => w === MOCK_SEED_PHRASE[i]);
+  const isComplete = selected.length === seedWords.length;
+  const isCorrect = isComplete && selected.every((w, i) => w === seedWords[i]);
+
+  const handleFinish = async () => {
+    sessionStorage.removeItem("onboarding_mnemonic");
+    sessionStorage.removeItem("onboarding_password");
+    await refreshAll();
+    route("/home");
+  };
 
   return (
     <div class="flex flex-col h-[600px]">
@@ -68,7 +84,7 @@ export function ConfirmSeed() {
         </p>
 
         <div class={`grid grid-cols-4 gap-1.5 min-h-[80px] p-2 bg-surface rounded-[var(--radius-card)] ${error ? "animate-shake" : ""}`}>
-          {Array.from({ length: 12 }).map((_, i) => (
+          {Array.from({ length: seedWords.length }).map((_, i) => (
             <button
               key={i}
               onClick={() => selected[i] && handleRemove(i)}
@@ -109,10 +125,7 @@ export function ConfirmSeed() {
       <div class="px-4 py-4">
         <Button
           disabled={!isCorrect}
-          onClick={() => {
-            walletState.unlock();
-            route("/home");
-          }}
+          onClick={handleFinish}
           size="lg"
         >
           {isCorrect ? "Wallet Created!" : "Verify & Finish"}
