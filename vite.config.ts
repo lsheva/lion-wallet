@@ -16,7 +16,7 @@ export default defineConfig({
     open: true,
   },
   build: {
-    outDir: resolve(__dirname, "dist"),
+    outDir: resolve(__dirname, "dist/popup"),
     emptyOutDir: true,
   },
 });

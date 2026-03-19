@@ -1,2 +1,9 @@
 node_modules
 dist
+
+# Xcode
+xcode/**/build/
+xcode/**/*.xcuserstate
+xcode/**/xcuserdata/
+xcode/**/DerivedData/
+*.xcworkspace/xcuserdata/
