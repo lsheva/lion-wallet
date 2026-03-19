@@ -10,6 +10,7 @@ import type { SerializedAccount, VaultData } from "../shared/types";
 let unlockedMnemonic: string | null = null;
 let unlockedAccounts: SerializedAccount[] = [];
 let activeAccountIdx = 0;
+const importedKeys = new Map<string, Hex>();
 
 export function createMnemonic(): string {
   return generateMnemonic(english);
@@ -57,10 +58,19 @@ export function loadState(data: VaultData): void {
   activeAccountIdx = data.activeAccountIndex;
 }
 
+export function storeImportedKey(address: Address, privateKey: Hex): void {
+  importedKeys.set(address.toLowerCase(), privateKey);
+}
+
+export function getImportedKey(address: Address): Hex | undefined {
+  return importedKeys.get(address.toLowerCase());
+}
+
 export function clearState(): void {
   unlockedMnemonic = null;
   unlockedAccounts = [];
   activeAccountIdx = 0;
+  importedKeys.clear();
 }
 
 export function isUnlocked(): boolean {

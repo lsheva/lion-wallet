@@ -6,7 +6,7 @@ import { Tabs } from "../components/Tabs";
 import { Button } from "../components/Button";
 import { Banner } from "../components/Banner";
 import { Clipboard } from "lucide-preact";
-import { sendMessage } from "@shared/messages";
+import { sendMessage, type MessageResponse } from "@shared/messages";
 import { refreshAll } from "../store";
 
 const TABS = [
@@ -50,30 +50,35 @@ export function ImportWallet() {
     setError("");
     setLoading(true);
 
-    let res;
-    if (tab === "mnemonic") {
-      res = await sendMessage({
-        type: "IMPORT_WALLET",
-        mnemonic: mnemonic.trim(),
-        password,
-      });
-    } else {
-      res = await sendMessage({
-        type: "IMPORT_PRIVATE_KEY",
-        privateKey: privateKey.trim() as `0x${string}`,
-        password,
-      });
+    try {
+      let res: MessageResponse | undefined;
+      if (tab === "mnemonic") {
+        res = await sendMessage({
+          type: "IMPORT_WALLET",
+          mnemonic: mnemonic.trim(),
+          password,
+        });
+      } else {
+        res = await sendMessage({
+          type: "IMPORT_PRIVATE_KEY",
+          privateKey: privateKey.trim() as `0x${string}`,
+          password,
+        });
+      }
+
+      if (!res || !res.ok) {
+        const errMsg = res && "error" in res ? res.error : "Import failed";
+        setError(errMsg);
+        setLoading(false);
+        return;
+      }
+
+      await refreshAll();
+      route("/home");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Import failed — try again");
+      setLoading(false);
     }
-
-    setLoading(false);
-
-    if (!res.ok) {
-      setError((res as { error?: string }).error ?? "Import failed");
-      return;
-    }
-
-    await refreshAll();
-    route("/home");
   };
 
   return (

@@ -11,6 +11,8 @@ export const NETWORKS: NetworkConfig[] = [
   { id: 56, name: "BNB Smart Chain", symbol: "BNB", color: "#F0B90B", rpcUrl: "https://bsc-dataseed.binance.org", blockExplorerUrl: "https://bscscan.com" },
   { id: 43114, name: "Avalanche", symbol: "AVAX", color: "#E84142", rpcUrl: "https://api.avax.network/ext/bc/C/rpc", blockExplorerUrl: "https://snowtrace.io" },
   { id: 11155111, name: "Sepolia", symbol: "ETH", color: "#CFB5F0", rpcUrl: "https://rpc.sepolia.org", blockExplorerUrl: "https://sepolia.etherscan.io", testnet: true },
+  { id: 421614, name: "Arbitrum Sepolia", symbol: "ETH", color: "#28A0F0", rpcUrl: "https://sepolia-rollup.arbitrum.io/rpc", blockExplorerUrl: "https://sepolia.arbiscan.io", testnet: true },
+  { id: 31337, name: "Hardhat", symbol: "ETH", color: "#FFF100", rpcUrl: "http://127.0.0.1:8545", testnet: true },
 ];
 
 export const DEFAULT_NETWORK_ID = 1;

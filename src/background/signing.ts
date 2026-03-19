@@ -15,6 +15,13 @@ function getAccount() {
   const mnemonic = wallet.getMnemonic();
   if (!mnemonic) throw new Error("Wallet is locked");
   const idx = wallet.getActiveAccountIndex();
+  const accounts = wallet.getAccounts();
+  const active = accounts[idx];
+  if (active?.path === "imported") {
+    const pk = wallet.getImportedKey(active.address);
+    if (!pk) throw new Error("Imported private key not found");
+    return wallet.getSignerFromKey(pk);
+  }
   return wallet.getSigner(mnemonic, idx);
 }
 

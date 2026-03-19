@@ -122,3 +122,10 @@ scripts/
 - `TxResult.tsx`: real TX status tracking — polls `eth_getTransactionReceipt` + `eth_blockNumber` via existing RPC proxy, shows live confirmation count, detects reverts, links to block explorer
 - Block explorer URLs added to all 8 pre-configured networks
 - `Token` type updated with `decimals` field for proper ERC-20 amount parsing
+
+### Bugfix — Network & Account Switching + New Chains
+
+- **Account switching broken**: `store.ts` `switchAccount` only updated the local signal — never notified the background. Added `SWITCH_ACCOUNT` message type, background handler (calls `wallet.setActiveAccountIndex` + broadcasts `accountsChanged`), and updated `store.ts` to send the message
+- **Network switching fragile**: `switchNetwork` had no error handling — if `sendMessage` threw, the UI state (signal update, modal close) was never reached. Moved signal updates before the `await` and wrapped the message in try/catch so the UI always reflects the switch
+- **Added chains**: Arbitrum Sepolia (421614, `https://sepolia-rollup.arbitrum.io/rpc`) and Hardhat (31337, `http://127.0.0.1:8545`) added to `constants.ts`, `networks.ts` viemChains map, and mock data — all EVM-only
+- Total pre-configured networks: 10 (Ethereum, Polygon, Arbitrum One, Optimism, Base, BSC, Avalanche, Sepolia, Arbitrum Sepolia, Hardhat)

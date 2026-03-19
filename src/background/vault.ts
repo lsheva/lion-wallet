@@ -4,6 +4,16 @@ import type { EncryptedVault, VaultData } from "../shared/types";
 const STORAGE_KEY = "vault";
 const PBKDF2_ITERATIONS = 600_000;
 
+let cachedPassword: string | null = null;
+
+export function getCachedPassword(): string | null {
+  return cachedPassword;
+}
+
+export function clearCachedPassword(): void {
+  cachedPassword = null;
+}
+
 function toBase64(buffer: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buffer)));
 }
@@ -58,6 +68,7 @@ export async function encryptVault(
   };
 
   await browser.storage.local.set({ [STORAGE_KEY]: vault });
+  cachedPassword = password;
 }
 
 export async function decryptVault(password: string): Promise<VaultData> {
@@ -82,6 +93,7 @@ export async function decryptVault(password: string): Promise<VaultData> {
     throw new Error("Wrong password");
   }
 
+  cachedPassword = password;
   return JSON.parse(new TextDecoder().decode(decrypted));
 }
 

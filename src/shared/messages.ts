@@ -12,13 +12,15 @@ export type MessageRequest =
   | { type: "ADD_ACCOUNT" }
   | { type: "GET_BALANCE"; address: Address; chainId: number }
   | { type: "SWITCH_NETWORK"; chainId: number }
+  | { type: "SWITCH_ACCOUNT"; accountIndex: number }
   | { type: "EXPORT_PRIVATE_KEY"; accountIndex: number; password: string }
   | { type: "EXPORT_MNEMONIC"; password: string }
   | { type: "RPC_REQUEST"; id: string; method: string; params?: unknown[]; origin: string }
   | { type: "GET_PENDING_APPROVAL" }
   | { type: "APPROVE_REQUEST"; id: string; gasSpeed?: GasSpeed }
   | { type: "REJECT_REQUEST"; id: string }
-  | { type: "ESTIMATE_GAS"; chainId: number; tx: TransactionParams };
+  | { type: "ESTIMATE_GAS"; chainId: number; tx: TransactionParams }
+  | { type: "RESET_WALLET" };
 
 export type MessageResponse =
   | { ok: true; data?: unknown }
@@ -64,9 +66,17 @@ export interface ExportMnemonicResponse {
   data: { mnemonic: string };
 }
 
+const MESSAGE_TIMEOUT_MS = 30_000;
+
 export async function sendMessage(message: MessageRequest): Promise<MessageResponse> {
   const browser = (await import("webextension-polyfill")).default;
-  return browser.runtime.sendMessage(message);
+  const response = await Promise.race([
+    browser.runtime.sendMessage(message),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Background not responding — try again")), MESSAGE_TIMEOUT_MS),
+    ),
+  ]);
+  return response as MessageResponse;
 }
 
 export const CHANNEL = "SAFARI_EVM_WALLET";

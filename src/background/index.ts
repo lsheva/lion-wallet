@@ -3,7 +3,7 @@ import type { MessageRequest, MessageResponse } from "../shared/messages";
 import { CHANNEL } from "../shared/messages";
 import type { WalletState, GasSpeed, TransactionParams } from "../shared/types";
 import { AUTO_LOCK_TIMEOUT_MS } from "../shared/constants";
-import { encryptVault, decryptVault, isVaultInitialized } from "./vault";
+import { encryptVault, decryptVault, isVaultInitialized, clearVault, getCachedPassword, clearCachedPassword } from "./vault";
 import * as wallet from "./wallet";
 import {
   getActiveNetworkId,
@@ -35,6 +35,7 @@ function resetAutoLock(): void {
     autoLockTimer = setTimeout(() => {
       wallet.clearState();
       clearAllPending();
+      clearCachedPassword();
       broadcastEvent("accountsChanged", []);
       console.log("[background] auto-locked due to inactivity");
     }, AUTO_LOCK_TIMEOUT_MS);
@@ -177,7 +178,23 @@ async function handleMessage(
 
     case "IMPORT_PRIVATE_KEY": {
       const address = wallet.importFromPrivateKey(message.privateKey);
-      return { ok: true, data: { address } };
+      const mnemonic = wallet.createMnemonic();
+      const imported: import("../shared/types").SerializedAccount = {
+        name: "Imported Account",
+        address,
+        path: "imported",
+        index: 0,
+      };
+
+      wallet.loadState({
+        mnemonic,
+        accounts: [imported],
+        activeAccountIndex: 0,
+      });
+      wallet.storeImportedKey(address, message.privateKey);
+
+      await encryptVault(wallet.buildVaultData(), message.password);
+      return { ok: true, data: { accounts: [imported] } };
     }
 
     case "UNLOCK": {
@@ -195,6 +212,7 @@ async function handleMessage(
     case "LOCK": {
       wallet.clearState();
       clearAllPending();
+      clearCachedPassword();
       if (autoLockTimer) clearTimeout(autoLockTimer);
       broadcastEvent("accountsChanged", []);
       broadcastEvent("disconnect", { code: 4900, message: "Wallet locked" });
@@ -210,8 +228,12 @@ async function handleMessage(
     }
 
     case "ADD_ACCOUNT": {
+      const pw = getCachedPassword();
+      if (!pw) {
+        return { ok: false, error: "Wallet is locked — cannot persist new account" };
+      }
       const account = wallet.addAccount();
-      await encryptVault(wallet.buildVaultData(), "");
+      await encryptVault(wallet.buildVaultData(), pw);
       broadcastEvent("accountsChanged", wallet.getAccounts().map((a) => a.address));
       return { ok: true, data: { account } };
     }
@@ -227,6 +249,16 @@ async function handleMessage(
     case "SWITCH_NETWORK": {
       await setActiveNetworkId(message.chainId);
       broadcastEvent("chainChanged", numberToHex(message.chainId));
+      return { ok: true };
+    }
+
+    case "SWITCH_ACCOUNT": {
+      wallet.setActiveAccountIndex(message.accountIndex);
+      const accounts = wallet.getAccounts();
+      const active = accounts[message.accountIndex];
+      if (active) {
+        broadcastEvent("accountsChanged", accounts.map((a) => a.address));
+      }
       return { ok: true };
     }
 
@@ -281,6 +313,17 @@ async function handleMessage(
       if (!rejected) {
         return { ok: false, error: "No matching pending approval" };
       }
+      return { ok: true };
+    }
+
+    case "RESET_WALLET": {
+      wallet.clearState();
+      clearAllPending();
+      clearCachedPassword();
+      await clearVault();
+      if (autoLockTimer) clearTimeout(autoLockTimer);
+      broadcastEvent("accountsChanged", []);
+      broadcastEvent("disconnect", { code: 4900, message: "Wallet reset" });
       return { ok: true };
     }
 

@@ -9,6 +9,8 @@ import {
   bsc,
   avalanche,
   sepolia,
+  arbitrumSepolia,
+  hardhat,
 } from "viem/chains";
 import { NETWORKS, DEFAULT_NETWORK_ID } from "../shared/constants";
 import type { NetworkConfig } from "../shared/types";
@@ -24,6 +26,8 @@ const viemChains: Record<number, Chain> = {
   56: bsc,
   43114: avalanche,
   11155111: sepolia,
+  421614: arbitrumSepolia,
+  31337: hardhat,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

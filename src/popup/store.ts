@@ -109,15 +109,24 @@ export const walletState = {
   },
 
   async switchNetwork(id: number): Promise<void> {
-    await sendMessage({ type: "SWITCH_NETWORK", chainId: id });
     activeNetworkId.value = id;
     showNetworkSelector.value = false;
+    try {
+      await sendMessage({ type: "SWITCH_NETWORK", chainId: id });
+    } catch (e) {
+      console.warn("[store] switchNetwork message failed:", e);
+    }
     await fetchBalance();
   },
 
-  switchAccount(index: number) {
+  async switchAccount(index: number): Promise<void> {
     activeAccountIndex.value = index;
-    fetchBalance();
+    try {
+      await sendMessage({ type: "SWITCH_ACCOUNT", accountIndex: index });
+    } catch (e) {
+      console.warn("[store] switchAccount message failed:", e);
+    }
+    await fetchBalance();
   },
 
   renameAccount(index: number, newName: string) {
