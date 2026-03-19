@@ -1,0 +1,123 @@
+import { useState, useMemo } from "preact/hooks";
+import { route } from "preact-router";
+import { Header } from "../components/Header";
+import { Button } from "../components/Button";
+import { MOCK_SEED_PHRASE } from "../mock/data";
+import { walletState } from "../mock/state";
+
+export function ConfirmSeed() {
+  const [selected, setSelected] = useState<string[]>([]);
+  const [error, setError] = useState(false);
+
+  const shuffled = useMemo(() => {
+    return [...MOCK_SEED_PHRASE].sort(() => Math.random() - 0.5);
+  }, []);
+
+  const remaining = shuffled.filter((w) => {
+    const selectedCounts = selected.reduce<Record<string, number>>((acc, s) => {
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {});
+    const shuffledCounts = shuffled.reduce<Record<string, number>>((acc, s) => {
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {});
+    return (selectedCounts[w] || 0) < (shuffledCounts[w] || 0);
+  });
+
+  const uniqueRemaining = [...new Set(remaining)].length === remaining.length
+    ? remaining
+    : remaining.filter((w, i, arr) => {
+        const priorSelected = selected.filter((s) => s === w).length;
+        const priorInRemaining = arr.slice(0, i).filter((s) => s === w).length;
+        return priorSelected + priorInRemaining < shuffled.filter((s) => s === w).length;
+      });
+
+  const handleSelect = (word: string) => {
+    setError(false);
+    const next = [...selected, word];
+    setSelected(next);
+
+    if (next.length === MOCK_SEED_PHRASE.length) {
+      const correct = next.every((w, i) => w === MOCK_SEED_PHRASE[i]);
+      if (!correct) {
+        setError(true);
+        setTimeout(() => {
+          setSelected([]);
+          setError(false);
+        }, 800);
+      }
+    }
+  };
+
+  const handleRemove = (index: number) => {
+    setSelected((prev) => prev.filter((_, i) => i !== index));
+    setError(false);
+  };
+
+  const isComplete = selected.length === MOCK_SEED_PHRASE.length;
+  const isCorrect = isComplete && selected.every((w, i) => w === MOCK_SEED_PHRASE[i]);
+
+  return (
+    <div class="flex flex-col h-[600px]">
+      <Header title="Confirm Phrase" onBack="/seed-phrase" />
+
+      <div class="flex-1 px-4 pt-2 space-y-4 overflow-y-auto">
+        <p class="text-sm text-text-secondary">
+          Tap the words in the correct order to verify your backup.
+        </p>
+
+        <div class={`grid grid-cols-4 gap-1.5 min-h-[80px] p-2 bg-surface rounded-[var(--radius-card)] ${error ? "animate-shake" : ""}`}>
+          {Array.from({ length: 12 }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => selected[i] && handleRemove(i)}
+              class={`
+                h-8 rounded-[var(--radius-chip)] text-xs font-mono flex items-center justify-center
+                transition-all duration-150
+                ${selected[i]
+                  ? "bg-accent-light text-accent cursor-pointer hover:bg-accent/20"
+                  : "bg-base text-text-tertiary"
+                }
+                ${error && selected[i] ? "bg-[#FFF0F0] text-danger" : ""}
+              `}
+            >
+              {selected[i] ? (
+                <span>{selected[i]}</span>
+              ) : (
+                <span class="text-text-tertiary">{i + 1}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div class="grid grid-cols-4 gap-1.5">
+          {uniqueRemaining.map((word, i) => (
+            <button
+              key={`${word}-${i}`}
+              onClick={() => handleSelect(word)}
+              class="h-8 bg-surface rounded-[var(--radius-chip)] text-xs font-mono text-text-primary
+                     hover:bg-accent-light hover:text-accent shadow-sm
+                     transition-all duration-150 cursor-pointer active:scale-95"
+            >
+              {word}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div class="px-4 py-4">
+        <Button
+          disabled={!isCorrect}
+          onClick={() => {
+            walletState.unlock();
+            route("/home");
+          }}
+          size="lg"
+        >
+          {isCorrect ? "Wallet Created!" : "Verify & Finish"}
+        </Button>
+      </div>
+    </div>
+  );
+}
