@@ -1,6 +1,7 @@
 import { route } from "preact-router";
 import { CheckCircle2, XCircle } from "lucide-preact";
 import { Button } from "../components/Button";
+import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
 
 interface SignResultProps {
@@ -13,7 +14,7 @@ export function SignResult({ status = "success" }: SignResultProps) {
   const isSuccess = status === "success";
 
   return (
-    <div class="flex flex-col items-center justify-center h-[600px] px-8">
+    <div class="flex flex-col items-center justify-center h-[600px] px-4">
       <div class={`w-16 h-16 rounded-full flex items-center justify-center mb-5 ${isSuccess ? "bg-success/10" : "bg-danger/10"}`}>
         {isSuccess ? (
           <CheckCircle2 size={40} class="text-success" />
@@ -32,7 +33,7 @@ export function SignResult({ status = "success" }: SignResultProps) {
       </p>
 
       {isSuccess && (
-        <div class="w-full bg-surface rounded-[var(--radius-card)] p-4 mb-6">
+        <Card class="w-full mb-6">
           <div class="flex items-center justify-between mb-1.5">
             <p class="text-xs text-text-secondary">Signature</p>
             <CopyButton text={MOCK_SIGNATURE} size={14} />
@@ -40,16 +41,16 @@ export function SignResult({ status = "success" }: SignResultProps) {
           <p class="font-mono text-[10px] text-text-primary leading-relaxed break-all">
             {MOCK_SIGNATURE}
           </p>
-        </div>
+        </Card>
       )}
 
       {!isSuccess && (
-        <div class="w-full bg-surface rounded-[var(--radius-card)] p-4 mb-6">
+        <Card class="w-full mb-6">
           <p class="text-xs text-text-secondary mb-1">Error</p>
           <p class="font-mono text-xs text-danger leading-relaxed">
             Error: user rejected the signing request
           </p>
-        </div>
+        </Card>
       )}
 
       <div class="w-full space-y-3">

@@ -31,14 +31,13 @@ export function SignMessage() {
         </p>
 
         {/* Message */}
-        <div>
-          <p class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">Message</p>
-          <div class="bg-base rounded-[var(--radius-card)] p-3 max-h-[200px] overflow-y-auto">
+        <Card header="Message" padding={false}>
+          <div class="px-4 py-3 max-h-[200px] overflow-y-auto">
             <pre class="font-mono text-xs text-text-primary whitespace-pre-wrap break-words leading-relaxed">
               {req.message}
             </pre>
           </div>
-        </div>
+        </Card>
 
         {/* Signing account */}
         <Card>

@@ -3,6 +3,7 @@ import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
 import { Banner } from "../components/Banner";
+import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
 import { Eye, EyeOff } from "lucide-preact";
 import { walletState } from "../mock/state";
@@ -34,13 +35,13 @@ export function ExportPrivateKey() {
           Never share your private key. Anyone with this key has full control of your wallet.
         </Banner>
 
-        <div class="bg-surface rounded-[var(--radius-card)] px-4 py-3">
+        <Card>
           <p class="text-xs text-text-secondary">Account</p>
           <p class="text-sm font-semibold text-text-primary mt-0.5">{account.name}</p>
           <p class="text-xs font-mono text-text-primary/70 mt-0.5">
             {account.address.slice(0, 6)}...{account.address.slice(-4)}
           </p>
-        </div>
+        </Card>
 
         {!revealed ? (
           <>
@@ -59,7 +60,7 @@ export function ExportPrivateKey() {
           </>
         ) : (
           <div class="space-y-3">
-            <div class="bg-surface rounded-[var(--radius-card)] p-4">
+            <Card>
               <div class="flex items-center justify-between mb-2">
                 <p class="text-xs text-text-secondary">Private Key</p>
                 <div class="flex items-center gap-1">
@@ -75,7 +76,7 @@ export function ExportPrivateKey() {
               <p class="font-mono text-xs text-text-primary break-all leading-relaxed select-all">
                 {showKey ? MOCK_PRIVATE_KEY : "•".repeat(66)}
               </p>
-            </div>
+            </Card>
           </div>
         )}
       </div>

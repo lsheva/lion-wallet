@@ -23,7 +23,7 @@ export function Receive() {
     <div class="flex flex-col h-[600px]">
       <Header title="Receive" onBack="/home" />
 
-      <div class="flex-1 flex flex-col items-center justify-center px-6">
+      <div class="flex-1 flex flex-col items-center justify-center px-4">
         <div class="bg-surface rounded-2xl p-5 shadow-sm">
           <canvas ref={canvasRef} class="rounded-lg" />
         </div>

@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { Header } from "../components/Header";
+import { Card } from "../components/Card";
 import { Check } from "lucide-preact";
 
 const OPTIONS = [
@@ -23,18 +24,20 @@ export function AutoLockTimer() {
           Automatically lock your wallet after a period of inactivity.
         </p>
 
-        <div class="bg-surface rounded-[var(--radius-card)] shadow-sm divide-y divide-divider">
-          {OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setSelected(opt.value)}
-              class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
-            >
-              <span class="text-sm text-text-primary">{opt.label}</span>
-              {selected === opt.value && <Check size={16} class="text-accent shrink-0" />}
-            </button>
-          ))}
-        </div>
+        <Card padding={false}>
+          <div class="divide-y divide-divider">
+            {OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSelected(opt.value)}
+                class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
+              >
+                <span class="text-sm text-text-primary">{opt.label}</span>
+                {selected === opt.value && <Check size={16} class="text-accent shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </Card>
       </div>
     </div>
   );

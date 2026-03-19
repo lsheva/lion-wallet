@@ -38,7 +38,7 @@ export function Home() {
         </div>
 
         {/* Quick Actions */}
-        <div class="flex gap-3 px-6 pb-4">
+        <div class="flex gap-3 px-4 pb-4">
           <button
             onClick={() => route("/send")}
             class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-accent text-accent-foreground rounded-full font-medium text-sm hover:bg-accent-hover transition-colors cursor-pointer active:scale-[0.97]"

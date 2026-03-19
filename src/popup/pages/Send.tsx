@@ -4,6 +4,7 @@ import { Clipboard } from "lucide-preact";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
+import { Card } from "../components/Card";
 import { walletState } from "../mock/state";
 
 export function Send() {
@@ -64,16 +65,18 @@ export function Send() {
           <p class="text-xs text-text-tertiary mt-1.5">{usdEstimate} USD</p>
         </div>
 
-        <div class="bg-surface rounded-[var(--radius-card)] p-3 space-y-2">
-          <div class="flex justify-between text-sm">
-            <span class="text-text-secondary">Network fee</span>
-            <span class="text-text-primary font-mono">~$2.40</span>
+        <Card>
+          <div class="space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-text-secondary">Network fee</span>
+              <span class="text-text-primary font-mono">~$2.40</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-text-secondary">Estimated time</span>
+              <span class="text-text-primary">~12 sec</span>
+            </div>
           </div>
-          <div class="flex justify-between text-sm">
-            <span class="text-text-secondary">Estimated time</span>
-            <span class="text-text-primary">~12 sec</span>
-          </div>
-        </div>
+        </Card>
       </div>
 
       <div class="px-4 py-4">

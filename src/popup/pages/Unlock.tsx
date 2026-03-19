@@ -26,7 +26,7 @@ export function Unlock() {
   };
 
   return (
-    <div class="flex flex-col items-center justify-center h-[600px] px-8" onKeyDown={handleKeyDown}>
+    <div class="flex flex-col items-center justify-center h-[600px] px-4" onKeyDown={handleKeyDown}>
       <div class="relative mb-8">
         <div class="absolute inset-0 bg-accent/20 rounded-full blur-2xl scale-150" />
         <div class="relative w-16 h-16 bg-accent rounded-2xl flex items-center justify-center shadow-lg">

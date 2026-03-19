@@ -4,7 +4,7 @@ import { Shield } from "lucide-preact";
 
 export function Welcome() {
   return (
-    <div class="flex flex-col items-center justify-center h-[600px] px-8">
+    <div class="flex flex-col items-center justify-center h-[600px] px-4">
       <div class="relative mb-6">
         <div class="absolute inset-0 bg-accent/20 rounded-full blur-2xl scale-150" />
         <div class="relative w-20 h-20 bg-accent rounded-2xl flex items-center justify-center shadow-lg">

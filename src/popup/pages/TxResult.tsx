@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "preact/hooks";
 import { route } from "preact-router";
 import { CheckCircle2, XCircle, ExternalLink, Loader2 } from "lucide-preact";
 import { Button } from "../components/Button";
+import { Card } from "../components/Card";
 import { AddressDisplay } from "../components/AddressDisplay";
 
 interface TxResultProps {
@@ -36,7 +37,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
 
   if (isError) {
     return (
-      <div class="flex flex-col items-center justify-center h-[600px] px-8">
+      <div class="flex flex-col items-center justify-center h-[600px] px-4">
         <div class="w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-danger/10">
           <XCircle size={40} class="text-danger" />
         </div>
@@ -44,12 +45,12 @@ export function TxResult({ status = "success" }: TxResultProps) {
         <p class="text-sm text-text-secondary text-center mb-6">
           Something went wrong. The transaction was not submitted.
         </p>
-        <div class="w-full bg-surface rounded-[var(--radius-card)] p-4 mb-6">
+        <Card class="w-full mb-6">
           <p class="text-xs text-text-secondary mb-1">Error</p>
           <p class="font-mono text-xs text-danger leading-relaxed">
             Error: insufficient funds for gas * price + value: balance 0.001 ETH, tx cost 0.5 ETH
           </p>
-        </div>
+        </Card>
         <div class="w-full space-y-3">
           <Button onClick={() => route("/home")} size="lg">Back to Wallet</Button>
           <Button variant="secondary" onClick={() => route("/tx-approval")} size="lg">Try Again</Button>
@@ -59,7 +60,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
   }
 
   return (
-    <div class="flex flex-col items-center justify-center h-[600px] px-8">
+    <div class="flex flex-col items-center justify-center h-[600px] px-4">
       {/* Icon: spinner while pending, checkmark when mined */}
       <div class={`w-16 h-16 rounded-full flex items-center justify-center mb-5 ${mined ? "bg-success/10" : "bg-accent-light"}`}>
         {mined ? (
@@ -97,24 +98,26 @@ export function TxResult({ status = "success" }: TxResultProps) {
       </div>
 
       {/* TX details */}
-      <div class="w-full bg-surface rounded-[var(--radius-card)] p-4 mb-6 space-y-3">
-        <div class="flex justify-between text-sm">
-          <span class="text-text-secondary">Amount</span>
-          <span class="font-mono font-medium text-text-primary">0.5 ETH</span>
+      <Card class="w-full mb-6">
+        <div class="space-y-3">
+          <div class="flex justify-between text-sm">
+            <span class="text-text-secondary">Amount</span>
+            <span class="font-mono font-medium text-text-primary">0.5 ETH</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-text-secondary">Fee</span>
+            <span class="font-mono text-text-primary">~$2.40</span>
+          </div>
+          <div class="border-t border-divider pt-3">
+            <p class="text-xs text-text-secondary mb-1">Transaction Hash</p>
+            <AddressDisplay address={MOCK_TX_HASH} />
+          </div>
+          <button class="flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer">
+            <span>View on Explorer</span>
+            <ExternalLink size={12} />
+          </button>
         </div>
-        <div class="flex justify-between text-sm">
-          <span class="text-text-secondary">Fee</span>
-          <span class="font-mono text-text-primary">~$2.40</span>
-        </div>
-        <div class="border-t border-divider pt-3">
-          <p class="text-xs text-text-secondary mb-1">Transaction Hash</p>
-          <AddressDisplay address={MOCK_TX_HASH} />
-        </div>
-        <button class="flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer">
-          <span>View on Explorer</span>
-          <ExternalLink size={12} />
-        </button>
-      </div>
+      </Card>
 
       <div class="w-full">
         <Button onClick={() => route("/home")} size="lg" variant={mined ? "primary" : "secondary"}>
