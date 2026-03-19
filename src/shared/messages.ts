@@ -1,5 +1,5 @@
 import type { Address, Hex } from "viem";
-import type { SerializedAccount, WalletState } from "./types";
+import type { SerializedAccount, WalletState, GasSpeed, TransactionParams } from "./types";
 
 export type MessageRequest =
   | { type: "CREATE_WALLET"; password: string }
@@ -14,7 +14,11 @@ export type MessageRequest =
   | { type: "SWITCH_NETWORK"; chainId: number }
   | { type: "EXPORT_PRIVATE_KEY"; accountIndex: number; password: string }
   | { type: "EXPORT_MNEMONIC"; password: string }
-  | { type: "RPC_REQUEST"; id: string; method: string; params?: unknown[]; origin: string };
+  | { type: "RPC_REQUEST"; id: string; method: string; params?: unknown[]; origin: string }
+  | { type: "GET_PENDING_APPROVAL" }
+  | { type: "APPROVE_REQUEST"; id: string; gasSpeed?: GasSpeed }
+  | { type: "REJECT_REQUEST"; id: string }
+  | { type: "ESTIMATE_GAS"; chainId: number; tx: TransactionParams };
 
 export type MessageResponse =
   | { ok: true; data?: unknown }
@@ -60,7 +64,8 @@ export interface ExportMnemonicResponse {
   data: { mnemonic: string };
 }
 
-export function sendMessage(message: MessageRequest): Promise<MessageResponse> {
+export async function sendMessage(message: MessageRequest): Promise<MessageResponse> {
+  const browser = (await import("webextension-polyfill")).default;
   return browser.runtime.sendMessage(message);
 }
 

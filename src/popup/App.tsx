@@ -1,5 +1,6 @@
-import Router, { Route } from "preact-router";
-import { walletState } from "./mock/state";
+import Router, { Route, route } from "preact-router";
+import { useEffect } from "preact/hooks";
+import { signal } from "@preact/signals";
 import { DevToolbar } from "./mock/DevToolbar";
 import { Welcome } from "./pages/Welcome";
 import { SetPassword } from "./pages/SetPassword";
@@ -18,8 +19,32 @@ import { SignResult } from "./pages/SignResult";
 import { AutoLockTimer } from "./pages/AutoLockTimer";
 import { ExportPrivateKey } from "./pages/ExportPrivateKey";
 import { ShowRecoveryPhrase } from "./pages/ShowRecoveryPhrase";
+import { sendMessage } from "@shared/messages";
+
+const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
+const SIGN_METHODS = new Set(["personal_sign", "eth_sign", "eth_signTypedData_v4", "eth_signTypedData"]);
+
+export const pendingApprovalData = signal<Record<string, unknown> | null>(null);
 
 export function App() {
+  useEffect(() => {
+    if (import.meta.env.DEV) return;
+    sendMessage({ type: "GET_PENDING_APPROVAL" }).then((res) => {
+      if (!res.ok || !res.data) return;
+      const data = res.data as Record<string, unknown>;
+      const approval = data.approval as { method: string } | undefined;
+      if (!approval) return;
+
+      pendingApprovalData.value = data;
+
+      if (TX_METHODS.has(approval.method)) {
+        route("/tx-approval");
+      } else if (SIGN_METHODS.has(approval.method)) {
+        route("/sign-message");
+      }
+    });
+  }, []);
+
   return (
     <div class="relative mx-auto bg-base" style={{ width: 360, minHeight: 600, maxHeight: 600, overflow: "hidden" }}>
       <div class="h-[600px] overflow-y-auto overflow-x-hidden">

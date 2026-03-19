@@ -1,5 +1,5 @@
 import browser from "webextension-polyfill";
-import { createPublicClient, http, type PublicClient } from "viem";
+import { createPublicClient, http, type Chain } from "viem";
 import {
   mainnet,
   polygon,
@@ -15,7 +15,7 @@ import type { NetworkConfig } from "../shared/types";
 
 const STORAGE_KEY = "activeNetworkId";
 
-const viemChains: Record<number, (typeof mainnet)> = {
+const viemChains: Record<number, Chain> = {
   1: mainnet,
   137: polygon,
   42161: arbitrum,
@@ -26,7 +26,8 @@ const viemChains: Record<number, (typeof mainnet)> = {
   11155111: sepolia,
 };
 
-const clientCache = new Map<number, PublicClient>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const clientCache = new Map<number, any>();
 
 export function getNetworkConfig(chainId: number): NetworkConfig | undefined {
   return NETWORKS.find((n) => n.id === chainId);
@@ -34,6 +35,10 @@ export function getNetworkConfig(chainId: number): NetworkConfig | undefined {
 
 export function getAllNetworks(): NetworkConfig[] {
   return NETWORKS;
+}
+
+export function getViemChain(chainId: number): Chain | undefined {
+  return viemChains[chainId];
 }
 
 export async function getActiveNetworkId(): Promise<number> {
@@ -48,7 +53,7 @@ export async function setActiveNetworkId(chainId: number): Promise<void> {
   await browser.storage.local.set({ [STORAGE_KEY]: chainId });
 }
 
-export function getPublicClient(chainId: number): PublicClient {
+export function getPublicClient(chainId: number) {
   const cached = clientCache.get(chainId);
   if (cached) return cached;
 

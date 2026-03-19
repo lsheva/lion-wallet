@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 
 export interface SerializedAccount {
   name: string;
@@ -45,4 +45,48 @@ export interface TokenInfo {
   balance: string;
   usdValue?: string;
   color: string;
+}
+
+export type GasSpeed = "slow" | "normal" | "fast";
+
+export interface GasEstimate {
+  gasLimit: string;
+  maxFeePerGas: string;
+  maxPriorityFeePerGas: string;
+  estimatedCostWei: string;
+  estimatedCostEth: string;
+}
+
+export interface GasPresets {
+  slow: GasEstimate;
+  normal: GasEstimate;
+  fast: GasEstimate;
+  baseFeeGwei: string;
+}
+
+export interface TransactionParams {
+  from?: Address;
+  to: Address;
+  value?: Hex;
+  data?: Hex;
+  gas?: Hex;
+  gasPrice?: Hex;
+  maxFeePerGas?: Hex;
+  maxPriorityFeePerGas?: Hex;
+  nonce?: Hex;
+}
+
+export interface PendingApproval {
+  id: string;
+  method: string;
+  params: unknown[];
+  origin: string;
+  timestamp: number;
+  chainId: number;
+}
+
+export interface ApprovalResult {
+  txHash?: Hex;
+  signature?: Hex;
+  error?: string;
 }

@@ -6,6 +6,7 @@ import {
   setActiveNetworkId,
   getNetworkConfig,
 } from "./networks";
+import { createPendingApproval } from "./approval";
 
 export interface RpcError {
   code: number;
@@ -21,12 +22,27 @@ type RpcResult = { result: unknown } | { error: RpcError };
 
 const connectedOrigins = new Set<string>();
 
+const SIGNING_METHODS = new Set([
+  "eth_sendTransaction",
+  "eth_signTransaction",
+  "personal_sign",
+  "eth_sign",
+  "eth_signTypedData_v4",
+  "eth_signTypedData",
+]);
+
 export function isOriginConnected(origin: string): boolean {
   return connectedOrigins.has(origin);
 }
 
 export function disconnectOrigin(origin: string): void {
   connectedOrigins.delete(origin);
+}
+
+let onApprovalCreated: (() => void) | null = null;
+
+export function setApprovalCreatedCallback(cb: () => void): void {
+  onApprovalCreated = cb;
 }
 
 export async function handleRpc(
@@ -114,24 +130,32 @@ export async function handleRpc(
         return ok(null);
       }
 
-      case "eth_sendTransaction":
-      case "eth_signTransaction":
-      case "personal_sign":
-      case "eth_sign":
-      case "eth_signTypedData_v4":
-      case "eth_signTypedData": {
-        if (!wallet.isUnlocked()) {
-          return err(4100, "Wallet is locked");
-        }
-        if (!connectedOrigins.has(ctx.origin)) {
-          return err(4100, "Unauthorized — connect first via eth_requestAccounts");
-        }
-        return err(4200, `User approval required for ${method}`);
+      default:
+        break;
+    }
+
+    if (SIGNING_METHODS.has(method)) {
+      if (!wallet.isUnlocked()) {
+        return err(4100, "Wallet is locked");
+      }
+      if (!connectedOrigins.has(ctx.origin)) {
+        return err(4100, "Unauthorized — connect first via eth_requestAccounts");
       }
 
-      default:
-        return proxyToRpc(method, params);
+      const chainId = await getActiveNetworkId();
+      const { promise } = createPendingApproval(
+        method,
+        params ?? [],
+        ctx.origin,
+        chainId,
+      );
+
+      if (onApprovalCreated) onApprovalCreated();
+
+      return promise;
     }
+
+    return proxyToRpc(method, params);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Internal error";
     return err(-32603, message);

@@ -1,3 +1,4 @@
+import { useEffect } from "preact/hooks";
 import { route } from "preact-router";
 import { CheckCircle2, XCircle } from "lucide-preact";
 import { Button } from "../components/Button";
@@ -8,10 +9,23 @@ interface SignResultProps {
   status?: "success" | "error";
 }
 
-const MOCK_SIGNATURE = "0x4a8b9c2d1e3f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c00";
-
 export function SignResult({ status = "success" }: SignResultProps) {
   const isSuccess = status === "success";
+
+  const stored = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("signResult") ?? "{}");
+    } catch {
+      return {};
+    }
+  })();
+
+  const signature = stored.signature as string | undefined;
+  const errorMessage = stored.error as string | undefined;
+
+  useEffect(() => {
+    return () => sessionStorage.removeItem("signResult");
+  }, []);
 
   return (
     <div class="flex flex-col items-center justify-center h-[600px] px-4">
@@ -32,14 +46,14 @@ export function SignResult({ status = "success" }: SignResultProps) {
           : "Something went wrong. The message was not signed."}
       </p>
 
-      {isSuccess && (
+      {isSuccess && signature && (
         <Card class="w-full mb-6">
           <div class="flex items-center justify-between mb-1.5">
             <p class="text-xs text-text-secondary">Signature</p>
-            <CopyButton text={MOCK_SIGNATURE} size={14} />
+            <CopyButton text={signature} size={14} />
           </div>
           <p class="font-mono text-[10px] text-text-primary leading-relaxed break-all">
-            {MOCK_SIGNATURE}
+            {signature}
           </p>
         </Card>
       )}
@@ -48,7 +62,7 @@ export function SignResult({ status = "success" }: SignResultProps) {
         <Card class="w-full mb-6">
           <p class="text-xs text-text-secondary mb-1">Error</p>
           <p class="font-mono text-xs text-danger leading-relaxed">
-            Error: user rejected the signing request
+            {errorMessage ?? "User rejected the signing request"}
           </p>
         </Card>
       )}
@@ -57,11 +71,6 @@ export function SignResult({ status = "success" }: SignResultProps) {
         <Button onClick={() => route("/home")} size="lg">
           {isSuccess ? "Done" : "Back to Wallet"}
         </Button>
-        {!isSuccess && (
-          <Button variant="secondary" onClick={() => route("/sign-message")} size="lg">
-            Try Again
-          </Button>
-        )}
       </div>
     </div>
   );

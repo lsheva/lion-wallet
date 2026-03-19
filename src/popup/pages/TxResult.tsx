@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "preact/hooks";
 import { route } from "preact-router";
-import { CheckCircle2, XCircle, ExternalLink, Loader2 } from "lucide-preact";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-preact";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { AddressDisplay } from "../components/AddressDisplay";
@@ -9,13 +9,23 @@ interface TxResultProps {
   status?: "success" | "error";
 }
 
-const MOCK_TX_HASH = "0x9a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b";
 const REQUIRED_CONFIRMATIONS = 12;
 
 export function TxResult({ status = "success" }: TxResultProps) {
   const isError = status === "error";
   const [confirmations, setConfirmations] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+
+  const stored = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("txResult") ?? "{}");
+    } catch {
+      return {};
+    }
+  })();
+
+  const txHash = stored.hash as string | undefined;
+  const errorMessage = stored.error as string | undefined;
 
   const mined = confirmations >= REQUIRED_CONFIRMATIONS;
 
@@ -33,6 +43,10 @@ export function TxResult({ status = "success" }: TxResultProps) {
     return () => clearInterval(intervalRef.current);
   }, [isError]);
 
+  useEffect(() => {
+    return () => sessionStorage.removeItem("txResult");
+  }, []);
+
   const progressPct = Math.min((confirmations / REQUIRED_CONFIRMATIONS) * 100, 100);
 
   if (isError) {
@@ -48,12 +62,11 @@ export function TxResult({ status = "success" }: TxResultProps) {
         <Card class="w-full mb-6">
           <p class="text-xs text-text-secondary mb-1">Error</p>
           <p class="font-mono text-xs text-danger leading-relaxed">
-            Error: insufficient funds for gas * price + value: balance 0.001 ETH, tx cost 0.5 ETH
+            {errorMessage ?? "Unknown error occurred"}
           </p>
         </Card>
         <div class="w-full space-y-3">
           <Button onClick={() => route("/home")} size="lg">Back to Wallet</Button>
-          <Button variant="secondary" onClick={() => route("/tx-approval")} size="lg">Try Again</Button>
         </div>
       </div>
     );
@@ -61,7 +74,6 @@ export function TxResult({ status = "success" }: TxResultProps) {
 
   return (
     <div class="flex flex-col items-center justify-center h-[600px] px-4">
-      {/* Icon: spinner while pending, checkmark when mined */}
       <div class={`w-16 h-16 rounded-full flex items-center justify-center mb-5 ${mined ? "bg-success/10" : "bg-accent-light"}`}>
         {mined ? (
           <CheckCircle2 size={40} class="text-success" />
@@ -79,7 +91,6 @@ export function TxResult({ status = "success" }: TxResultProps) {
           : "Waiting for confirmations..."}
       </p>
 
-      {/* Confirmation progress */}
       <div class="w-full mb-5">
         <div class="flex items-center justify-between text-xs mb-1.5">
           <span class="text-text-secondary">
@@ -97,27 +108,16 @@ export function TxResult({ status = "success" }: TxResultProps) {
         </div>
       </div>
 
-      {/* TX details */}
-      <Card class="w-full mb-6">
-        <div class="space-y-3">
-          <div class="flex justify-between text-sm">
-            <span class="text-text-secondary">Amount</span>
-            <span class="font-mono font-medium text-text-primary">0.5 ETH</span>
+      {txHash && (
+        <Card class="w-full mb-6">
+          <div class="space-y-3">
+            <div class="border-t border-divider pt-3">
+              <p class="text-xs text-text-secondary mb-1">Transaction Hash</p>
+              <AddressDisplay address={txHash} />
+            </div>
           </div>
-          <div class="flex justify-between text-sm">
-            <span class="text-text-secondary">Fee</span>
-            <span class="font-mono text-text-primary">~$2.40</span>
-          </div>
-          <div class="border-t border-divider pt-3">
-            <p class="text-xs text-text-secondary mb-1">Transaction Hash</p>
-            <AddressDisplay address={MOCK_TX_HASH} />
-          </div>
-          <button class="flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer">
-            <span>View on Explorer</span>
-            <ExternalLink size={12} />
-          </button>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       <div class="w-full">
         <Button onClick={() => route("/home")} size="lg" variant={mined ? "primary" : "secondary"}>
