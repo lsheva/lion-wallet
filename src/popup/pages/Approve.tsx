@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "preact/hooks";
 import type { RefObject } from "preact";
 import { route } from "preact-router";
 import { ChevronDown, ChevronUp, Globe, Zap, Gauge, Rocket, FileCode, ArrowUpRight, ArrowDownLeft, Info } from "lucide-preact";
-import { formatEther, formatGwei, type Hex } from "viem";
+import { formatGwei } from "viem";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { BottomActions } from "../components/BottomActions";
@@ -13,11 +13,13 @@ import { AddressDisplay } from "../components/AddressDisplay";
 import { pendingApprovalData, routeToNextApprovalOrClose, closePopup } from "../App";
 import { sendMessage } from "@shared/messages";
 import type { GasSpeed, GasPresets, PendingApproval, TransactionParams, SerializedAccount, DecodedCall, TokenTransfer } from "@shared/types";
-import { POPUP_ORIGIN } from "@shared/constants";
+import { POPUP_ORIGIN, NETWORKS } from "@shared/constants";
 import { MOCK_TX_REQUEST, MOCK_SIGN_REQUEST } from "../mock/data";
 import { walletState } from "../store";
 
 const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
+
+const NETWORK_BY_ID = new Map(NETWORKS.map((n) => [n.id, n]));
 
 interface ApprovalData {
   approval: PendingApproval;
@@ -153,6 +155,8 @@ export function Approve() {
         : "Transaction Request"
     : "Signature Request";
 
+  const network = NETWORK_BY_ID.get(approval.chainId);
+
   return (
     <div class="flex flex-col h-[600px]">
       <div class="text-center py-3 border-b border-divider relative">
@@ -162,6 +166,17 @@ export function Approve() {
             +{queueSize - 1} more
           </span>
         )}
+      </div>
+
+      <div class="flex items-center justify-between px-4 py-1.5 text-xs text-text-tertiary border-b border-divider">
+        <div class="flex items-center gap-1.5">
+          {network && <span class="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: network.color }} />}
+          <span>{network?.name ?? `Chain ${approval.chainId}`}</span>
+        </div>
+        <span class="inline-flex items-center gap-1">
+          {data.account.name} · {truncateAddress(data.account.address)}
+          <CopyButton text={data.account.address} size={12} />
+        </span>
       </div>
 
       {!isPopupOrigin && (
@@ -204,6 +219,15 @@ export function Approve() {
 const GAS_ICONS = { slow: Gauge, normal: Zap, fast: Rocket } as const;
 const GAS_LABELS = { slow: "Slow", normal: "Normal", fast: "Fast" } as const;
 
+function formatGasCost(ethCost: string, nativeUsdPrice: number | null | undefined): string {
+  const eth = parseFloat(ethCost);
+  if (nativeUsdPrice && nativeUsdPrice > 0) {
+    const usd = eth * nativeUsdPrice;
+    return usd < 0.01 ? "<$0.01" : `$${usd.toFixed(2)}`;
+  }
+  return `${eth.toFixed(6)} ETH`;
+}
+
 function scrollEndIntoView(ref: RefObject<HTMLElement | null>) {
   requestAnimationFrame(() => {
     const el = ref.current;
@@ -218,15 +242,6 @@ function scrollEndIntoView(ref: RefObject<HTMLElement | null>) {
       container.scrollTo({ top: target, behavior: "smooth" });
     }
   });
-}
-
-function formatValue(hex: Hex | undefined): string {
-  if (!hex || hex === "0x0" || hex === "0x") return "0";
-  try {
-    return formatEther(BigInt(hex));
-  } catch {
-    return "0";
-  }
 }
 
 interface TxContentProps {
@@ -258,12 +273,10 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
   const dataRef = useRef<HTMLDivElement>(null);
   const argsRef = useRef<HTMLButtonElement>(null);
   const [argsExpanded, setArgsExpanded] = useState(false);
-  const { approval, gasPresets, account, decoded, transfers, decodedVia, simulatedVia, hasEtherscanKey, hasRpcProviderKey } = data;
+  const { approval, gasPresets, decoded, transfers, nativeUsdPrice, decodedVia, simulatedVia, hasEtherscanKey, hasRpcProviderKey } = data;
   const _debug = (data as unknown as Record<string, unknown>)._debug;
   console.log("[popup] TxContent — decoded:", decoded, "transfers:", transfers, "_debug:", _debug);
   const txParams = approval.params[0] as TransactionParams;
-  const value = formatValue(txParams.value);
-  const hasValue = value !== "0";
   const currentGas = gasPresets?.[gasSpeed];
   const hasCalldata = !!(txParams.data && txParams.data !== "0x" && txParams.data.length >= 10);
   const showEtherscanHint = hasCalldata && !hasEtherscanKey && decodedVia !== "etherscan";
@@ -274,6 +287,7 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
       {decoded && (
         <DecodedCallCard
           decoded={decoded}
+          toAddress={txParams.to}
           argsExpanded={argsExpanded}
           setArgsExpanded={setArgsExpanded}
           argsRef={argsRef}
@@ -285,65 +299,11 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
       )}
 
       {transfers && transfers.length > 0 && (
-        <TransfersCard transfers={transfers} toAddress={txParams.to} />
+        <TransfersCard transfers={transfers} />
       )}
 
       {showAlchemyHint && (
         <ApiKeyHint text="Add Alchemy key for transaction simulation —" />
-      )}
-
-      <Card>
-        <div class="space-y-2.5">
-          {hasValue && (
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-text-secondary">Value</span>
-              <span class="font-mono text-lg font-semibold text-text-primary">{value} ETH</span>
-            </div>
-          )}
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-text-secondary">To</span>
-            <AddressDisplay address={txParams.to} />
-          </div>
-          {account && (
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-text-secondary">From</span>
-              <AddressDisplay address={account.address} />
-            </div>
-          )}
-        </div>
-      </Card>
-
-      {gasPresets && (
-        <Card>
-          <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2.5">Gas Fee</p>
-          <div class="grid grid-cols-3 gap-2">
-            {(["slow", "normal", "fast"] as GasSpeed[]).map((speed) => {
-              const estimate = gasPresets[speed];
-              const Icon = GAS_ICONS[speed];
-              const active = gasSpeed === speed;
-              return (
-                <button
-                  type="button"
-                  key={speed}
-                  onClick={() => setGasSpeed(speed)}
-                  class={`flex flex-col items-center gap-1.5 py-2.5 px-2 rounded-[var(--radius-chip)] border transition-all cursor-pointer ${
-                    active
-                      ? "border-accent bg-accent-light"
-                      : "border-divider hover:border-text-tertiary"
-                  }`}
-                >
-                  <Icon size={16} class={active ? "text-accent" : "text-text-tertiary"} />
-                  <span class={`text-xs font-medium ${active ? "text-accent" : "text-text-secondary"}`}>
-                    {GAS_LABELS[speed]}
-                  </span>
-                  <span class="font-mono text-[10px] text-text-tertiary">
-                    {parseFloat(estimate.estimatedCostEth).toFixed(6)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </Card>
       )}
 
       <div ref={detailsRef}>
@@ -358,25 +318,53 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
             }}
           >
             <div class="flex items-center justify-between px-4 py-2.5">
-              <span class="text-xs text-text-secondary uppercase tracking-wider font-semibold">Details</span>
+              <span class="text-xs text-text-secondary uppercase tracking-wider font-semibold">Gas & Details</span>
               {showDetails ? <ChevronUp size={14} class="text-text-tertiary" /> : <ChevronDown size={14} class="text-text-tertiary" />}
             </div>
-            {currentGas && (
-              <div class="px-4 pb-3">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-text-secondary">Estimated fee</span>
-                  <span class="font-mono font-medium text-text-primary">
-                    {parseFloat(currentGas.estimatedCostEth).toFixed(6)} ETH
-                  </span>
-                </div>
-              </div>
-            )}
           </button>
+
+          {gasPresets && (
+            <div class="px-4 pb-3">
+              <div class="grid grid-cols-3 gap-2">
+                {(["slow", "normal", "fast"] as GasSpeed[]).map((speed) => {
+                  const estimate = gasPresets[speed];
+                  const Icon = GAS_ICONS[speed];
+                  const active = gasSpeed === speed;
+                  return (
+                    <button
+                      type="button"
+                      key={speed}
+                      onClick={() => setGasSpeed(speed)}
+                      class={`flex flex-col items-center gap-1.5 py-2.5 px-2 rounded-[var(--radius-chip)] border transition-all cursor-pointer ${
+                        active
+                          ? "border-accent bg-accent-light"
+                          : "border-divider hover:border-text-tertiary"
+                      }`}
+                    >
+                      <Icon size={16} class={active ? "text-accent" : "text-text-tertiary"} />
+                      <span class={`text-xs font-medium ${active ? "text-accent" : "text-text-secondary"}`}>
+                        {GAS_LABELS[speed]}
+                      </span>
+                      <span class="font-mono text-[10px] text-text-tertiary">
+                        {formatGasCost(estimate.estimatedCostEth, nativeUsdPrice)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {showDetails && (
             <div class="px-4 pb-3 space-y-2 text-sm border-t border-divider pt-2.5">
               {currentGas && (
                 <>
+                  <div class="flex justify-between">
+                    <span class="text-text-secondary">Estimated fee</span>
+                    <span class="font-mono font-medium text-text-primary">
+                      {parseFloat(currentGas.estimatedCostEth).toFixed(6)} ETH
+                    </span>
+                  </div>
                   <div class="flex justify-between">
                     <span class="text-text-secondary">Gas Limit</span>
                     <span class="font-mono text-text-primary">{currentGas.gasLimit}</span>
@@ -539,28 +527,26 @@ function formatArgValue(value: string, type: string): string {
 
 function DecodedCallCard({
   decoded,
+  toAddress,
   argsExpanded,
   setArgsExpanded,
   argsRef,
 }: {
   decoded: DecodedCall;
+  toAddress: string;
   argsExpanded: boolean;
   setArgsExpanded: (v: boolean) => void;
   argsRef: RefObject<HTMLButtonElement>;
 }) {
   return (
     <Card>
+      <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2.5">Contract Action</p>
       <div class="space-y-2.5">
         <div class="flex items-center gap-2">
           <FileCode size={16} class="text-accent shrink-0" />
-          <div class="min-w-0">
-            {decoded.contractName && (
-              <p class="text-xs text-text-tertiary">{decoded.contractName}</p>
-            )}
-            <p class="font-mono text-sm font-semibold text-accent truncate">
-              {decoded.functionName}()
-            </p>
-          </div>
+          <p class="font-mono text-sm font-semibold text-accent truncate">
+            {decoded.functionName}()
+          </p>
         </div>
 
         {decoded.args.length > 0 && (
@@ -593,50 +579,54 @@ function DecodedCallCard({
             )}
           </button>
         )}
+
+        <div class="flex items-center justify-between pt-1.5 border-t border-divider">
+          <span class="text-xs text-text-secondary">Interacting with</span>
+          <span class="inline-flex items-center gap-1 font-mono text-xs text-text-primary">
+            {decoded.contractName
+              ? <>{decoded.contractName} <span class="text-text-tertiary">({truncateAddress(toAddress)})</span></>
+              : truncateAddress(toAddress)}
+            <CopyButton text={toAddress} size={12} />
+          </span>
+        </div>
       </div>
     </Card>
   );
 }
 
-function TransfersCard({ transfers, toAddress }: { transfers: TokenTransfer[]; toAddress: string }) {
+function TransfersCard({ transfers }: { transfers: TokenTransfer[] }) {
   return (
     <Card>
-      <div class="space-y-1">
-        <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2">Token Transfers</p>
-        <div class="divide-y divide-divider">
-          {transfers.map((t, i) => (
-            <div key={`${t.direction}-${t.symbol}-${i}`} class="flex items-center gap-2.5 py-2">
-              <div class="relative">
-                <div
-                  class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                  style={{ backgroundColor: t.color }}
-                >
-                  {t.symbol.slice(0, 1)}
-                </div>
-                <div class={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center ${t.direction === "out" ? "bg-danger" : "bg-success"}`}>
-                  {t.direction === "out"
-                    ? <ArrowUpRight size={9} class="text-white" />
-                    : <ArrowDownLeft size={9} class="text-white" />}
-                </div>
+      <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2">Token Transfers</p>
+      <div class="divide-y divide-divider">
+        {transfers.map((t, i) => (
+          <div key={`${t.direction}-${t.symbol}-${i}`} class="flex items-center gap-2.5 py-2">
+            <div class="relative">
+              <div
+                class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                style={{ backgroundColor: t.color }}
+              >
+                {t.symbol.slice(0, 1)}
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-text-primary">
-                  {t.direction === "out" ? "Send" : "Receive"} {t.symbol}
-                </p>
-              </div>
-              <div class="text-right shrink-0">
-                <p class={`font-mono text-sm font-medium ${t.direction === "out" ? "text-danger" : "text-success"}`}>
-                  {t.direction === "out" ? "-" : "+"}{t.amount}
-                </p>
-                <p class="text-xs text-text-secondary">{t.usdValue ?? "--"}</p>
+              <div class={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center ${t.direction === "out" ? "bg-danger" : "bg-success"}`}>
+                {t.direction === "out"
+                  ? <ArrowUpRight size={9} class="text-white" />
+                  : <ArrowDownLeft size={9} class="text-white" />}
               </div>
             </div>
-          ))}
-        </div>
-        <div class="flex items-center justify-between pt-1.5">
-          <span class="text-xs text-text-secondary">Interacting with</span>
-          <span class="font-mono text-xs text-text-primary">{truncateAddress(toAddress)}</span>
-        </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-text-primary">
+                {t.direction === "out" ? "Send" : "Receive"} {t.symbol}
+              </p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class={`font-mono text-sm font-medium ${t.direction === "out" ? "text-danger" : "text-success"}`}>
+                {t.direction === "out" ? "-" : "+"}{t.amount} {t.symbol}
+              </p>
+              <p class="text-xs text-text-secondary">{t.usdValue ?? "--"}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </Card>
   );
@@ -656,6 +646,8 @@ function DevApprove() {
 
 function DevTx({ onSwitch }: { onSwitch: () => void }) {
   const tx = MOCK_TX_REQUEST;
+  const account = walletState.activeAccount.value;
+  const network = walletState.activeNetwork.value;
   const [showDetails, setShowDetails] = useState(false);
   const [showData, setShowData] = useState(false);
   const [argsExpanded, setArgsExpanded] = useState(false);
@@ -672,6 +664,17 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
         </button>
       </div>
 
+      <div class="flex items-center justify-between px-4 py-1.5 text-xs text-text-tertiary border-b border-divider">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: network.color }} />
+          <span>{network.name}</span>
+        </div>
+        <span class="inline-flex items-center gap-1">
+          {account.name} · {truncateAddress(account.address)}
+          <CopyButton text={account.address} size={12} />
+        </span>
+      </div>
+
       <div class="flex items-center gap-2 px-4 py-2.5 bg-surface border-b border-divider">
         <Globe size={16} class="text-text-tertiary" />
         <span class="text-sm text-text-secondary">{tx.origin}</span>
@@ -681,56 +684,64 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
         {tx.decoded && (
           <DecodedCallCard
             decoded={tx.decoded}
+            toAddress={tx.params.to}
             argsExpanded={argsExpanded}
             setArgsExpanded={setArgsExpanded}
             argsRef={argsRef}
           />
         )}
 
-        <TransfersCard transfers={tx.transfers} toAddress={tx.params.to} />
-
-        <Card>
-          <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2.5">Gas Fee</p>
-          <div class="grid grid-cols-3 gap-2">
-            {(["slow", "normal", "fast"] as GasSpeed[]).map((speed) => {
-              const Icon = GAS_ICONS[speed];
-              return (
-                <button
-                  type="button"
-                  key={speed}
-                  class={`flex flex-col items-center gap-1.5 py-2.5 px-2 rounded-[var(--radius-chip)] border transition-all cursor-pointer ${
-                    speed === "normal" ? "border-accent bg-accent-light" : "border-divider hover:border-text-tertiary"
-                  }`}
-                >
-                  <Icon size={16} class={speed === "normal" ? "text-accent" : "text-text-tertiary"} />
-                  <span class={`text-xs font-medium ${speed === "normal" ? "text-accent" : "text-text-secondary"}`}>
-                    {GAS_LABELS[speed]}
-                  </span>
-                  <span class="font-mono text-[10px] text-text-tertiary">
-                    {speed === "slow" ? "0.001200" : speed === "normal" ? "0.001440" : "0.001800"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </Card>
+        <TransfersCard transfers={tx.transfers} />
 
         <div ref={detailsRef}>
           <Card padding={false}>
-            <button type="button" class="cursor-pointer w-full text-left" onClick={() => setShowDetails(!showDetails)}>
+            <button
+              type="button"
+              class="cursor-pointer w-full text-left"
+              onClick={() => {
+                const expanding = !showDetails;
+                setShowDetails(expanding);
+                if (expanding) scrollEndIntoView(detailsRef);
+              }}
+            >
               <div class="flex items-center justify-between px-4 py-2.5">
-                <span class="text-xs text-text-secondary uppercase tracking-wider font-semibold">Details</span>
+                <span class="text-xs text-text-secondary uppercase tracking-wider font-semibold">Gas & Details</span>
                 {showDetails ? <ChevronUp size={14} class="text-text-tertiary" /> : <ChevronDown size={14} class="text-text-tertiary" />}
               </div>
-              <div class="px-4 pb-3">
-                <div class="flex items-center justify-between text-sm">
+            </button>
+
+            <div class="px-4 pb-3">
+              <div class="grid grid-cols-3 gap-2">
+                {(["slow", "normal", "fast"] as GasSpeed[]).map((speed) => {
+                  const Icon = GAS_ICONS[speed];
+                  const mockEth = speed === "slow" ? "0.001200" : speed === "normal" ? "0.001440" : "0.001800";
+                  return (
+                    <button
+                      type="button"
+                      key={speed}
+                      class={`flex flex-col items-center gap-1.5 py-2.5 px-2 rounded-[var(--radius-chip)] border transition-all cursor-pointer ${
+                        speed === "normal" ? "border-accent bg-accent-light" : "border-divider hover:border-text-tertiary"
+                      }`}
+                    >
+                      <Icon size={16} class={speed === "normal" ? "text-accent" : "text-text-tertiary"} />
+                      <span class={`text-xs font-medium ${speed === "normal" ? "text-accent" : "text-text-secondary"}`}>
+                        {GAS_LABELS[speed]}
+                      </span>
+                      <span class="font-mono text-[10px] text-text-tertiary">
+                        {formatGasCost(mockEth, 2430)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {showDetails && (
+              <div class="px-4 pb-3 space-y-2 text-sm border-t border-divider pt-2.5">
+                <div class="flex justify-between">
                   <span class="text-text-secondary">Estimated fee</span>
                   <span class="font-mono font-medium text-text-primary">{tx.estimatedFee}</span>
                 </div>
-              </div>
-            </button>
-            {showDetails && (
-              <div class="px-4 pb-3 space-y-2 text-sm border-t border-divider pt-2.5">
                 <div class="flex justify-between">
                   <span class="text-text-secondary">Gas Limit</span>
                   <span class="font-mono text-text-primary">{tx.params.gasLimit}</span>
