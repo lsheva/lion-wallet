@@ -80,7 +80,7 @@ export function Approve() {
 
   async function handleConfirm() {
     if (isDev) {
-      route(isTx ? "/tx-success" : "/sign-success");
+      route(isTx ? "/tx-success" : "/sign-success", true);
       return;
     }
     if (!data) return;
@@ -108,25 +108,25 @@ export function Approve() {
       const result = (res.data as Record<string, unknown>)?.result;
       if (isTx) {
         sessionStorage.setItem("txResult", JSON.stringify({ hash: result, method: data.approval.method }));
-        route("/tx-success");
+        route("/tx-success", true);
       } else {
         sessionStorage.setItem("signResult", JSON.stringify({ signature: result }));
-        route("/sign-success");
+        route("/sign-success", true);
       }
     } else {
       if (isTx) {
         sessionStorage.setItem("txResult", JSON.stringify({ error: res.error }));
-        route("/tx-error");
+        route("/tx-error", true);
       } else {
         sessionStorage.setItem("signResult", JSON.stringify({ error: res.error }));
-        route("/sign-error");
+        route("/sign-error", true);
       }
     }
   }
 
   async function handleReject() {
     if (isDev) {
-      route("/home");
+      route("/home", true);
       return;
     }
     if (data) {
@@ -135,7 +135,7 @@ export function Approve() {
     }
     await routeToNextApprovalOrClose(() => {
       if (isPopupOrigin) {
-        route("/home");
+        route("/home", true);
       } else {
         closePopup();
       }
@@ -158,7 +158,7 @@ export function Approve() {
     return (
       <div class="flex flex-col items-center justify-center h-[600px] px-4 text-center">
         <p class="text-text-secondary text-sm">No pending request.</p>
-        <Button class="mt-4" onClick={() => route("/home")}>Back to Wallet</Button>
+        <Button class="mt-4" onClick={() => route("/home", true)}>Back to Wallet</Button>
       </div>
     );
   }
@@ -297,7 +297,7 @@ function ApiKeyHint({ text }: { text: string }) {
   return (
     <button
       type="button"
-      onClick={() => route("/settings")}
+      onClick={() => route("/settings", true)}
       class="flex items-center gap-1.5 text-[11px] text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
     >
       <Info size={12} class="shrink-0" />
@@ -819,10 +819,10 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
       </div>
 
       <BottomActions>
-        <Button variant="secondary" onClick={() => route("/home")} fullWidth>
+        <Button variant="secondary" onClick={() => route("/home", true)} fullWidth>
           Reject
         </Button>
-        <Button onClick={() => route("/tx-success")} fullWidth>
+        <Button onClick={() => route("/tx-success", true)} fullWidth>
           Confirm
         </Button>
       </BottomActions>
@@ -879,10 +879,10 @@ function DevSign({ onSwitch }: { onSwitch: () => void }) {
       </div>
 
       <BottomActions>
-        <Button variant="secondary" onClick={() => route("/home")} fullWidth>
+        <Button variant="secondary" onClick={() => route("/home", true)} fullWidth>
           Reject
         </Button>
-        <Button onClick={() => route("/sign-success")} fullWidth>
+        <Button onClick={() => route("/sign-success", true)} fullWidth>
           Sign
         </Button>
       </BottomActions>

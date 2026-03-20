@@ -90,7 +90,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
               "txResult",
               JSON.stringify({ ...stored, error: "Transaction reverted" }),
             );
-            route("/tx-error");
+            route("/tx-error", true);
             return;
           }
         }

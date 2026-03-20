@@ -54,7 +54,7 @@ function ActivitySection({ account }: { account: { address: string } }) {
           )}
           {walletState.activitySource.value === "rpc" && (
             <p class="px-4 py-2 text-[10px] text-text-tertiary text-center">
-              <button type="button" onClick={() => route("/settings")} class="text-accent hover:text-accent-hover cursor-pointer">
+              <button type="button" onClick={() => route("/settings", true)} class="text-accent hover:text-accent-hover cursor-pointer">
                 Add Etherscan key
               </button>{" "}
               for full history.
@@ -101,7 +101,7 @@ export function Home() {
         <NetworkBadge />
         <button
           type="button"
-          onClick={() => route("/settings")}
+          onClick={() => route("/settings", true)}
           class="p-1.5 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
         >
           <Settings size={20} />
@@ -118,7 +118,7 @@ export function Home() {
         <div class="flex gap-3 shrink-0">
           <button
             type="button"
-            onClick={() => route("/send")}
+            onClick={() => route("/send", true)}
             class="flex-1 flex items-center justify-center py-2.5 bg-accent text-accent-foreground rounded-full font-medium text-sm hover:bg-accent-hover transition-colors cursor-pointer active:scale-[0.97]"
           >
             <span class="inline-flex items-center gap-1.5 -translate-x-1">
@@ -128,7 +128,7 @@ export function Home() {
           </button>
           <button
             type="button"
-            onClick={() => route("/receive")}
+            onClick={() => route("/receive", true)}
             class="flex-1 flex items-center justify-center py-2.5 bg-surface text-text-primary rounded-full font-medium text-sm shadow-sm hover:bg-divider transition-colors cursor-pointer active:scale-[0.97]"
           >
             <span class="inline-flex items-center gap-1.5 -translate-x-1">

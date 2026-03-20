@@ -210,8 +210,8 @@ export function Settings() {
                 </>
               )}
             </div>
-            <SettingsRow label="Export Private Key" onClick={() => route("/export-key")} />
-            <SettingsRow label="Show Recovery Phrase" onClick={() => route("/show-phrase")} />
+            <SettingsRow label="Export Private Key" onClick={() => route("/export-key", true)} />
+            <SettingsRow label="Show Recovery Phrase" onClick={() => route("/show-phrase", true)} />
           </div>
         </Card>
       </div>

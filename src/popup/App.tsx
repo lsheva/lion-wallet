@@ -72,9 +72,10 @@ export async function routeToNextApprovalOrClose(fallback: () => void): Promise<
   fallback();
 }
 
+/** Dismiss the toolbar popover. Do not use `browser.windows.remove` here — on Safari, `getCurrent` can refer to the main browser window and would close Safari entirely. */
 export function closePopup(): void {
   window.close();
-  setTimeout(() => route("/home", true), 100);
+  setTimeout(() => route("/home", true), 150);
 }
 
 export function App() {

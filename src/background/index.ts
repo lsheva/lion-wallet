@@ -99,10 +99,7 @@ async function getWalletState(): Promise<WalletState> {
   };
 }
 
-async function retrieveMnemonic(
-  mode: StorageMode,
-  password?: string,
-): Promise<string> {
+async function retrieveMnemonic(mode: StorageMode, password?: string): Promise<string> {
   if (mode === "keychain") {
     const mnemonic = await keychain.retrieveMnemonic();
     if (!mnemonic) throw new Error("Authentication failed or cancelled");
@@ -149,9 +146,7 @@ async function executeApproval(
     const active = meta.accounts[meta.activeAccountIndex];
     let importedKey: Hex | undefined;
     if (active?.path === "imported") {
-      importedKey =
-        (await retrieveImportedKey(mode, active.address, password)) ??
-        undefined;
+      importedKey = (await retrieveImportedKey(mode, active.address, password)) ?? undefined;
     }
 
     const account = getAccountForSigning(
@@ -168,22 +163,24 @@ async function executeApproval(
       case "eth_sendTransaction": {
         const txParams = params[0] as TransactionParams;
         result = await sendTransaction(account, chainId, txParams, gasSpeed);
-        import("./activity").then(({ pushActivityItem }) =>
-          pushActivityItem(account.address, chainId, {
-            hash: result as string,
-            from: account.address,
-            to: txParams.to ?? "",
-            value: txParams.value ? String(BigInt(txParams.value)) : "0",
-            ts: Math.floor(Date.now() / 1000),
-            error: false,
-            method: txParams.data?.slice(0, 10) ?? "",
-            fn: "",
-            block: 0,
-            transfers: [],
-            decoded: null,
-            events: [],
-          }),
-        ).catch(() => {});
+        import("./activity")
+          .then(({ pushActivityItem }) =>
+            pushActivityItem(account.address, chainId, {
+              hash: result as string,
+              from: account.address,
+              to: txParams.to ?? "",
+              value: txParams.value ? String(BigInt(txParams.value)) : "0",
+              ts: Math.floor(Date.now() / 1000),
+              error: false,
+              method: txParams.data?.slice(0, 10) ?? "",
+              fn: "",
+              block: 0,
+              transfers: [],
+              decoded: null,
+              events: [],
+            }),
+          )
+          .catch(() => {});
         break;
       }
       case "eth_signTransaction": {
@@ -224,9 +221,7 @@ async function executeApproval(
   }
 }
 
-async function handleMessage(
-  message: MessageRequest,
-): Promise<MessageResponse> {
+async function handleMessage(message: MessageRequest): Promise<MessageResponse> {
   switch (message.type) {
     case "RPC_REQUEST": {
       const result = await handleRpc(message.method, message.params, {
@@ -249,7 +244,10 @@ async function handleMessage(
           if (storeRes.ok) {
             await setStorageMode("keychain");
             await saveAccountsMeta(accounts, 0);
-            broadcastEvent("accountsChanged", accounts.map((a) => a.address));
+            broadcastEvent(
+              "accountsChanged",
+              accounts.map((a) => a.address),
+            );
             return { ok: true, data: { mnemonic, accounts } };
           }
           return {
@@ -263,12 +261,12 @@ async function handleMessage(
         };
       }
       await setStorageMode("vault");
-      await encryptVault(
-        { mnemonic, accounts, activeAccountIndex: 0 },
-        message.password,
-      );
+      await encryptVault({ mnemonic, accounts, activeAccountIndex: 0 }, message.password);
       await saveAccountsMeta(accounts, 0);
-      broadcastEvent("accountsChanged", accounts.map((a) => a.address));
+      broadcastEvent(
+        "accountsChanged",
+        accounts.map((a) => a.address),
+      );
       return { ok: true, data: { mnemonic, accounts } };
     }
 
@@ -285,7 +283,10 @@ async function handleMessage(
           if (storeRes.ok) {
             await setStorageMode("keychain");
             await saveAccountsMeta(accounts, 0);
-            broadcastEvent("accountsChanged", accounts.map((a) => a.address));
+            broadcastEvent(
+              "accountsChanged",
+              accounts.map((a) => a.address),
+            );
             return { ok: true, data: { accounts } };
           }
           return {
@@ -304,7 +305,10 @@ async function handleMessage(
         message.password,
       );
       await saveAccountsMeta(accounts, 0);
-      broadcastEvent("accountsChanged", accounts.map((a) => a.address));
+      broadcastEvent(
+        "accountsChanged",
+        accounts.map((a) => a.address),
+      );
       return { ok: true, data: { accounts } };
     }
 
@@ -324,21 +328,28 @@ async function handleMessage(
         bgLog("[importKey] probe:", JSON.stringify(probe));
         if (probe.available) {
           const mnemonicRes = await keychain.storeMnemonic(mnemonic);
-          const keyRes = await keychain.storeImportedKey(
-            address,
-            message.privateKey,
+          const keyRes = await keychain.storeImportedKey(address, message.privateKey);
+          bgLog(
+            "[importKey] storeMnemonic:",
+            JSON.stringify(mnemonicRes),
+            "storeKey:",
+            JSON.stringify(keyRes),
           );
-          bgLog("[importKey] storeMnemonic:", JSON.stringify(mnemonicRes), "storeKey:", JSON.stringify(keyRes));
           if (mnemonicRes.ok && keyRes.ok) {
             await setStorageMode("keychain");
             await saveAccountsMeta(accounts, 0);
-            broadcastEvent("accountsChanged", accounts.map((a) => a.address));
+            broadcastEvent(
+              "accountsChanged",
+              accounts.map((a) => a.address),
+            );
             return { ok: true, data: { accounts } };
           }
           const errors = [
             !mnemonicRes.ok ? `mnemonic: ${mnemonicRes.error}` : "",
             !keyRes.ok ? `key: ${keyRes.error}` : "",
-          ].filter(Boolean).join("; ");
+          ]
+            .filter(Boolean)
+            .join("; ");
           return {
             ok: false,
             error: `Keychain store failed: ${errors}`,
@@ -350,12 +361,12 @@ async function handleMessage(
         };
       }
       await setStorageMode("vault");
-      await encryptVault(
-        { mnemonic, accounts, activeAccountIndex: 0 },
-        message.password,
-      );
+      await encryptVault({ mnemonic, accounts, activeAccountIndex: 0 }, message.password);
       await saveAccountsMeta(accounts, 0);
-      broadcastEvent("accountsChanged", accounts.map((a) => a.address));
+      broadcastEvent(
+        "accountsChanged",
+        accounts.map((a) => a.address),
+      );
       return { ok: true, data: { accounts } };
     }
 
@@ -408,9 +419,7 @@ async function handleMessage(
       });
       const cfg = getNetworkConfig(message.chainId);
       const isTestnet = cfg?.chain.testnet === true;
-      const nativeUsdPrice = isTestnet
-        ? 0
-        : await fetchNativePrice(message.chainId);
+      const nativeUsdPrice = isTestnet ? 0 : await fetchNativePrice(message.chainId);
       return {
         ok: true,
         data: { balance: formatEther(balance), nativeUsdPrice },
@@ -438,10 +447,7 @@ async function handleMessage(
     case "EXPORT_PRIVATE_KEY": {
       const mode = await getStorageMode();
       const mnemonic = await retrieveMnemonic(mode, message.password);
-      const privateKey = wallet.getPrivateKeyForAccount(
-        mnemonic,
-        message.accountIndex,
-      );
+      const privateKey = wallet.getPrivateKeyForAccount(mnemonic, message.accountIndex);
       return { ok: true, data: { privateKey } };
     }
 
@@ -467,12 +473,10 @@ async function handleMessage(
       let simulatedVia: string | null = null;
 
       const isTxMethod =
-        pending.method === "eth_sendTransaction" ||
-        pending.method === "eth_signTransaction";
+        pending.method === "eth_sendTransaction" || pending.method === "eth_signTransaction";
       const _debug: string[] = [];
 
-      const etherscanKeyResult =
-        await browser.storage.local.get("etherscanApiKey");
+      const etherscanKeyResult = await browser.storage.local.get("etherscanApiKey");
       const hasEtherscanKey = !!(etherscanKeyResult.etherscanApiKey as string);
       const hasAlchemyKey = hasRpcProviderKey();
 
@@ -483,16 +487,10 @@ async function handleMessage(
         );
 
         try {
-          gasPresets = await estimateGasPresets(
-            pending.chainId,
-            txParams,
-            activeAccount?.address,
-          );
+          gasPresets = await estimateGasPresets(pending.chainId, txParams, activeAccount?.address);
           _debug.push("gas: OK");
         } catch (e) {
-          _debug.push(
-            `gas: FAIL ${e instanceof Error ? e.message : e}`,
-          );
+          _debug.push(`gas: FAIL ${e instanceof Error ? e.message : e}`);
         }
 
         try {
@@ -512,10 +510,7 @@ async function handleMessage(
           }
 
           let simTransfers: import("../shared/types").TokenTransfer[] = [];
-          if (
-            simResult.status === "fulfilled" &&
-            simResult.value
-          ) {
+          if (simResult.status === "fulfilled" && simResult.value) {
             simTransfers = simResult.value.transfers;
             simulatedVia = simResult.value.via;
           }
@@ -527,11 +522,7 @@ async function handleMessage(
             .map((t) => t.tokenAddress)
             .filter((a): a is string => !!a);
 
-          const priceMap = await fetchPrices(
-            nativeSymbol,
-            pending.chainId,
-            tokenAddresses,
-          );
+          const priceMap = await fetchPrices(nativeSymbol, pending.chainId, tokenAddresses);
 
           nativeUsdPrice = priceMap.get("native") ?? null;
 
@@ -551,9 +542,7 @@ async function handleMessage(
 
           transfers = simTransfers.length > 0 ? simTransfers : null;
         } catch (e) {
-          _debug.push(
-            `decode/sim CATCH: ${e instanceof Error ? e.message : e}`,
-          );
+          _debug.push(`decode/sim CATCH: ${e instanceof Error ? e.message : e}`);
         }
       }
 
@@ -599,9 +588,7 @@ async function handleMessage(
       const meta = await loadAccountsMeta();
       if (meta) {
         await keychain.deleteAllImportedKeys(
-          meta.accounts
-            .filter((a) => a.path === "imported")
-            .map((a) => a.address),
+          meta.accounts.filter((a) => a.path === "imported").map((a) => a.address),
         );
       }
       await clearVault();
@@ -614,11 +601,7 @@ async function handleMessage(
       try {
         const meta = await loadAccountsMeta();
         const fromAddr = meta?.accounts[meta.activeAccountIndex]?.address;
-        const presets = await estimateGasPresets(
-          message.chainId,
-          message.tx,
-          fromAddr,
-        );
+        const presets = await estimateGasPresets(message.chainId, message.tx, fromAddr);
         return { ok: true, data: presets };
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Gas estimation failed";

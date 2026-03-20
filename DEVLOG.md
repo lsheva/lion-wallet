@@ -199,3 +199,9 @@ scripts/
 - **Alchemy RPC slugs**: expanded from 8 to 26 chains (mainnets + testnets) using `chain.id` keys
 - **Testnet visual distinction**: NetworkSelector groups mainnets and testnets into separate sections with a "Testnets" header; testnet rows render with reduced opacity, lighter text, and a ring on the color dot. NetworkBadge shows an orange-tinted warning style when a testnet is active. Approve page header shows a "testnet" label next to chain name
 - **Style guide fixes**: replaced all `array.find` by ID with map lookups (`NETWORK_BY_ID`, computed `networkMap`); removed duplicated local maps (Approve.tsx); all chain IDs use `chain.id` references
+
+### Safari popup close after transaction
+
+- **Cause**: WebKit only allows `window.close()` on extension popovers when history depth stays at a single entry; preact-router’s default `route()` uses `pushState`, which triggers “Can’t close the window since it was not opened by JavaScript” and leaves the popup open after Done
+- **`closePopup()`** (`App.tsx`): `window.close()` only, then replace fallback to `/home`. **`browser.windows.remove` is not used** — on Safari, `windows.getCurrent()` from the popup can resolve to the main browser window and `remove` would quit Safari
+- **Navigation**: use `route(path, true)` (replace) for wallet flows that end in `closePopup` — approve → tx/sign result/error, send → approve, Header string backs, Home quick actions → send/receive/settings, Settings → export/phrase, TxResult → tx-error

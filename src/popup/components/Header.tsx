@@ -11,7 +11,7 @@ interface HeaderProps {
 export function Header({ title, onBack, right }: HeaderProps) {
   const handleBack = () => {
     if (typeof onBack === "string") {
-      route(onBack);
+      route(onBack, true);
     } else if (onBack) {
       onBack();
     } else {

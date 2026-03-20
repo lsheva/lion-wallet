@@ -170,7 +170,7 @@ export function Send() {
         origin: POPUP_ORIGIN,
       });
 
-      route("/approve");
+      route("/approve", true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create transaction");
       setSubmitting(false);
