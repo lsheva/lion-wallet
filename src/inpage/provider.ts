@@ -67,16 +67,23 @@ class EIP1193Provider extends EventEmitter {
     window.addEventListener("message", (event: MessageEvent) => {
       if (event.source !== window) return;
       const msg = event.data;
-      if (!msg || msg.type !== CHANNEL) return;
+      if (
+        !msg ||
+        typeof msg !== "object" ||
+        msg.type !== CHANNEL ||
+        typeof msg.direction !== "string"
+      )
+        return;
 
       if (msg.direction === "response") {
+        if (typeof msg.id !== "string") return;
         const entry = pending.get(msg.id);
         if (!entry) return;
         pending.delete(msg.id);
 
-        if (msg.error) {
-          const err = Object.assign(new Error(msg.error.message), {
-            code: msg.error.code,
+        if (msg.error && typeof msg.error === "object") {
+          const err = Object.assign(new Error(String(msg.error.message ?? "Unknown error")), {
+            code: typeof msg.error.code === "number" ? msg.error.code : -32603,
             data: msg.error.data,
           });
           entry.reject(err);
@@ -86,7 +93,9 @@ class EIP1193Provider extends EventEmitter {
       }
 
       if (msg.direction === "event") {
-        this._handleEvent(msg.event, msg.data);
+        if (typeof msg.event === "string") {
+          this._handleEvent(msg.event, msg.data);
+        }
       }
     });
   }
@@ -94,14 +103,15 @@ class EIP1193Provider extends EventEmitter {
   private _handleEvent(event: string, data: unknown): void {
     switch (event) {
       case "chainChanged": {
-        const chainId = data as string;
-        if (this._chainId !== chainId) {
-          this._chainId = chainId;
-          this.emit("chainChanged", chainId);
+        if (typeof data !== "string") return;
+        if (this._chainId !== data) {
+          this._chainId = data;
+          this.emit("chainChanged", data);
         }
         break;
       }
       case "accountsChanged": {
+        if (!Array.isArray(data)) return;
         const accounts = data as string[];
         this._accounts = accounts;
         this.emit("accountsChanged", accounts);
@@ -112,6 +122,7 @@ class EIP1193Provider extends EventEmitter {
         break;
       }
       case "connect": {
+        if (!data || typeof data !== "object" || typeof (data as Record<string, unknown>).chainId !== "string") return;
         const { chainId } = data as { chainId: string };
         this._chainId = chainId;
         this._connected = true;

@@ -91,6 +91,17 @@ export function formatTokenValue(value: string | number): string {
   return out;
 }
 
+/** Truncate an Ethereum address to `0x1234...abcd` form. */
+export function truncateAddress(address: string): string {
+  if (!address || address.length < 10) return address || "—";
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+/** Safely extract a human-readable message from an unknown catch value. */
+export function toErrorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 /** Fiat string for UI (always two decimal places). */
 export function formatUsd(amount: number): string {
   return new Intl.NumberFormat("en-US", {

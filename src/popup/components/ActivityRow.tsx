@@ -1,12 +1,14 @@
+import { truncateAddress } from "@shared/format";
 import type { ActivityItem, DecodedEvent } from "@shared/types";
 import { ArrowDownLeft, ArrowUpRight, FileCode } from "lucide-preact";
 import { formatEther, formatUnits } from "viem";
-import { activeNetwork } from "../store";
 import { FormattedTokenValue } from "./FormattedTokenValue";
 
 interface ActivityRowProps {
   item: ActivityItem;
   userAddress: string;
+  explorerUrl?: string;
+  nativeSymbol: string;
 }
 
 function relativeTime(ts: number): string {
@@ -18,25 +20,17 @@ function relativeTime(ts: number): string {
   return `${Math.floor(diff / 2592000)}mo ago`;
 }
 
-function truncAddr(addr: string): string {
-  if (!addr || addr.length < 10) return addr || "—";
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
-
 const TRANSFER_EVENTS = new Set(["Transfer", "Approval"]);
 
 function nonTransferEvents(events: DecodedEvent[]): DecodedEvent[] {
   return events.filter((e) => !TRANSFER_EVENTS.has(e.name));
 }
 
-export function ActivityRow({ item, userAddress }: ActivityRowProps) {
+export function ActivityRow({ item, userAddress, explorerUrl, nativeSymbol }: ActivityRowProps) {
   const isSent = item.from.toLowerCase() === userAddress.toLowerCase();
   const isContract = !!(item.decoded || item.fn || (item.method && item.method !== "0x"));
   const transfers = item.transfers ?? [];
   const otherEvents = nonTransferEvents(item.events ?? []);
-
-  const network = activeNetwork.value;
-  const explorerUrl = network.chain.blockExplorers?.default?.url;
 
   let label: string;
   let Icon = isSent ? ArrowUpRight : ArrowDownLeft;
@@ -52,7 +46,7 @@ export function ActivityRow({ item, userAddress }: ActivityRowProps) {
 
   const counterparty = isSent ? item.to : item.from;
   const ethValue = formatEther(BigInt(item.value || "0"));
-  const symbol = network.chain.nativeCurrency.symbol;
+  const symbol = nativeSymbol;
 
   const hasNativeValue = BigInt(item.value || "0") !== 0n;
   const hasBalanceDelta = hasNativeValue || transfers.length > 0;
@@ -78,7 +72,7 @@ export function ActivityRow({ item, userAddress }: ActivityRowProps) {
           {item.error && <span class="text-[10px] font-semibold text-danger">Failed</span>}
         </div>
         <div class="flex items-center gap-1 text-xs text-text-tertiary">
-          <span class="font-mono">{truncAddr(counterparty)}</span>
+          <span class="font-mono">{truncateAddress(counterparty)}</span>
           <span>·</span>
           <span>{relativeTime(item.ts)}</span>
         </div>

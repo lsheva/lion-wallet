@@ -1,3 +1,4 @@
+import { toErrorMessage } from "@shared/format";
 import browser from "webextension-polyfill";
 import { bgLog } from "./log";
 import { getPublicClient } from "./networks";
@@ -19,54 +20,29 @@ const PRICE_TTL = 5 * 60 * 1000;
 
 // ── Persistent ABI + proxy caches ───────────────────────────────────
 
-const ABI_STORAGE_KEY = "abiCache";
-const PROXY_STORAGE_KEY = "proxyImplCache";
+import { StorageCache } from "./storage-cache";
 
-let abiCacheMem: Record<string, unknown[] | null> | null = null;
-let proxyImplMem: Record<string, string | null> | null = null;
+const abiCache = new StorageCache<Record<string, unknown[] | null>>("abiCache", "etherscan-abi");
+const proxyCache = new StorageCache<Record<string, string | null>>("proxyImplCache", "etherscan-proxy");
 
 function cacheKey(chainId: number, addr: string): string {
   return `${chainId}:${addr.toLowerCase()}`;
 }
 
-async function loadAbiCache(): Promise<Record<string, unknown[] | null>> {
-  if (abiCacheMem) return abiCacheMem;
-  try {
-    const r = await browser.storage.local.get(ABI_STORAGE_KEY);
-    abiCacheMem = (r[ABI_STORAGE_KEY] as Record<string, unknown[] | null>) ?? {};
-  } catch {
-    abiCacheMem = {};
-  }
-  return abiCacheMem;
+async function loadAbiCache() {
+  return abiCache.load();
 }
 
-async function persistAbiCache(): Promise<void> {
-  if (!abiCacheMem) return;
-  try {
-    await browser.storage.local.set({ [ABI_STORAGE_KEY]: abiCacheMem });
-  } catch (e) {
-    bgLog("[etherscan] persistAbiCache failed:", e);
-  }
+async function persistAbiCache() {
+  return abiCache.persist();
 }
 
-async function loadProxyCache(): Promise<Record<string, string | null>> {
-  if (proxyImplMem) return proxyImplMem;
-  try {
-    const r = await browser.storage.local.get(PROXY_STORAGE_KEY);
-    proxyImplMem = (r[PROXY_STORAGE_KEY] as Record<string, string | null>) ?? {};
-  } catch {
-    proxyImplMem = {};
-  }
-  return proxyImplMem;
+async function loadProxyCache() {
+  return proxyCache.load();
 }
 
-async function persistProxyCache(): Promise<void> {
-  if (!proxyImplMem) return;
-  try {
-    await browser.storage.local.set({ [PROXY_STORAGE_KEY]: proxyImplMem });
-  } catch (e) {
-    bgLog("[etherscan] persistProxyCache failed:", e);
-  }
+async function persistProxyCache() {
+  return proxyCache.persist();
 }
 
 // ── Etherscan HTTP helper ───────────────────────────────────────────
@@ -103,7 +79,7 @@ async function etherscanFetch(
     );
     return body;
   } catch (e) {
-    log.push(`etherscan-api: fetch error: ${e instanceof Error ? e.message : e}`);
+    log.push(`etherscan-api: fetch error: ${toErrorMessage(e)}`);
     return null;
   }
 }
@@ -149,7 +125,7 @@ export async function resolveImplementation(
       }
     }
   } catch (e) {
-    log.push(`proxy: getsourcecode failed: ${e instanceof Error ? e.message : e}`);
+    log.push(`proxy: getsourcecode failed: ${toErrorMessage(e)}`);
   }
 
   if (!impl) {
@@ -167,7 +143,7 @@ export async function resolveImplementation(
         }
       }
     } catch (e) {
-      log.push(`proxy: EIP-1967 read failed: ${e instanceof Error ? e.message : e}`);
+      log.push(`proxy: EIP-1967 read failed: ${toErrorMessage(e)}`);
     }
   }
 
@@ -247,7 +223,7 @@ export async function fetchContractAbi(
     await persistAbiCache();
     return abi;
   } catch (e) {
-    log.push(`etherscan-abi: exception: ${e instanceof Error ? e.message : e}`);
+    log.push(`etherscan-abi: exception: ${toErrorMessage(e)}`);
     return null;
   }
 }
@@ -298,13 +274,8 @@ export async function resolveAbis(
 }
 
 export async function clearAbiCache(): Promise<void> {
-  abiCacheMem = {};
-  proxyImplMem = {};
-  try {
-    await browser.storage.local.remove([ABI_STORAGE_KEY, PROXY_STORAGE_KEY]);
-  } catch (e) {
-    bgLog("[etherscan] clearAbiCache failed:", e);
-  }
+  await abiCache.clearStorage();
+  await proxyCache.clearStorage();
 }
 
 // ── Price fetching ──────────────────────────────────────────────────

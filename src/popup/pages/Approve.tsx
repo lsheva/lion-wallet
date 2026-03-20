@@ -1,4 +1,5 @@
 import { NETWORK_BY_ID, POPUP_ORIGIN } from "@shared/constants";
+import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import type {
   DecodedCall,
@@ -752,10 +753,6 @@ function TransfersCard({ transfers }: { transfers: TokenTransfer[] }) {
       </div>
     </Card>
   );
-}
-
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
 /* ── Dev mode preview ── */

@@ -1,3 +1,4 @@
+import { toErrorMessage } from "@shared/format";
 import type { Address, Hex } from "viem";
 import browser from "webextension-polyfill";
 import { bgLog } from "./log";
@@ -31,7 +32,7 @@ export async function isKeychainAvailable(): Promise<ProbeResult> {
     }
     return { available: res.ok === true, error: res.error };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = toErrorMessage(e);
     bgLog("[keychain] isKeychainAvailable exception:", msg);
     return { available: false, error: `exception: ${msg}` };
   }
@@ -55,7 +56,7 @@ export async function storeMnemonic(mnemonic: string): Promise<StoreResult> {
     }
     return { ok: true };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = toErrorMessage(e);
     bgLog("[keychain] storeMnemonic exception:", msg);
     return { ok: false, error: `exception: ${msg}` };
   }
@@ -107,7 +108,7 @@ export async function storeImportedKey(address: Address, privateKey: Hex): Promi
     }
     return { ok: true };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = toErrorMessage(e);
     bgLog("[keychain] storeImportedKey exception:", msg);
     return { ok: false, error: `exception: ${msg}` };
   }

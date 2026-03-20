@@ -1,3 +1,4 @@
+import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import {
   Check,
@@ -126,7 +127,7 @@ export function Settings() {
                   )}
                   <div class="flex items-center gap-1 mt-0.5">
                     <span class="text-xs font-mono font-medium text-text-primary/70 truncate">
-                      {acc.address.slice(0, 6)}...{acc.address.slice(-4)}
+                      {truncateAddress(acc.address)}
                     </span>
                     <CopyButton text={acc.address} size={12} />
                   </div>
@@ -232,10 +233,17 @@ export function Settings() {
 
 function ClearCacheRow() {
   const [cleared, setCleared] = useState(false);
+  const [clearError, setClearError] = useState(false);
 
   const handleClear = async () => {
     if (cleared) return;
-    await sendMessage({ type: "CLEAR_ACTIVITY_CACHE" });
+    setClearError(false);
+    const res = await sendMessage({ type: "CLEAR_ACTIVITY_CACHE" });
+    if (!res.ok) {
+      setClearError(true);
+      setTimeout(() => setClearError(false), 3000);
+      return;
+    }
     walletState.activity.value = [];
     walletState.activitySource.value = null;
     walletState.activityHasMore.value = false;
@@ -249,12 +257,16 @@ function ClearCacheRow() {
         type="button"
         onClick={handleClear}
         class={`flex items-center gap-2 w-full px-4 py-3 transition-colors cursor-pointer text-left ${
-          cleared ? "text-success" : "text-danger hover:bg-base/50"
+          clearError ? "text-danger" : cleared ? "text-success" : "text-danger hover:bg-base/50"
         }`}
       >
         {cleared ? <Check size={16} /> : <Trash2 size={16} />}
         <span class="text-sm font-medium">
-          {cleared ? "Activity Cache Cleared" : "Clear Activity Cache"}
+          {clearError
+            ? "Failed to clear cache"
+            : cleared
+              ? "Activity Cache Cleared"
+              : "Clear Activity Cache"}
         </span>
       </button>
     </Card>

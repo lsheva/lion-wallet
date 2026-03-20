@@ -6,10 +6,27 @@ script.src = browser.runtime.getURL("inpage.js");
 script.onload = () => script.remove();
 (document.head || document.documentElement).appendChild(script);
 
+function isValidRequest(msg: unknown): msg is {
+  type: string;
+  direction: string;
+  id: string;
+  method: string;
+  params: unknown;
+} {
+  if (!msg || typeof msg !== "object") return false;
+  const m = msg as Record<string, unknown>;
+  return (
+    m.type === CHANNEL &&
+    m.direction === "request" &&
+    typeof m.id === "string" &&
+    typeof m.method === "string"
+  );
+}
+
 window.addEventListener("message", (event: MessageEvent) => {
   if (event.source !== window) return;
   const msg = event.data;
-  if (!msg || msg.type !== CHANNEL || msg.direction !== "request") return;
+  if (!isValidRequest(msg)) return;
 
   const origin = window.location.origin;
 
@@ -82,9 +99,19 @@ window.addEventListener("message", (event: MessageEvent) => {
     });
 });
 
+function isValidEvent(msg: unknown): msg is {
+  type: string;
+  direction: string;
+  event: string;
+  data: unknown;
+} {
+  if (!msg || typeof msg !== "object") return false;
+  const m = msg as Record<string, unknown>;
+  return m.type === CHANNEL && m.direction === "event" && typeof m.event === "string";
+}
+
 browser.runtime.onMessage.addListener((message: unknown) => {
-  const msg = message as { type: string; direction: string; event: string; data: unknown };
-  if (msg.type === CHANNEL && msg.direction === "event") {
-    window.postMessage(msg, "*");
+  if (isValidEvent(message)) {
+    window.postMessage(message, "*");
   }
 });

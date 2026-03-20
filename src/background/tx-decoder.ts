@@ -1,3 +1,4 @@
+import { toErrorMessage } from "@shared/format";
 import { type Abi, decodeAbiParameters, decodeFunctionData, type Hex } from "viem";
 import type { DecodedArg, DecodedCall, TransactionParams } from "../shared/types";
 import { fetchContractAbi, resolveImplementation } from "./etherscan";
@@ -45,7 +46,7 @@ async function decodeViaEtherscan(
       return result;
     }
   } catch (e) {
-    log.push(`etherscan: decode with direct ABI failed: ${e instanceof Error ? e.message : e}`);
+    log.push(`etherscan: decode with direct ABI failed: ${toErrorMessage(e)}`);
   }
 
   // Selector not in ABI — likely a proxy. Resolve implementation and try its ABI.
@@ -71,7 +72,7 @@ async function decodeViaEtherscan(
       return result;
     }
   } catch (e) {
-    log.push(`etherscan: decode with impl ABI also failed: ${e instanceof Error ? e.message : e}`);
+    log.push(`etherscan: decode with impl ABI also failed: ${toErrorMessage(e)}`);
   }
 
   return null;
@@ -125,11 +126,11 @@ async function decodeVia4byte(data: Hex, log: string[]): Promise<DecodedCall | n
       log.push(`4byte: decoded ${parsed.name}(${args.length} args)`);
       return { functionName: parsed.name, args };
     } catch (e) {
-      log.push(`4byte: param decode failed: ${e instanceof Error ? e.message : e}`);
+      log.push(`4byte: param decode failed: ${toErrorMessage(e)}`);
       return { functionName: parsed.name, args: [] };
     }
   } catch (e) {
-    log.push(`4byte: fetch failed: ${e instanceof Error ? e.message : e}`);
+    log.push(`4byte: fetch failed: ${toErrorMessage(e)}`);
     return null;
   }
 }

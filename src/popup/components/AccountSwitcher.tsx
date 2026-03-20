@@ -1,3 +1,4 @@
+import { truncateAddress } from "@shared/format";
 import { Check, ChevronDown } from "lucide-preact";
 import type { JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -133,7 +134,7 @@ export function AccountSwitcher({ usdTotal }: AccountSwitcherProps) {
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-text-primary truncate">{acc.name}</p>
                   <p class="text-[11px] font-mono text-text-tertiary truncate">
-                    {acc.address.slice(0, 6)}…{acc.address.slice(-4)}
+                    {truncateAddress(acc.address)}
                   </p>
                 </div>
                 {isActive && <Check size={16} class="shrink-0 text-accent" />}

@@ -58,22 +58,22 @@ todos:
     status: pending
   - id: extract-truncate
     content: "[P3] Move truncateAddress to shared/format.ts, remove 4 duplicates (#10)"
-    status: pending
+    status: completed
   - id: ui-error-handling
     content: "[P3] Add missing error handling in ImportWallet paste, Receive QR, Send fetchBalance, TxResult RPC, Settings cache clear (#8)"
-    status: pending
+    status: completed
   - id: fix-rerenders
     content: "[P3] Pass network as prop to ActivityRow/TokenRow; add staleness guard to Home fetches (#23, #24, #25)"
-    status: pending
+    status: completed
   - id: extract-helpers
     content: "[P3] Extract persistWalletData, toErrorMessage, RevealSecretPage, ResultPage, useAutoCloseQueue (#9, #11, #12, #15)"
-    status: pending
+    status: completed
   - id: storage-cache-util
     content: "[P3] Create generic StorageCache<T> utility for the repeated load/persist pattern (#14)"
-    status: pending
+    status: completed
   - id: content-validation
     content: "[P3] Add runtime validation for incoming messages in content script and inpage provider (#28)"
-    status: pending
+    status: completed
   - id: type-responses
     content: "[P4] Type sendMessage responses properly instead of using as casts (#26, #27)"
     status: pending
@@ -703,23 +703,23 @@ Currently the wallet stores a single `mnemonic` string and a flat `accounts` arr
 
 ```typescript
 interface Keyring {
-  id: string;               // stable UUID, generated on creation/import
-  label: string;            // user-editable name (e.g. "Main", "Hardware backup", "Work")
-  mnemonic: string;         // BIP-39 mnemonic phrase
+  id: string; // stable UUID, generated on creation/import
+  label: string; // user-editable name (e.g. "Main", "Hardware backup", "Work")
+  mnemonic: string; // BIP-39 mnemonic phrase
   nextDerivationIndex: number; // next index to use when deriving a new account
-  createdAt: number;        // timestamp for ordering
+  createdAt: number; // timestamp for ordering
 }
 
 interface Account {
   address: string;
   name: string;
-  keyringId: string;        // which keyring this account was derived from
-  derivationIndex: number;  // BIP-44 index within the keyring
+  keyringId: string; // which keyring this account was derived from
+  derivationIndex: number; // BIP-44 index within the keyring
 }
 
 interface WalletState {
   keyrings: Keyring[];
-  accounts: Account[];      // flat list of all accounts across all keyrings
+  accounts: Account[]; // flat list of all accounts across all keyrings
   importedKeys: Record<string, string>; // standalone private key imports (no mnemonic)
   activeAccountAddress: string; // the currently selected account (from any keyring)
 }

@@ -1,3 +1,4 @@
+import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import { Eye, EyeOff, Fingerprint } from "lucide-preact";
 import { useState } from "preact/hooks";
@@ -59,7 +60,7 @@ export function ExportPrivateKey() {
           <p class="text-xs text-text-secondary">Account</p>
           <p class="text-sm font-semibold text-text-primary mt-0.5">{account.name}</p>
           <p class="text-xs font-mono text-text-primary/70 mt-0.5">
-            {account.address.slice(0, 6)}...{account.address.slice(-4)}
+            {truncateAddress(account.address)}
           </p>
         </Card>
 

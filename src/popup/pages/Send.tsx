@@ -1,4 +1,5 @@
 import { POPUP_ORIGIN } from "@shared/constants";
+import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import { ChevronDown, Clipboard } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
@@ -100,8 +101,8 @@ export function Send() {
           setBalance(formatted);
         }
       }
-    } catch {
-      // fall back to mock balance
+    } catch (e) {
+      console.warn("[Send] fetchBalance failed:", e);
     } finally {
       setLoadingBalance(false);
     }
@@ -162,7 +163,7 @@ export function Send() {
 
       route("/approve", true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create transaction");
+      setError(toErrorMessage(e));
       setSubmitting(false);
     }
   };

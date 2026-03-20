@@ -1,3 +1,4 @@
+import { toErrorMessage } from "@shared/format";
 import { type Address, formatEther, type Hex, numberToHex } from "viem";
 import browser from "webextension-polyfill";
 import type { MessageRequest, MessageResponse } from "../shared/messages";
@@ -222,12 +223,64 @@ async function executeApproval(
     broadcastPendingCount();
     return { ok: true, data: { result } };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Signing failed";
+    const msg = toErrorMessage(e);
     rejectPendingApproval(id, msg);
     updateBadge();
     broadcastPendingCount();
     return { ok: false, error: msg };
   }
+}
+
+interface PersistOpts {
+  mnemonic: string;
+  accounts: import("../shared/types").SerializedAccount[];
+  password?: string;
+  importedKeys?: Record<string, string>;
+  label: string;
+}
+
+async function persistWalletData({
+  mnemonic,
+  accounts,
+  password,
+  importedKeys,
+  label,
+}: PersistOpts): Promise<MessageResponse> {
+  if (!password) {
+    const probe = await keychain.isKeychainAvailable();
+    bgLog(`[${label}] probe:`, JSON.stringify(probe));
+    if (!probe.available) {
+      return { ok: false, error: `Keychain not available: ${probe.error ?? "probe returned false"}` };
+    }
+
+    const mnemonicRes = await keychain.storeMnemonic(mnemonic);
+    bgLog(`[${label}] storeMnemonic:`, JSON.stringify(mnemonicRes));
+    if (!mnemonicRes.ok) {
+      return { ok: false, error: `Keychain store failed: ${mnemonicRes.error}` };
+    }
+
+    if (importedKeys) {
+      for (const [addr, pk] of Object.entries(importedKeys)) {
+        const keyRes = await keychain.storeImportedKey(addr as Address, pk as `0x${string}`);
+        bgLog(`[${label}] storeKey(${addr}):`, JSON.stringify(keyRes));
+        if (!keyRes.ok) {
+          return { ok: false, error: `Keychain store failed: key: ${keyRes.error}` };
+        }
+      }
+    }
+
+    await setStorageMode("keychain");
+  } else {
+    await setStorageMode("vault");
+    await encryptVault(
+      { mnemonic, accounts, activeAccountIndex: 0, ...(importedKeys ? { importedKeys } : {}) },
+      password,
+    );
+  }
+
+  await saveAccountsMeta(accounts, 0);
+  broadcastEvent("accountsChanged", accounts.map((a) => a.address));
+  return { ok: true };
 }
 
 async function handleMessage(message: MessageRequest): Promise<MessageResponse> {
@@ -244,38 +297,13 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       const account = wallet.deriveAccount(mnemonic, 0);
       const accounts = [account];
 
-      if (!message.password) {
-        const probe = await keychain.isKeychainAvailable();
-        bgLog("[create] probe:", JSON.stringify(probe));
-        if (probe.available) {
-          const storeRes = await keychain.storeMnemonic(mnemonic);
-          bgLog("[create] storeMnemonic:", JSON.stringify(storeRes));
-          if (storeRes.ok) {
-            await setStorageMode("keychain");
-            await saveAccountsMeta(accounts, 0);
-            broadcastEvent(
-              "accountsChanged",
-              accounts.map((a) => a.address),
-            );
-            return { ok: true, data: { mnemonic, accounts } };
-          }
-          return {
-            ok: false,
-            error: `Keychain store failed: ${storeRes.error}`,
-          };
-        }
-        return {
-          ok: false,
-          error: `Keychain not available: ${probe.error ?? "probe returned false"}`,
-        };
-      }
-      await setStorageMode("vault");
-      await encryptVault({ mnemonic, accounts, activeAccountIndex: 0 }, message.password);
-      await saveAccountsMeta(accounts, 0);
-      broadcastEvent(
-        "accountsChanged",
-        accounts.map((a) => a.address),
-      );
+      const res = await persistWalletData({
+        mnemonic,
+        accounts,
+        password: message.password,
+        label: "create",
+      });
+      if (!res.ok) return res;
       return { ok: true, data: { mnemonic, accounts } };
     }
 
@@ -283,41 +311,13 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       const account = wallet.deriveAccount(message.mnemonic, 0);
       const accounts = [account];
 
-      if (!message.password) {
-        const probe = await keychain.isKeychainAvailable();
-        bgLog("[import] probe:", JSON.stringify(probe));
-        if (probe.available) {
-          const storeRes = await keychain.storeMnemonic(message.mnemonic);
-          bgLog("[import] storeMnemonic:", JSON.stringify(storeRes));
-          if (storeRes.ok) {
-            await setStorageMode("keychain");
-            await saveAccountsMeta(accounts, 0);
-            broadcastEvent(
-              "accountsChanged",
-              accounts.map((a) => a.address),
-            );
-            return { ok: true, data: { accounts } };
-          }
-          return {
-            ok: false,
-            error: `Keychain store failed: ${storeRes.error}`,
-          };
-        }
-        return {
-          ok: false,
-          error: `Keychain not available: ${probe.error ?? "probe returned false"}`,
-        };
-      }
-      await setStorageMode("vault");
-      await encryptVault(
-        { mnemonic: message.mnemonic, accounts, activeAccountIndex: 0 },
-        message.password,
-      );
-      await saveAccountsMeta(accounts, 0);
-      broadcastEvent(
-        "accountsChanged",
-        accounts.map((a) => a.address),
-      );
+      const res = await persistWalletData({
+        mnemonic: message.mnemonic,
+        accounts,
+        password: message.password,
+        label: "import",
+      });
+      if (!res.ok) return res;
       return { ok: true, data: { accounts } };
     }
 
@@ -332,58 +332,14 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       };
       const accounts = [imported];
 
-      if (!message.password) {
-        const probe = await keychain.isKeychainAvailable();
-        bgLog("[importKey] probe:", JSON.stringify(probe));
-        if (probe.available) {
-          const mnemonicRes = await keychain.storeMnemonic(mnemonic);
-          const keyRes = await keychain.storeImportedKey(address, message.privateKey);
-          bgLog(
-            "[importKey] storeMnemonic:",
-            JSON.stringify(mnemonicRes),
-            "storeKey:",
-            JSON.stringify(keyRes),
-          );
-          if (mnemonicRes.ok && keyRes.ok) {
-            await setStorageMode("keychain");
-            await saveAccountsMeta(accounts, 0);
-            broadcastEvent(
-              "accountsChanged",
-              accounts.map((a) => a.address),
-            );
-            return { ok: true, data: { accounts } };
-          }
-          const errors = [
-            !mnemonicRes.ok ? `mnemonic: ${mnemonicRes.error}` : "",
-            !keyRes.ok ? `key: ${keyRes.error}` : "",
-          ]
-            .filter(Boolean)
-            .join("; ");
-          return {
-            ok: false,
-            error: `Keychain store failed: ${errors}`,
-          };
-        }
-        return {
-          ok: false,
-          error: `Keychain not available: ${probe.error ?? "probe returned false"}`,
-        };
-      }
-      await setStorageMode("vault");
-      await encryptVault(
-        {
-          mnemonic,
-          accounts,
-          activeAccountIndex: 0,
-          importedKeys: { [address.toLowerCase()]: message.privateKey },
-        },
-        message.password,
-      );
-      await saveAccountsMeta(accounts, 0);
-      broadcastEvent(
-        "accountsChanged",
-        accounts.map((a) => a.address),
-      );
+      const res = await persistWalletData({
+        mnemonic,
+        accounts,
+        password: message.password,
+        importedKeys: { [address.toLowerCase()]: message.privateKey },
+        label: "importKey",
+      });
+      if (!res.ok) return res;
       return { ok: true, data: { accounts } };
     }
 
@@ -507,7 +463,7 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
           gasPresets = await estimateGasPresets(pending.chainId, txParams, activeAccount?.address);
           _debug.push("gas: OK");
         } catch (e) {
-          _debug.push(`gas: FAIL ${e instanceof Error ? e.message : e}`);
+          _debug.push(`gas: FAIL ${toErrorMessage(e)}`);
         }
 
         try {
@@ -559,7 +515,7 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
 
           transfers = simTransfers.length > 0 ? simTransfers : null;
         } catch (e) {
-          _debug.push(`decode/sim CATCH: ${e instanceof Error ? e.message : e}`);
+          _debug.push(`decode/sim CATCH: ${toErrorMessage(e)}`);
         }
       }
 
@@ -621,8 +577,7 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
         const presets = await estimateGasPresets(message.chainId, message.tx, fromAddr);
         return { ok: true, data: presets };
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Gas estimation failed";
-        return { ok: false, error: msg };
+        return { ok: false, error: toErrorMessage(e) };
       }
     }
 

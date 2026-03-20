@@ -1,13 +1,10 @@
+import { truncateAddress } from "@shared/format";
 import { CopyButton } from "./CopyButton";
 
 interface AddressDisplayProps {
   address: string;
   full?: boolean;
   class?: string;
-}
-
-function truncateAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export function AddressDisplay({ address, full = false, class: cls = "" }: AddressDisplayProps) {

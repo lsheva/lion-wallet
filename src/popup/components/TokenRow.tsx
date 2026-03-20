@@ -1,10 +1,11 @@
 import { Fuel } from "lucide-preact";
-import { activeNetwork, type Token } from "../store";
+import type { Token } from "../store";
 import { ChainIcon } from "./ChainIcon";
 import { FormattedTokenValue } from "./FormattedTokenValue";
 
 interface TokenRowProps {
   token: Token;
+  chainId: number;
   onClick?: () => void;
 }
 
@@ -17,7 +18,7 @@ function splitNameForGasLabel(name: string): { before: string; last: string } {
   return { before: t.slice(0, i + 1), last: t.slice(i + 1) };
 }
 
-export function TokenRow({ token, onClick }: TokenRowProps) {
+export function TokenRow({ token, chainId, onClick }: TokenRowProps) {
   const isNative = !token.address;
   const gasNameParts = isNative ? splitNameForGasLabel(token.name) : null;
 
@@ -29,7 +30,7 @@ export function TokenRow({ token, onClick }: TokenRowProps) {
     >
       {isNative ? (
         <div class="shrink-0 pt-0.5">
-          <ChainIcon chainId={activeNetwork.value.chain.id} size={32} />
+          <ChainIcon chainId={chainId} size={32} />
         </div>
       ) : (
         <div class="shrink-0 pt-0.5">

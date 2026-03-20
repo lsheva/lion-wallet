@@ -1,6 +1,6 @@
 import { formatUsd } from "@shared/format";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Plus, Settings } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { route } from "preact-router";
 import { AccountSwitcher } from "../components/AccountSwitcher";
 import { ActivityRow } from "../components/ActivityRow";
@@ -11,6 +11,7 @@ import { AddToken } from "./AddToken";
 import { NetworkSelector } from "./NetworkSelector";
 
 const PAGE_SIZE = 5;
+const STALE_MS = 10_000;
 
 function ActivitySection({ account }: { account: { address: string } }) {
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
@@ -19,6 +20,10 @@ function ActivitySection({ account }: { account: { address: string } }) {
   const hasMore = walletState.activityHasMore.value;
   const visible = items.slice(0, displayCount);
   const canShowMore = displayCount < items.length || hasMore;
+
+  const network = walletState.activeNetwork.value;
+  const explorerUrl = network.chain.blockExplorers?.default?.url;
+  const nativeSymbol = network.chain.nativeCurrency.symbol;
 
   const handleLoadMore = async () => {
     if (displayCount < items.length) {
@@ -39,7 +44,13 @@ function ActivitySection({ account }: { account: { address: string } }) {
         <>
           <div class="divide-y divide-divider">
             {visible.map((item) => (
-              <ActivityRow key={item.hash} item={item} userAddress={account.address} />
+              <ActivityRow
+                key={item.hash}
+                item={item}
+                userAddress={account.address}
+                explorerUrl={explorerUrl}
+                nativeSymbol={nativeSymbol}
+              />
             ))}
           </div>
           {canShowMore && (
@@ -87,10 +98,15 @@ function balanceUsdTotal(ethBalance: string, nativeUsdPerUnit: number | null): s
 
 export function Home() {
   const account = walletState.activeAccount.value;
+  const network = walletState.activeNetwork.value;
   const [showAddToken, setShowAddToken] = useState(false);
   const usdTotal = balanceUsdTotal(walletState.ethBalance.value, walletState.nativeUsdPrice.value);
+  const lastFetchRef = useRef(0);
 
   useEffect(() => {
+    const now = Date.now();
+    if (now - lastFetchRef.current < STALE_MS) return;
+    lastFetchRef.current = now;
     refreshAll();
     fetchActivity().catch(() => {});
   }, []);
@@ -156,7 +172,7 @@ export function Home() {
           </div>
           <div class="divide-y divide-divider">
             {walletState.tokens.value.map((token) => (
-              <TokenRow key={token.symbol} token={token} />
+              <TokenRow key={token.symbol} token={token} chainId={network.chain.id} />
             ))}
           </div>
         </div>

@@ -12,6 +12,8 @@ import { bgLog } from "./log";
 import { getPublicClient } from "./networks";
 import { stringify, tryDecode } from "./tx-decoder";
 
+import { StorageCache } from "./storage-cache";
+
 const STORAGE_KEY = "activityCache";
 const TOKEN_META_KEY = "tokenMeta";
 /** Etherscan/RPC page size per request */
@@ -33,26 +35,15 @@ interface TokenMeta {
   symbol: string;
   decimals: number;
 }
-let tokenMetaMem: Record<string, TokenMeta> | null = null;
 
-async function loadTokenMeta(): Promise<Record<string, TokenMeta>> {
-  if (tokenMetaMem) return tokenMetaMem;
-  try {
-    const r = await browser.storage.local.get(TOKEN_META_KEY);
-    tokenMetaMem = (r[TOKEN_META_KEY] as Record<string, TokenMeta>) ?? {};
-  } catch {
-    tokenMetaMem = {};
-  }
-  return tokenMetaMem;
+const tokenMetaStore = new StorageCache<Record<string, TokenMeta>>(TOKEN_META_KEY, "activity-tokenMeta");
+
+async function loadTokenMeta() {
+  return tokenMetaStore.load();
 }
 
-async function persistTokenMeta(): Promise<void> {
-  if (!tokenMetaMem) return;
-  try {
-    await browser.storage.local.set({ [TOKEN_META_KEY]: tokenMetaMem });
-  } catch (e) {
-    bgLog("[activity] persistTokenMeta failed:", e);
-  }
+async function persistTokenMeta() {
+  return tokenMetaStore.persist();
 }
 
 function tmKey(chainId: number, addr: string): string {
@@ -117,31 +108,19 @@ interface CacheEntry {
   etherscanHasMore?: boolean;
 }
 
-let memCache: Record<string, CacheEntry> | null = null;
+const activityStore = new StorageCache<Record<string, CacheEntry>>(STORAGE_KEY, "activity");
 const lastFetchTs = new Map<string, number>();
 
 function actCacheKey(address: string, chainId: number): string {
   return `${chainId}:${address.toLowerCase()}`;
 }
 
-async function loadCache(): Promise<Record<string, CacheEntry>> {
-  if (memCache) return memCache;
-  try {
-    const r = await browser.storage.local.get(STORAGE_KEY);
-    memCache = (r[STORAGE_KEY] as Record<string, CacheEntry>) ?? {};
-  } catch {
-    memCache = {};
-  }
-  return memCache;
+async function loadCache() {
+  return activityStore.load();
 }
 
-async function persist(): Promise<void> {
-  if (!memCache) return;
-  try {
-    await browser.storage.local.set({ [STORAGE_KEY]: memCache });
-  } catch (e) {
-    bgLog("[activity] persist cache failed:", e);
-  }
+async function persist() {
+  return activityStore.persist();
 }
 
 function mergeActivityItems(a: ActivityItem, b: ActivityItem): ActivityItem {
@@ -922,12 +901,7 @@ export async function pushActivityItem(
 }
 
 export async function clearActivityCache(): Promise<void> {
-  memCache = {};
   lastFetchTs.clear();
-  tokenMetaMem = {};
-  try {
-    await browser.storage.local.remove([STORAGE_KEY, TOKEN_META_KEY]);
-  } catch (e) {
-    bgLog("[activity] clearActivityCache failed:", e);
-  }
+  await activityStore.clearStorage();
+  await tokenMetaStore.clearStorage();
 }

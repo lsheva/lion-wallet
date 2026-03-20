@@ -1,3 +1,4 @@
+import { toErrorMessage } from "@shared/format";
 import { type Hex, numberToHex } from "viem";
 import { POPUP_ORIGIN } from "../shared/constants";
 import { createPendingApproval } from "./approval";
@@ -171,8 +172,7 @@ export async function handleRpc(
 
     return proxyToRpc(method, params);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Internal error";
-    return err(-32603, message);
+    return err(-32603, toErrorMessage(e));
   }
 }
 

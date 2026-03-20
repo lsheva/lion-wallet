@@ -3,10 +3,10 @@ import { sendMessage } from "@shared/messages";
 import { CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { route } from "preact-router";
-import { closePopup, pendingQueueSize, routeToNextApprovalOrClose } from "../App";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { useAutoCloseQueue } from "../hooks/useAutoCloseQueue";
 import { walletState } from "../store";
 
 interface TxResultProps {
@@ -21,9 +21,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
   const isError = status === "error";
   const [confirmations, setConfirmations] = useState(0);
   const [mined, setMined] = useState(false);
-  const [autoCloseIn, setAutoCloseIn] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
-  const autoCloseRef = useRef<ReturnType<typeof setInterval>>();
   const receiptBlockRef = useRef<bigint | null>(null);
 
   const stored = (() => {
@@ -36,11 +34,13 @@ export function TxResult({ status = "success" }: TxResultProps) {
 
   const txHash = stored.hash as string | undefined;
   const errorMessage = stored.error as string | undefined;
-  const queueSize = pendingQueueSize.value;
 
   const network = walletState.activeNetwork.value;
   const explorerUrl = NETWORK_BY_ID.get(network.chain.id)?.chain.blockExplorers?.default?.url;
   const txExplorerUrl = explorerUrl && txHash ? `${explorerUrl}/tx/${txHash}` : null;
+
+  const rpcFailCountRef = useRef(0);
+  const [rpcError, setRpcError] = useState(false);
 
   const rpc = useCallback(async (method: string, params: unknown[]) => {
     const res = await sendMessage({
@@ -50,7 +50,13 @@ export function TxResult({ status = "success" }: TxResultProps) {
       params,
       origin: POPUP_ORIGIN,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      rpcFailCountRef.current++;
+      if (rpcFailCountRef.current >= 3) setRpcError(true);
+      return null;
+    }
+    rpcFailCountRef.current = 0;
+    setRpcError(false);
     return (res.data as { result: unknown })?.result ?? null;
   }, []);
 
@@ -112,24 +118,11 @@ export function TxResult({ status = "success" }: TxResultProps) {
     return () => clearInterval(intervalRef.current);
   }, [isError, txHash, isDev, rpc]);
 
+  const { autoCloseIn, queueSize, dismiss } = useAutoCloseQueue({ skip: isError });
+
   useEffect(() => {
     return () => sessionStorage.removeItem("txResult");
   }, []);
-
-  useEffect(() => {
-    if (isDev || isError || queueSize <= 0) return;
-    setAutoCloseIn(5);
-    let seconds = 5;
-    autoCloseRef.current = setInterval(() => {
-      seconds--;
-      setAutoCloseIn(seconds);
-      if (seconds <= 0) {
-        clearInterval(autoCloseRef.current);
-        routeToNextApprovalOrClose(closePopup);
-      }
-    }, 1000);
-    return () => clearInterval(autoCloseRef.current);
-  }, [isDev, isError, queueSize]);
 
   const progressPct = Math.min((confirmations / TARGET_CONFIRMATIONS) * 100, 100);
 
@@ -150,7 +143,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
           </p>
         </Card>
         <div class="w-full space-y-2">
-          <Button onClick={() => routeToNextApprovalOrClose(closePopup)} size="lg">
+          <Button onClick={dismiss} size="lg">
             {isDev ? "Back to Wallet" : "Done"}
           </Button>
           {queueSize > 0 && (
@@ -181,7 +174,9 @@ export function TxResult({ status = "success" }: TxResultProps) {
       <p class="text-sm text-text-secondary text-center mb-5">
         {mined
           ? "Your transaction has been confirmed on the network."
-          : "Waiting for confirmations..."}
+          : rpcError
+            ? "Having trouble reaching the network — still trying..."
+            : "Waiting for confirmations..."}
       </p>
 
       <div class="w-full mb-5">
@@ -222,18 +217,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
       )}
 
       <div class="w-full space-y-2">
-        <Button
-          onClick={() => {
-            clearInterval(autoCloseRef.current);
-            if (queueSize > 0) {
-              routeToNextApprovalOrClose(closePopup);
-            } else {
-              closePopup();
-            }
-          }}
-          size="lg"
-          variant={mined ? "primary" : "secondary"}
-        >
+        <Button onClick={dismiss} size="lg" variant={mined ? "primary" : "secondary"}>
           {mined ? "Done" : "Dismiss"}
         </Button>
         {queueSize > 0 && (

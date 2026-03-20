@@ -1,3 +1,4 @@
+import { toErrorMessage } from "@shared/format";
 import { type MessageResponse, sendMessage } from "@shared/messages";
 import { Clipboard, Fingerprint } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
@@ -33,9 +34,13 @@ export function ImportWallet() {
   const usePassword = keychainAvailable === false || preferPassword;
 
   const handlePaste = async () => {
-    const text = await navigator.clipboard.readText();
-    if (tab === "mnemonic") setMnemonic(text);
-    else setPrivateKey(text);
+    try {
+      const text = await navigator.clipboard.readText();
+      if (tab === "mnemonic") setMnemonic(text);
+      else setPrivateKey(text);
+    } catch {
+      setError("Clipboard access denied — please paste manually");
+    }
   };
 
   const handleImport = async () => {
@@ -87,7 +92,7 @@ export function ImportWallet() {
       await refreshAll();
       route("/api-key-setup");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Import failed — try again");
+      setError(toErrorMessage(e));
       setLoading(false);
     }
   };
