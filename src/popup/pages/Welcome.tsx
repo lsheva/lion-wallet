@@ -56,7 +56,7 @@ export function Welcome() {
         </div>
       </div>
 
-      <h1 class="text-xl font-bold text-text-primary mb-1">Safari EVM Wallet</h1>
+      <h1 class="text-xl font-bold text-text-primary mb-1">Lion Wallet</h1>
       <p class="text-sm text-text-secondary mb-10">Your keys. Your crypto.</p>
 
       {error && (

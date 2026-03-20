@@ -80,7 +80,7 @@ export async function sendMessage(message: MessageRequest): Promise<MessageRespo
   return response as MessageResponse;
 }
 
-export const CHANNEL = "SAFARI_EVM_WALLET";
+export const CHANNEL = "LION_WALLET";
 
 export interface ProviderRpcRequest {
   type: typeof CHANNEL;

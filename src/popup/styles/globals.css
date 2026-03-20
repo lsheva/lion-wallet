@@ -1,27 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  /* Background */
-  --color-base: #F2F2F7;
-  --color-surface: #FFFFFF;
-  --color-elevated: #FFFFFF;
-  --color-divider: #E5E5EA;
+  /* Surfaces — warm neutrals (Lion / savanna, aligned with brand/lion.svg) */
+  --color-base: #f2ebe2;
+  --color-surface: #fffcf8;
+  --color-elevated: #ffffff;
+  --color-divider: #e5dcd2;
+  --color-divider-strong: #d4c9bc;
 
-  /* Text */
-  --color-text-primary: #1C1C1E;
-  --color-text-secondary: #8E8E93;
-  --color-text-tertiary: #AEAEB2;
+  /* Text — mane ink scale */
+  --color-text-primary: #2c1810;
+  --color-text-secondary: #715a44;
+  --color-text-tertiary: #9c8b7a;
 
-  /* Accent */
-  --color-accent: #6366F1;
-  --color-accent-hover: #4F46E5;
-  --color-accent-light: #EEF2FF;
-  --color-accent-foreground: #FFFFFF;
+  /* Accent — amber gold */
+  --color-accent: #d97706;
+  --color-accent-hover: #b45309;
+  --color-accent-light: #ffedd5;
+  --color-accent-foreground: #ffffff;
 
   /* Semantic */
-  --color-success: #34C759;
-  --color-danger: #FF3B30;
-  --color-warning: #FF9500;
+  --color-success: #34c759;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-warning: #ea580c;
+
+  /* Banners (avoid hard-coded hex in components) */
+  --color-warning-bg: #fff7ed;
+  --color-warning-text: #c2410c;
+  --color-danger-bg: #fef2f2;
 
   /* Font families */
   --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;

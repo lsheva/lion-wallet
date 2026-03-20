@@ -1,10 +1,10 @@
-# Safari EVM Wallet — Development Log
+# Lion Wallet — Development Log
 
 > **This file is append-only.** After every coding iteration, append a new entry to the changelog below. Never edit or remove previous entries. Read this file at the start of a session to understand current state.
 
 ## Project
 
-Minimal macOS Safari Web Extension acting as an EVM wallet. Preact + TypeScript + viem, bundled with Vite, wrapped in an Xcode Safari Web Extension project.
+Minimal macOS Safari Web Extension (**Lion Wallet**) acting as an EVM wallet. Preact + TypeScript + viem, bundled with Vite, wrapped in an Xcode Safari Web Extension project.
 
 ## Tech Stack
 
@@ -205,3 +205,12 @@ scripts/
 - **Cause**: WebKit only allows `window.close()` on extension popovers when history depth stays at a single entry; preact-router’s default `route()` uses `pushState`, which triggers “Can’t close the window since it was not opened by JavaScript” and leaves the popup open after Done
 - **`closePopup()`** (`App.tsx`): `window.close()` only, then replace fallback to `/home`. **`browser.windows.remove` is not used** — on Safari, `windows.getCurrent()` from the popup can resolve to the main browser window and `remove` would quit Safari
 - **Navigation**: use `route(path, true)` (replace) for wallet flows that end in `closePopup` — approve → tx/sign result/error, send → approve, Header string backs, Home quick actions → send/receive/settings, Settings → export/phrase, TxResult → tx-error
+
+### Branding — product rename to Lion Wallet
+
+- **User-facing strings**: manifest (`name`, `description`, `default_title`), popup `index.html` title, Welcome heading, macOS container UI (`Main.storyboard`, `Main.html`, `Script.js`), Xcode `INFOPLIST_KEY_CFBundleDisplayName` for app + extension
+- **Provider identity**: EIP-1193 flag `isLionWallet` (replaces `isSafariEVMWallet`); EIP-6963 `name` / new `uuid` / `rdns` `dev.wallet.lion`
+- **Internal**: page↔extension postMessage channel string `LION_WALLET` (replaces `SAFARI_EVM_WALLET`); `POPUP_ORIGIN` `lion-wallet://popup` (replaces `safari-evm-wallet://popup`)
+- **`package.json`**: `name` set to `lion-wallet` (private package; repo directory may still be `safari-evm-wallet`)
+- **Docs**: `PHILOSOPHY.md` aligned with Lion Wallet; this log title updated
+- **Unchanged on purpose**: `PRODUCT_BUNDLE_IDENTIFIER` (`dev.wallet.SafariEVMWallet` / `.Extension`), Keychain `kSecAttrService`, native messaging `APP_ID`, Xcode target and folder names `SafariEVMWallet` — changing these would orphan existing Keychain items and break updates without a migration

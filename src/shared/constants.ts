@@ -23,7 +23,7 @@ import {
 } from "viem/chains";
 import type { NetworkConfig } from "./types";
 
-export const POPUP_ORIGIN = "safari-evm-wallet://popup";
+export const POPUP_ORIGIN = "lion-wallet://popup";
 
 /* Brand colors for well-known chains; unlisted chains get a neutral default */
 const CHAIN_COLORS: Record<number, string> = {

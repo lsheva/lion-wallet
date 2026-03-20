@@ -69,18 +69,24 @@ function broadcastPendingCount(): void {
   browser.runtime.sendMessage({ type: "PENDING_COUNT", count }).catch(() => {});
 }
 
+/** RGBA 0–255 — WebKit/Safari often ignores hex strings for badge color. */
+const BADGE_THEME_RGBA: [number, number, number, number] = [217, 119, 6, 255];
+
 function updateBadge(): void {
   const count = getPendingCount();
-  browser.action.setBadgeText({ text: count > 0 ? String(count) : "" });
-  if (count > 0) {
-    browser.action.setBadgeBackgroundColor({ color: "#6366f1" });
-  }
+  browser.action.setBadgeText({ text: count > 0 ? String(count) : "==" });
+  void browser.action.setBadgeBackgroundColor({ color: BADGE_THEME_RGBA });
 }
+
+updateBadge();
+browser.runtime.onInstalled.addListener(() => updateBadge());
+browser.runtime.onStartup?.addListener(() => updateBadge());
 
 setApprovalCreatedCallback(() => {
   updateBadge();
   broadcastPendingCount();
   try {
+    // Opening the popover focuses the toolbar item — Safari may still draw system selection (often blue); not controllable from JS.
     (browser.action as { openPopup?: () => void }).openPopup?.();
   } catch {
     /* popup couldn't be opened programmatically */

@@ -1,4 +1,4 @@
-const CHANNEL = "SAFARI_EVM_WALLET";
+const CHANNEL = "LION_WALLET";
 
 let requestId = 0;
 const pending = new Map<
@@ -51,7 +51,7 @@ class EventEmitter {
 
 class EIP1193Provider extends EventEmitter {
   readonly isMetaMask = true;
-  readonly isSafariEVMWallet = true;
+  readonly isLionWallet = true;
 
   private _chainId: string | null = null;
   private _accounts: string[] = [];
@@ -195,10 +195,10 @@ class EIP1193Provider extends EventEmitter {
 
 function announceProvider(provider: EIP1193Provider): void {
   const info = {
-    uuid: "d4f6c2a8-3b1e-4f8a-9c5d-7e2b0a1f3c6d",
-    name: "Safari EVM Wallet",
+    uuid: "f7e2c1b4-8a9d-4e3f-9c2b-1d0e8f7a6b5c",
+    name: "Lion Wallet",
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect width='48' height='48' rx='12' fill='%234F46E5'/><path d='M14 24l8 8 12-16' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>",
-    rdns: "com.safari-evm-wallet",
+    rdns: "dev.wallet.lion",
   };
 
   const detail = Object.freeze({ info, provider });

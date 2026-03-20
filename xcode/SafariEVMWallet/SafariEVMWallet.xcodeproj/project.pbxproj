@@ -7,42 +7,43 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		68F9B97A2F6C647000EAC18F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F9B9792F6C647000EAC18F /* AppDelegate.swift */; };
-		68F9B97E2F6C647000EAC18F /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B97C2F6C647000EAC18F /* Main.html */; };
-		68F9B9802F6C647000EAC18F /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B97F2F6C647000EAC18F /* Icon.png */; };
-		68F9B9822F6C647000EAC18F /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9812F6C647000EAC18F /* Style.css */; };
-		68F9B9842F6C647000EAC18F /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9832F6C647000EAC18F /* Script.js */; };
-		68F9B9862F6C647000EAC18F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F9B9852F6C647000EAC18F /* ViewController.swift */; };
-		68F9B9892F6C647000EAC18F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9872F6C647000EAC18F /* Main.storyboard */; };
-		68F9B98B2F6C647200EAC18F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B98A2F6C647200EAC18F /* Assets.xcassets */; };
-		68F9B9922F6C647200EAC18F /* SafariEVMWallet Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 68F9B9912F6C647200EAC18F /* SafariEVMWallet Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		68F9B9972F6C647200EAC18F /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F9B9962F6C647200EAC18F /* SafariWebExtensionHandler.swift */; };
-		68F9B9A82F6C647200EAC18F /* popup in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9A32F6C647200EAC18F /* popup */; };
-		68F9B9A92F6C647200EAC18F /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9A42F6C647200EAC18F /* background.js */; };
-		68F9B9AA2F6C647200EAC18F /* inpage.js in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9A52F6C647200EAC18F /* inpage.js */; };
-		68F9B9AB2F6C647200EAC18F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9A62F6C647200EAC18F /* manifest.json */; };
-		68F9B9AC2F6C647200EAC18F /* content-script.js in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9A72F6C647200EAC18F /* content-script.js */; };
-		68F9B9AE2F6C647200EAC18F /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 68F9B9AD2F6C647200EAC18F /* icons */; };
+		B5EFF0F0E8344F219D706C4D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66B3198B5A24605A98028A5 /* AppDelegate.swift */; };
+		65A1CCDA0D9C415A8A8F5E10 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = BBAE73ED803148278EAEBC2A /* Main.html */; };
+		70CCF51BA329470BBFDCF7FB /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = BFC301D5C043404DAD360DA3 /* Icon.png */; };
+		6EA268AD257B4363B0D17FBC /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = BEB2814D1D64434EB4715162 /* Style.css */; };
+		289DDBF05FD74DB79FE7E953 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = EC3F84A5AA6F42389F13F14F /* Script.js */; };
+		6030F2C9864F4E6382F55A47 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ACE951944024CFCA2B79B17 /* ViewController.swift */; };
+		0C53E71570424A8BA6EE2422 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 25A9BA7A009749D8A4D42FAF /* Main.storyboard */; };
+		ABFCE2F2DF854A5FA5331223 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF879052E4904436B88DA1C7 /* Assets.xcassets */; };
+		8AA8E51BF6C14E8BBFDCEA0A /* SafariEVMWallet Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 09869D9BEEE34AC8AE3DC3A1 /* SafariEVMWallet Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3C6F981C539B4AD58AF45CCC /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 438715B0504948269AF63304 /* SafariWebExtensionHandler.swift */; };
+		2FA96D1F084D483DA7BC46E3 /* popup in Resources */ = {isa = PBXBuildFile; fileRef = 0581378043D949C89B282622 /* popup */; };
+		933F099EB3D445B1B8926220 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 8FFFA39376C749E09E35ACDF /* background.js */; };
+		EB36273328CF4CAA8B75700B /* inpage.js in Resources */ = {isa = PBXBuildFile; fileRef = 909E9C8BBDE841B893871E27 /* inpage.js */; };
+		2B8A4E1A2A70427CA0DD4E38 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 88360D99FC8B4C4A9A18D294 /* manifest.json */; };
+		630A6F3BE94C4C8B9960E7B0 /* content-script.js in Resources */ = {isa = PBXBuildFile; fileRef = 54DB8C40143648DCA17E37C7 /* content-script.js */; };
+		BA67433C7C19449BB68A68F2 /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 0DDC905B98534B76BAABD3EE /* icons */; };
+		C889D327F7834930AFF36E4F /* ToolbarItemIcon.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 025D3EF1D35748638D455B63 /* ToolbarItemIcon.pdf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		68F9B9932F6C647200EAC18F /* PBXContainerItemProxy */ = {
+		A3FCCA44275C46C0AFCB9E1B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 68F9B96E2F6C647000EAC18F /* Project object */;
+			containerPortal = CD45C85C65134D6EBC933EE6 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 68F9B9902F6C647200EAC18F;
+			remoteGlobalIDString = 3D9DFCA07BB0403B9FEECE36;
 			remoteInfo = "SafariEVMWallet Extension";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		68F9B99E2F6C647200EAC18F /* Embed Foundation Extensions */ = {
+		8805195773B642729B77D5C2 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				68F9B9922F6C647200EAC18F /* SafariEVMWallet Extension.appex in Embed Foundation Extensions */,
+				8AA8E51BF6C14E8BBFDCEA0A /* SafariEVMWallet Extension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -50,38 +51,39 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		68F9B9762F6C647000EAC18F /* SafariEVMWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SafariEVMWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		68F9B9792F6C647000EAC18F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		68F9B97D2F6C647000EAC18F /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
-		68F9B97F2F6C647000EAC18F /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
-		68F9B9812F6C647000EAC18F /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
-		68F9B9832F6C647000EAC18F /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
-		68F9B9852F6C647000EAC18F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		68F9B9882F6C647000EAC18F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		68F9B98A2F6C647200EAC18F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		68F9B98C2F6C647200EAC18F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		68F9B9912F6C647200EAC18F /* SafariEVMWallet Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "SafariEVMWallet Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
-		68F9B9962F6C647200EAC18F /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
-		68F9B9982F6C647200EAC18F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		68F9B9A32F6C647200EAC18F /* popup */ = {isa = PBXFileReference; lastKnownFileType = folder; name = popup; path = ../../../dist/popup; sourceTree = "<group>"; };
-		68F9B9A42F6C647200EAC18F /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../../dist/background.js; sourceTree = "<group>"; };
-		68F9B9A52F6C647200EAC18F /* inpage.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = inpage.js; path = ../../../dist/inpage.js; sourceTree = "<group>"; };
-		68F9B9A62F6C647200EAC18F /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../dist/manifest.json; sourceTree = "<group>"; };
-		68F9B9A72F6C647200EAC18F /* content-script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "content-script.js"; path = "../../../dist/content-script.js"; sourceTree = "<group>"; };
-		68F9B9AD2F6C647200EAC18F /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../dist/icons; sourceTree = "<group>"; };
-		68F9B9B02F6C647200EAC18F /* SafariEVMWallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SafariEVMWallet.entitlements; sourceTree = "<group>"; };
-		68F9B9B12F6C647200EAC18F /* SafariEVMWallet Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "SafariEVMWallet Extension.entitlements"; sourceTree = "<group>"; };
+		801D2BB8305C4D14BCFF1E8C /* SafariEVMWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SafariEVMWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B66B3198B5A24605A98028A5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		92B42EEB10C04380BD3CEDD3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		BFC301D5C043404DAD360DA3 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		BEB2814D1D64434EB4715162 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		EC3F84A5AA6F42389F13F14F /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		5ACE951944024CFCA2B79B17 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		2D0AACB30AC94E2CB49EAEC2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		AF879052E4904436B88DA1C7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		14DA4E4E911340F095BE7302 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		09869D9BEEE34AC8AE3DC3A1 /* SafariEVMWallet Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "SafariEVMWallet Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		438715B0504948269AF63304 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		B43D35CDB87249FA8830CB99 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		0581378043D949C89B282622 /* popup */ = {isa = PBXFileReference; lastKnownFileType = folder; name = popup; path = ../../../dist/popup; sourceTree = "<group>"; };
+		8FFFA39376C749E09E35ACDF /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../../dist/background.js; sourceTree = "<group>"; };
+		909E9C8BBDE841B893871E27 /* inpage.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = inpage.js; path = ../../../dist/inpage.js; sourceTree = "<group>"; };
+		88360D99FC8B4C4A9A18D294 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../dist/manifest.json; sourceTree = "<group>"; };
+		54DB8C40143648DCA17E37C7 /* content-script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "content-script.js"; path = "../../../dist/content-script.js"; sourceTree = "<group>"; };
+		0DDC905B98534B76BAABD3EE /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../dist/icons; sourceTree = "<group>"; };
+		1B84B545D8C542C397BACF03 /* SafariEVMWallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SafariEVMWallet.entitlements; sourceTree = "<group>"; };
+		2BC4B4D764984E69B32217A8 /* SafariEVMWallet Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "SafariEVMWallet Extension.entitlements"; sourceTree = "<group>"; };
+		025D3EF1D35748638D455B63 /* ToolbarItemIcon.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = ToolbarItemIcon.pdf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		68F9B9732F6C647000EAC18F /* Frameworks */ = {
+		EF624974F7654CE896BD0567 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		68F9B98E2F6C647200EAC18F /* Frameworks */ = {
+		B4A566A7F94942D0934CA960 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -91,69 +93,70 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		68F9B96D2F6C647000EAC18F = {
+		02606E972F6D49F48CD84125 = {
 			isa = PBXGroup;
 			children = (
-				68F9B9782F6C647000EAC18F /* SafariEVMWallet */,
-				68F9B9952F6C647200EAC18F /* SafariEVMWallet Extension */,
-				68F9B9772F6C647000EAC18F /* Products */,
+				8102CEC53653456DBAB874E9 /* SafariEVMWallet */,
+				3FCC68F9DE48484CA0526121 /* SafariEVMWallet Extension */,
+				D640CC581B174136BCCB9DEA /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		68F9B9772F6C647000EAC18F /* Products */ = {
+		D640CC581B174136BCCB9DEA /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				68F9B9762F6C647000EAC18F /* SafariEVMWallet.app */,
-				68F9B9912F6C647200EAC18F /* SafariEVMWallet Extension.appex */,
+				801D2BB8305C4D14BCFF1E8C /* SafariEVMWallet.app */,
+				09869D9BEEE34AC8AE3DC3A1 /* SafariEVMWallet Extension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		68F9B9782F6C647000EAC18F /* SafariEVMWallet */ = {
+		8102CEC53653456DBAB874E9 /* SafariEVMWallet */ = {
 			isa = PBXGroup;
 			children = (
-				68F9B9B02F6C647200EAC18F /* SafariEVMWallet.entitlements */,
-				68F9B9792F6C647000EAC18F /* AppDelegate.swift */,
-				68F9B9852F6C647000EAC18F /* ViewController.swift */,
-				68F9B9872F6C647000EAC18F /* Main.storyboard */,
-				68F9B98A2F6C647200EAC18F /* Assets.xcassets */,
-				68F9B98C2F6C647200EAC18F /* Info.plist */,
-				68F9B97B2F6C647000EAC18F /* Resources */,
+				1B84B545D8C542C397BACF03 /* SafariEVMWallet.entitlements */,
+				B66B3198B5A24605A98028A5 /* AppDelegate.swift */,
+				5ACE951944024CFCA2B79B17 /* ViewController.swift */,
+				25A9BA7A009749D8A4D42FAF /* Main.storyboard */,
+				AF879052E4904436B88DA1C7 /* Assets.xcassets */,
+				14DA4E4E911340F095BE7302 /* Info.plist */,
+				CEF4AD5C5B5F4E1C9B187535 /* Resources */,
 			);
 			path = SafariEVMWallet;
 			sourceTree = "<group>";
 		};
-		68F9B97B2F6C647000EAC18F /* Resources */ = {
+		CEF4AD5C5B5F4E1C9B187535 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				68F9B97C2F6C647000EAC18F /* Main.html */,
-				68F9B97F2F6C647000EAC18F /* Icon.png */,
-				68F9B9812F6C647000EAC18F /* Style.css */,
-				68F9B9832F6C647000EAC18F /* Script.js */,
+				BBAE73ED803148278EAEBC2A /* Main.html */,
+				BFC301D5C043404DAD360DA3 /* Icon.png */,
+				BEB2814D1D64434EB4715162 /* Style.css */,
+				EC3F84A5AA6F42389F13F14F /* Script.js */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		68F9B9952F6C647200EAC18F /* SafariEVMWallet Extension */ = {
+		3FCC68F9DE48484CA0526121 /* SafariEVMWallet Extension */ = {
 			isa = PBXGroup;
 			children = (
-				68F9B9B12F6C647200EAC18F /* SafariEVMWallet Extension.entitlements */,
-				68F9B9A22F6C647200EAC18F /* Resources */,
-				68F9B9962F6C647200EAC18F /* SafariWebExtensionHandler.swift */,
-				68F9B9982F6C647200EAC18F /* Info.plist */,
+				2BC4B4D764984E69B32217A8 /* SafariEVMWallet Extension.entitlements */,
+				5A5AE0527D404E0C962427DE /* Resources */,
+				438715B0504948269AF63304 /* SafariWebExtensionHandler.swift */,
+				B43D35CDB87249FA8830CB99 /* Info.plist */,
+				025D3EF1D35748638D455B63 /* ToolbarItemIcon.pdf */,
 			);
 			path = "SafariEVMWallet Extension";
 			sourceTree = "<group>";
 		};
-		68F9B9A22F6C647200EAC18F /* Resources */ = {
+		5A5AE0527D404E0C962427DE /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				68F9B9A32F6C647200EAC18F /* popup */,
-				68F9B9A42F6C647200EAC18F /* background.js */,
-				68F9B9A52F6C647200EAC18F /* inpage.js */,
-				68F9B9A62F6C647200EAC18F /* manifest.json */,
-				68F9B9A72F6C647200EAC18F /* content-script.js */,
-				68F9B9AD2F6C647200EAC18F /* icons */,
+				0581378043D949C89B282622 /* popup */,
+				8FFFA39376C749E09E35ACDF /* background.js */,
+				909E9C8BBDE841B893871E27 /* inpage.js */,
+				88360D99FC8B4C4A9A18D294 /* manifest.json */,
+				54DB8C40143648DCA17E37C7 /* content-script.js */,
+				0DDC905B98534B76BAABD3EE /* icons */,
 			);
 			name = Resources;
 			path = "SafariEVMWallet Extension";
@@ -162,34 +165,34 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		68F9B9752F6C647000EAC18F /* SafariEVMWallet */ = {
+		0A0BC9E4135041C696A4CEE5 /* SafariEVMWallet */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 68F9B99F2F6C647200EAC18F /* Build configuration list for PBXNativeTarget "SafariEVMWallet" */;
+			buildConfigurationList = 13556759FDF84404B1E4F01E /* Build configuration list for PBXNativeTarget "SafariEVMWallet" */;
 			buildPhases = (
-				68F9B9722F6C647000EAC18F /* Sources */,
-				68F9B9732F6C647000EAC18F /* Frameworks */,
-				68F9B9742F6C647000EAC18F /* Resources */,
-				68F9B99E2F6C647200EAC18F /* Embed Foundation Extensions */,
+				A63E1AF324FD41249D884637 /* Sources */,
+				EF624974F7654CE896BD0567 /* Frameworks */,
+				44BD361299634634BCA7D291 /* Resources */,
+				8805195773B642729B77D5C2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				68F9B9942F6C647200EAC18F /* PBXTargetDependency */,
+				63AF1675C41B426C88756A7D /* PBXTargetDependency */,
 			);
 			name = SafariEVMWallet;
 			packageProductDependencies = (
 			);
 			productName = SafariEVMWallet;
-			productReference = 68F9B9762F6C647000EAC18F /* SafariEVMWallet.app */;
+			productReference = 801D2BB8305C4D14BCFF1E8C /* SafariEVMWallet.app */;
 			productType = "com.apple.product-type.application";
 		};
-		68F9B9902F6C647200EAC18F /* SafariEVMWallet Extension */ = {
+		3D9DFCA07BB0403B9FEECE36 /* SafariEVMWallet Extension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 68F9B99B2F6C647200EAC18F /* Build configuration list for PBXNativeTarget "SafariEVMWallet Extension" */;
+			buildConfigurationList = C4C6FF6C6A3145819AD032D4 /* Build configuration list for PBXNativeTarget "SafariEVMWallet Extension" */;
 			buildPhases = (
-				68F9B98D2F6C647200EAC18F /* Sources */,
-				68F9B98E2F6C647200EAC18F /* Frameworks */,
-				68F9B98F2F6C647200EAC18F /* Resources */,
+				35668C79D9374ED6AA4C6458 /* Sources */,
+				B4A566A7F94942D0934CA960 /* Frameworks */,
+				6EA223B3DA904A9E93BBD372 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -199,117 +202,118 @@
 			packageProductDependencies = (
 			);
 			productName = "SafariEVMWallet Extension";
-			productReference = 68F9B9912F6C647200EAC18F /* SafariEVMWallet Extension.appex */;
+			productReference = 09869D9BEEE34AC8AE3DC3A1 /* SafariEVMWallet Extension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		68F9B96E2F6C647000EAC18F /* Project object */ = {
+		CD45C85C65134D6EBC933EE6 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
-					68F9B9752F6C647000EAC18F = {
+					0A0BC9E4135041C696A4CEE5 = {
 						CreatedOnToolsVersion = 26.3;
 					};
-					68F9B9902F6C647200EAC18F = {
+					3D9DFCA07BB0403B9FEECE36 = {
 						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
-			buildConfigurationList = 68F9B9712F6C647000EAC18F /* Build configuration list for PBXProject "SafariEVMWallet" */;
+			buildConfigurationList = CC1071A2AC3E4CD5A1FDFEFD /* Build configuration list for PBXProject "SafariEVMWallet" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 68F9B96D2F6C647000EAC18F;
+			mainGroup = 02606E972F6D49F48CD84125;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 68F9B9772F6C647000EAC18F /* Products */;
+			productRefGroup = D640CC581B174136BCCB9DEA /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				68F9B9752F6C647000EAC18F /* SafariEVMWallet */,
-				68F9B9902F6C647200EAC18F /* SafariEVMWallet Extension */,
+				0A0BC9E4135041C696A4CEE5 /* SafariEVMWallet */,
+				3D9DFCA07BB0403B9FEECE36 /* SafariEVMWallet Extension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		68F9B9742F6C647000EAC18F /* Resources */ = {
+		44BD361299634634BCA7D291 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68F9B9802F6C647000EAC18F /* Icon.png in Resources */,
-				68F9B9892F6C647000EAC18F /* Main.storyboard in Resources */,
-				68F9B9842F6C647000EAC18F /* Script.js in Resources */,
-				68F9B97E2F6C647000EAC18F /* Main.html in Resources */,
-				68F9B98B2F6C647200EAC18F /* Assets.xcassets in Resources */,
-				68F9B9822F6C647000EAC18F /* Style.css in Resources */,
+				70CCF51BA329470BBFDCF7FB /* Icon.png in Resources */,
+				0C53E71570424A8BA6EE2422 /* Main.storyboard in Resources */,
+				289DDBF05FD74DB79FE7E953 /* Script.js in Resources */,
+				65A1CCDA0D9C415A8A8F5E10 /* Main.html in Resources */,
+				ABFCE2F2DF854A5FA5331223 /* Assets.xcassets in Resources */,
+				6EA268AD257B4363B0D17FBC /* Style.css in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		68F9B98F2F6C647200EAC18F /* Resources */ = {
+		6EA223B3DA904A9E93BBD372 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68F9B9AC2F6C647200EAC18F /* content-script.js in Resources */,
-				68F9B9AB2F6C647200EAC18F /* manifest.json in Resources */,
-				68F9B9A92F6C647200EAC18F /* background.js in Resources */,
-				68F9B9A82F6C647200EAC18F /* popup in Resources */,
-				68F9B9AA2F6C647200EAC18F /* inpage.js in Resources */,
-				68F9B9AE2F6C647200EAC18F /* icons in Resources */,
+				630A6F3BE94C4C8B9960E7B0 /* content-script.js in Resources */,
+				2B8A4E1A2A70427CA0DD4E38 /* manifest.json in Resources */,
+				933F099EB3D445B1B8926220 /* background.js in Resources */,
+				2FA96D1F084D483DA7BC46E3 /* popup in Resources */,
+				EB36273328CF4CAA8B75700B /* inpage.js in Resources */,
+				BA67433C7C19449BB68A68F2 /* icons in Resources */,
+				C889D327F7834930AFF36E4F /* ToolbarItemIcon.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		68F9B9722F6C647000EAC18F /* Sources */ = {
+		A63E1AF324FD41249D884637 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68F9B9862F6C647000EAC18F /* ViewController.swift in Sources */,
-				68F9B97A2F6C647000EAC18F /* AppDelegate.swift in Sources */,
+				6030F2C9864F4E6382F55A47 /* ViewController.swift in Sources */,
+				B5EFF0F0E8344F219D706C4D /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		68F9B98D2F6C647200EAC18F /* Sources */ = {
+		35668C79D9374ED6AA4C6458 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68F9B9972F6C647200EAC18F /* SafariWebExtensionHandler.swift in Sources */,
+				3C6F981C539B4AD58AF45CCC /* SafariWebExtensionHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		68F9B9942F6C647200EAC18F /* PBXTargetDependency */ = {
+		63AF1675C41B426C88756A7D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 68F9B9902F6C647200EAC18F /* SafariEVMWallet Extension */;
-			targetProxy = 68F9B9932F6C647200EAC18F /* PBXContainerItemProxy */;
+			target = 3D9DFCA07BB0403B9FEECE36 /* SafariEVMWallet Extension */;
+			targetProxy = A3FCCA44275C46C0AFCB9E1B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		68F9B97C2F6C647000EAC18F /* Main.html */ = {
+		BBAE73ED803148278EAEBC2A /* Main.html */ = {
 			isa = PBXVariantGroup;
 			children = (
-				68F9B97D2F6C647000EAC18F /* Base */,
+				92B42EEB10C04380BD3CEDD3 /* Base */,
 			);
 			name = Main.html;
 			sourceTree = "<group>";
 		};
-		68F9B9872F6C647000EAC18F /* Main.storyboard */ = {
+		25A9BA7A009749D8A4D42FAF /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				68F9B9882F6C647000EAC18F /* Base */,
+				2D0AACB30AC94E2CB49EAEC2 /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
@@ -317,7 +321,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		68F9B9992F6C647200EAC18F /* Debug */ = {
+		A575148FF55E412DA306EEC6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -380,7 +384,7 @@
 			};
 			name = Debug;
 		};
-		68F9B99A2F6C647200EAC18F /* Release */ = {
+		47A810A733394FBEA6EBD18F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -435,7 +439,7 @@
 			};
 			name = Release;
 		};
-		68F9B99C2F6C647200EAC18F /* Debug */ = {
+		0B5C191F10D4496B9A711C46 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "SafariEVMWallet Extension/SafariEVMWallet Extension.entitlements";
@@ -447,7 +451,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "SafariEVMWallet Extension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "SafariEVMWallet Extension";
+				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -471,7 +475,7 @@
 			};
 			name = Debug;
 		};
-		68F9B99D2F6C647200EAC18F /* Release */ = {
+		25DC56F7A0BF4BDB92F93477 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "SafariEVMWallet Extension/SafariEVMWallet Extension.entitlements";
@@ -483,7 +487,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "SafariEVMWallet Extension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "SafariEVMWallet Extension";
+				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -507,7 +511,7 @@
 			};
 			name = Release;
 		};
-		68F9B9A02F6C647200EAC18F /* Debug */ = {
+		5B3342456EBC4091A043FF9D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -532,7 +536,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SafariEVMWallet/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = SafariEVMWallet;
+				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -559,7 +563,7 @@
 			};
 			name = Debug;
 		};
-		68F9B9A12F6C647200EAC18F /* Release */ = {
+		817397DA5C064EADBA3DAD71 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -584,7 +588,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SafariEVMWallet/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = SafariEVMWallet;
+				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -614,34 +618,34 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		68F9B9712F6C647000EAC18F /* Build configuration list for PBXProject "SafariEVMWallet" */ = {
+		CC1071A2AC3E4CD5A1FDFEFD /* Build configuration list for PBXProject "SafariEVMWallet" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				68F9B9992F6C647200EAC18F /* Debug */,
-				68F9B99A2F6C647200EAC18F /* Release */,
+				A575148FF55E412DA306EEC6 /* Debug */,
+				47A810A733394FBEA6EBD18F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		68F9B99B2F6C647200EAC18F /* Build configuration list for PBXNativeTarget "SafariEVMWallet Extension" */ = {
+		C4C6FF6C6A3145819AD032D4 /* Build configuration list for PBXNativeTarget "SafariEVMWallet Extension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				68F9B99C2F6C647200EAC18F /* Debug */,
-				68F9B99D2F6C647200EAC18F /* Release */,
+				0B5C191F10D4496B9A711C46 /* Debug */,
+				25DC56F7A0BF4BDB92F93477 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		68F9B99F2F6C647200EAC18F /* Build configuration list for PBXNativeTarget "SafariEVMWallet" */ = {
+		13556759FDF84404B1E4F01E /* Build configuration list for PBXNativeTarget "SafariEVMWallet" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				68F9B9A02F6C647200EAC18F /* Debug */,
-				68F9B9A12F6C647200EAC18F /* Release */,
+				5B3342456EBC4091A043FF9D /* Debug */,
+				817397DA5C064EADBA3DAD71 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 68F9B96E2F6C647000EAC18F /* Project object */;
+	rootObject = CD45C85C65134D6EBC933EE6 /* Project object */;
 }

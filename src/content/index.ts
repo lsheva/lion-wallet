@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
 
-const CHANNEL = "SAFARI_EVM_WALLET";
+const CHANNEL = "LION_WALLET";
 
 const script = document.createElement("script");
 script.src = browser.runtime.getURL("inpage.js");

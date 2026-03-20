@@ -1,6 +1,6 @@
 //
 //  ViewController.swift
-//  SafariEVMWallet
+//  Lion Wallet (container app)
 //
 //  Created by Oleksandr Shevchuk on 20.03.2026.
 //

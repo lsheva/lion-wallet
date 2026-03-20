@@ -18,9 +18,9 @@ interface ButtonProps {
 
 const variantStyles: Record<Variant, string> = {
   primary: "bg-accent text-accent-foreground hover:bg-accent-hover",
-  secondary: "bg-divider text-text-primary hover:bg-[#D1D1D6]",
+  secondary: "bg-divider text-text-primary hover:bg-divider-strong",
   ghost: "bg-transparent text-text-secondary hover:bg-divider",
-  danger: "bg-danger text-white hover:bg-[#E0302A]",
+  danger: "bg-danger text-white hover:bg-danger-hover",
 };
 
 const sizeStyles: Record<Size, string> = {

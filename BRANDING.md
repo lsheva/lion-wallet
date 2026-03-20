@@ -1,5 +1,9 @@
 # Branding — Name Candidates
 
+**Chosen name:** **Lion Wallet.** Vectors: full-color [`brand/lion.svg`](./brand/lion.svg) (app icon; symlinked as [`src/icons/icon.svg`](./src/icons/icon.svg)); toolbar / extension chrome [`brand/lion-paw-toolbar.svg`](./brand/lion-paw-toolbar.svg). Palette: [`LION_PALETTE.md`](./brand/LION_PALETTE.md). Run `pnpm icons` after changes.
+
+---
+
 This document captures the naming exploration for the wallet. The final name should align with the product philosophy: free, fast, open-source, lightweight, trustworthy, no tracking, no commercial features. Safari-first, cross-browser future. Simple for beginners, advanced for developers.
 
 ## How to Judge Conflicts

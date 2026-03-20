@@ -1,6 +1,6 @@
 //
 //  SafariWebExtensionHandler.swift
-//  SafariEVMWallet Extension
+//  Lion Wallet Extension
 //
 //  Created by Oleksandr Shevchuk on 20.03.2026.
 //
