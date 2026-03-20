@@ -44,7 +44,9 @@ async function persistAbiCache(): Promise<void> {
   if (!abiCacheMem) return;
   try {
     await browser.storage.local.set({ [ABI_STORAGE_KEY]: abiCacheMem });
-  } catch {}
+  } catch (e) {
+    bgLog("[etherscan] persistAbiCache failed:", e);
+  }
 }
 
 async function loadProxyCache(): Promise<Record<string, string | null>> {
@@ -62,7 +64,9 @@ async function persistProxyCache(): Promise<void> {
   if (!proxyImplMem) return;
   try {
     await browser.storage.local.set({ [PROXY_STORAGE_KEY]: proxyImplMem });
-  } catch {}
+  } catch (e) {
+    bgLog("[etherscan] persistProxyCache failed:", e);
+  }
 }
 
 // ── Etherscan HTTP helper ───────────────────────────────────────────
@@ -196,7 +200,12 @@ async function fetchAbiForAddress(
     return null;
   }
 
-  return JSON.parse(json.result) as unknown[];
+  try {
+    return JSON.parse(json.result) as unknown[];
+  } catch {
+    log.push("etherscan-abi: malformed JSON in ABI response");
+    return null;
+  }
 }
 
 export async function fetchContractAbi(
@@ -293,7 +302,9 @@ export async function clearAbiCache(): Promise<void> {
   proxyImplMem = {};
   try {
     await browser.storage.local.remove([ABI_STORAGE_KEY, PROXY_STORAGE_KEY]);
-  } catch {}
+  } catch (e) {
+    bgLog("[etherscan] clearAbiCache failed:", e);
+  }
 }
 
 // ── Price fetching ──────────────────────────────────────────────────

@@ -65,7 +65,7 @@ export interface ExportMnemonicResponse {
   data: { mnemonic: string };
 }
 
-const MESSAGE_TIMEOUT_MS = 30_000;
+const MESSAGE_TIMEOUT_MS = 60_000;
 
 export async function sendMessage(message: MessageRequest): Promise<MessageResponse> {
   const browser = (await import("webextension-polyfill")).default;

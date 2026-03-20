@@ -367,8 +367,6 @@ function TxContent({
     hasEtherscanKey,
     hasRpcProviderKey,
   } = data;
-  const _debug = (data as unknown as Record<string, unknown>)._debug;
-  console.log("[popup] TxContent — decoded:", decoded, "transfers:", transfers, "_debug:", _debug);
   const txParams = approval.params[0] as TransactionParams;
   const currentGas = gasPresets?.[gasSpeed];
   const hasCalldata = !!(txParams.data && txParams.data !== "0x" && txParams.data.length >= 10);

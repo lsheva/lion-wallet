@@ -33,6 +33,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
           <div class="flex items-center justify-between px-4 py-3 border-b border-divider shrink-0">
             <h2 class="text-base font-semibold text-text-primary">{title}</h2>
             <button
+              type="button"
               onClick={onClose}
               class="p-1 text-text-tertiary hover:text-text-primary transition-colors cursor-pointer"
             >

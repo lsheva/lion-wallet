@@ -89,6 +89,7 @@ export function ConfirmSeed() {
         >
           {Array.from({ length: seedWords.length }).map((_, i) => (
             <button
+              type="button"
               key={i}
               onClick={() => selected[i] && handleRemove(i)}
               class={`
@@ -99,7 +100,7 @@ export function ConfirmSeed() {
                     ? "bg-accent-light text-accent cursor-pointer hover:bg-accent/20"
                     : "bg-base text-text-tertiary"
                 }
-                ${error && selected[i] ? "bg-[#FFF0F0] text-danger" : ""}
+                ${error && selected[i] ? "bg-danger-bg text-danger" : ""}
               `}
             >
               {selected[i] ? (
@@ -114,6 +115,7 @@ export function ConfirmSeed() {
         <div class="grid grid-cols-4 gap-1.5">
           {uniqueRemaining.map((word, i) => (
             <button
+              type="button"
               key={`${word}-${i}`}
               onClick={() => handleSelect(word)}
               class="h-8 bg-surface rounded-[var(--radius-chip)] text-xs font-mono text-text-primary

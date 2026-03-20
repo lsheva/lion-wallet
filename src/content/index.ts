@@ -1,6 +1,5 @@
 import browser from "webextension-polyfill";
-
-const CHANNEL = "LION_WALLET";
+import { CHANNEL } from "../shared/messages";
 
 const script = document.createElement("script");
 script.src = browser.runtime.getURL("inpage.js");
@@ -28,6 +27,9 @@ window.addEventListener("message", (event: MessageEvent) => {
         | { ok: false; error: string };
 
       if (!res.ok) {
+        // postMessage uses "*" because content → inpage is same-window; no cross-origin
+        // frame can access this window object. A tighter targetOrigin isn't possible here
+        // since the page origin varies per site.
         window.postMessage(
           {
             type: CHANNEL,

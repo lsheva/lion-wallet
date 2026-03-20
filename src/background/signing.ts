@@ -146,8 +146,19 @@ export async function ethSign(account: Account, hash: Hex): Promise<Hex> {
 }
 
 export async function signTypedDataV4(account: Account, params: [Address, string]): Promise<Hex> {
-  const typedData = JSON.parse(params[1]);
-  const { domain, types, primaryType, message } = typedData;
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(params[1]);
+  } catch {
+    throw new Error("Invalid typed data: malformed JSON");
+  }
+
+  const { domain, types, primaryType, message } = parsed as {
+    domain: Parameters<Account["signTypedData"]>[0]["domain"];
+    types: Record<string, unknown>;
+    primaryType: string;
+    message: Record<string, unknown>;
+  };
 
   const filteredTypes = { ...types };
   delete filteredTypes.EIP712Domain;

@@ -15,6 +15,7 @@ export function Tabs({ items, active, onChange, class: cls = "" }: TabsProps) {
     <div class={`flex bg-divider rounded-[var(--radius-btn)] p-0.5 ${cls}`}>
       {items.map((item) => (
         <button
+          type="button"
           key={item.id}
           onClick={() => onChange(item.id)}
           class={`

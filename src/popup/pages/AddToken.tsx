@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-preact";
-import { useState } from "preact/hooks";
+import { useCallback, useRef, useState } from "preact/hooks";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
@@ -33,11 +33,13 @@ export function AddToken({ open, onClose }: AddTokenProps) {
   const [detected, setDetected] = useState<DetectedToken | null>(null);
   const [error, setError] = useState("");
 
-  const handleAddressInput = async (value: string) => {
+  const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleAddressInput = useCallback((value: string) => {
     setAddress(value);
     setError("");
     setDetected(null);
 
+    if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
     const trimmed = value.trim();
     if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) return;
 
@@ -46,16 +48,18 @@ export function AddToken({ open, onClose }: AddTokenProps) {
       return;
     }
 
-    setDetecting(true);
-    try {
-      const info = await fetchTokenInfo(trimmed);
-      setDetected(info);
-    } catch {
-      setError("Could not read token contract");
-    } finally {
-      setDetecting(false);
-    }
-  };
+    detectTimerRef.current = setTimeout(async () => {
+      setDetecting(true);
+      try {
+        const info = await fetchTokenInfo(trimmed);
+        setDetected(info);
+      } catch {
+        setError("Could not read token contract");
+      } finally {
+        setDetecting(false);
+      }
+    }, 300);
+  }, []);
 
   const handleAdd = () => {
     if (!detected) return;

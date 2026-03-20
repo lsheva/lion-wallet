@@ -11,6 +11,7 @@ export interface VaultData {
   mnemonic: string;
   accounts: SerializedAccount[];
   activeAccountIndex: number;
+  importedKeys?: Record<string, string>;
 }
 
 export interface EncryptedVault {

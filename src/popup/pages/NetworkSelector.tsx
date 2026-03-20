@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, Loader2, Plus } from "lucide-preact";
-import { useState } from "preact/hooks";
+import { useCallback, useRef, useState } from "preact/hooks";
 import { defineChain } from "viem";
 import { Button } from "../components/Button";
 import { ChainIcon } from "../components/ChainIcon";
@@ -32,28 +32,32 @@ export function NetworkSelector() {
     n.chain.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const handleDetectChain = async (url: string) => {
+  const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleDetectChain = useCallback((url: string) => {
     setRpcUrl(url);
     setError("");
     setDetectedChainId(null);
 
+    if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
     if (!url.trim().startsWith("http")) return;
 
-    setDetecting(true);
-    try {
-      const id = await fetchChainId(url.trim());
-      if (networks.value.some((n) => n.chain.id === id)) {
-        setError(`Chain ID ${id} already exists`);
-        setDetectedChainId(null);
-      } else {
-        setDetectedChainId(id);
+    detectTimerRef.current = setTimeout(async () => {
+      setDetecting(true);
+      try {
+        const id = await fetchChainId(url.trim());
+        if (networks.value.some((n) => n.chain.id === id)) {
+          setError(`Chain ID ${id} already exists`);
+          setDetectedChainId(null);
+        } else {
+          setDetectedChainId(id);
+        }
+      } catch {
+        setError("Could not connect to RPC");
+      } finally {
+        setDetecting(false);
       }
-    } catch {
-      setError("Could not connect to RPC");
-    } finally {
-      setDetecting(false);
-    }
-  };
+    }, 300);
+  }, []);
 
   const handleAdd = () => {
     if (!name.trim()) {
@@ -113,6 +117,7 @@ export function NetworkSelector() {
       {showAddForm ? (
         <div class="px-4 py-3 space-y-3">
           <button
+            type="button"
             onClick={() => {
               setShowAddForm(false);
               resetForm();
@@ -200,6 +205,7 @@ export function NetworkSelector() {
           )}
 
           <button
+            type="button"
             onClick={() => setShowAddForm(true)}
             class="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-base/50 transition-colors cursor-pointer border-t border-divider"
           >

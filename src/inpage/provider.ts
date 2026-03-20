@@ -29,7 +29,9 @@ class EventEmitter {
     set.forEach((fn) => {
       try {
         fn(...args);
-      } catch {}
+      } catch (e) {
+        console.error("[LionWallet] event listener error:", e);
+      }
     });
     return true;
   }

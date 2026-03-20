@@ -4,46 +4,46 @@ overview: Comprehensive code review of Lion Wallet covering security, error hand
 todos:
   - id: critical-vault-keys
     content: "[P1] Fix imported private keys not persisted in vault mode — extend VaultData, update encryptVault calls (#1, #5)"
-    status: pending
+    status: completed
   - id: json-parse-safety
     content: "[P1] Wrap JSON.parse in signing.ts and etherscan.ts with try/catch (#2)"
-    status: pending
+    status: completed
   - id: rpc-param-validation
     content: "[P1] Validate params shape in wallet_switchEthereumChain / wallet_addEthereumChain (#3)"
-    status: pending
+    status: completed
   - id: postmessage-origin
     content: "[P1] Document or tighten window.postMessage target origin in content script — currently uses '*' (#4)"
-    status: pending
+    status: completed
   - id: error-handling-catch
     content: "[P1] Replace empty catch {} blocks and .catch(() => {}) with logging across background scripts (#6, #7)"
-    status: pending
+    status: completed
   - id: channel-dedup
     content: "[P1] Import CHANNEL constant from shared/messages in content and inpage scripts (#13)"
-    status: pending
+    status: completed
   - id: button-type
     content: "[P1] Add type='button' to ~35 buttons across Modal, Header, Send, NetworkSelector, Settings, Approve, Home, etc. (#16)"
-    status: pending
+    status: completed
   - id: hardcoded-color
     content: "[P1] Replace hardcoded #FFF0F0 in ConfirmSeed with CSS variable (#17)"
-    status: pending
+    status: completed
   - id: remove-console-log
     content: "[P1] Remove console.log from Approve.tsx TxContent production path (#18)"
-    status: pending
+    status: completed
   - id: debounce-inputs
     content: "[P1] Add debounce to NetworkSelector chain detection and AddToken address input (#22)"
-    status: pending
+    status: completed
   - id: dirname-esm
     content: "[P1] Replace __dirname in vite.config.ts with import.meta.url + fileURLToPath for ESM safety (#32)"
-    status: pending
+    status: completed
   - id: timeout-align
     content: "[P1] Align sendMessage timeout (30s) with provider RPC timeout (60s), or document why they differ (#34)"
-    status: pending
+    status: completed
   - id: eventemitter-catch
     content: "[P1] Replace empty catch in provider EventEmitter.emit with console.error (#35)"
-    status: pending
+    status: completed
   - id: web3icons-deps
     content: "[P1] Move @web3icons/core from devDependencies to dependencies since it ships runtime code (#36)"
-    status: pending
+    status: completed
   - id: add-biome
     content: "[P2] Add Biome linter/formatter: install @biomejs/biome, create biome.json, add lint/format scripts (#33)"
     status: pending
@@ -118,6 +118,9 @@ todos:
     status: pending
   - id: tx-cancel
     content: "[P6] TX cancellation: 0-value self-transfer with same nonce + higher gas, success/failure confirmation (#43)"
+    status: pending
+  - id: multi-keyring
+    content: "[P6] Multi-keyring support: import multiple mnemonics, hierarchical account grouping by keyring, persist all keyrings in vault/keychain (#49)"
     status: pending
 isProject: false
 ---
@@ -685,3 +688,64 @@ Allow the user to cancel an unmined transaction.
 - **UI**: Add "Cancel" button alongside "Speed Up" in the stuck tx indicator. Opens a confirmation: "Cancel transaction? This will send a 0 ETH transaction with higher gas to replace it."
 - **Result**: Show success/failure — if the cancellation tx mines, the original is dropped; if the original mines first, the cancellation fails (show "Original transaction already confirmed")
 - **Activity**: Update activity list to reflect the cancellation (mark original as "Cancelled" if the 0-value replacement mined)
+
+### 49. Multi-keyring support — import multiple mnemonics with hierarchical account access
+
+**Terminology**: A **Keyring** is a group of HD-derived accounts that share a single mnemonic. Each keyring can derive multiple accounts (BIP-44 paths `m/44'/60'/0'/0/0`, `.../1`, `.../2`, etc.). The wallet can hold multiple keyrings, each with its own mnemonic and independent set of accounts. Imported standalone private keys (no mnemonic) belong to a special "Imported" pseudo-keyring.
+
+There is no concept of an "active keyring" — all accounts from all keyrings are accessible at once. The keyring is purely an organizational parent: a structural grouping that tells the user which mnemonic an account belongs to and lets the wallet resolve the correct mnemonic when signing. The user picks any account from any keyring in a single flat list (grouped visually by keyring).
+
+Currently the wallet stores a single `mnemonic` string and a flat `accounts` array. This limits the user to one seed phrase. Many users have multiple seed phrases from different wallets or for different purposes (e.g. hot wallet vs cold storage recovery, personal vs business).
+
+**Fix**:
+
+- **Data model** — replace the single mnemonic with a `keyrings` array. Each `Account` gains a `keyringId` back-reference so the wallet can resolve the correct mnemonic for signing:
+
+```typescript
+interface Keyring {
+  id: string;               // stable UUID, generated on creation/import
+  label: string;            // user-editable name (e.g. "Main", "Hardware backup", "Work")
+  mnemonic: string;         // BIP-39 mnemonic phrase
+  nextDerivationIndex: number; // next index to use when deriving a new account
+  createdAt: number;        // timestamp for ordering
+}
+
+interface Account {
+  address: string;
+  name: string;
+  keyringId: string;        // which keyring this account was derived from
+  derivationIndex: number;  // BIP-44 index within the keyring
+}
+
+interface WalletState {
+  keyrings: Keyring[];
+  accounts: Account[];      // flat list of all accounts across all keyrings
+  importedKeys: Record<string, string>; // standalone private key imports (no mnemonic)
+  activeAccountAddress: string; // the currently selected account (from any keyring)
+}
+```
+
+The `accounts` array stays flat — it contains every account from every keyring plus imported-key accounts (which have `keyringId: "imported"`). The keyring is looked up only when needed (signing, showing recovery phrase). This keeps account switching simple: just set `activeAccountAddress` to any account in the list.
+
+- **Update `VaultData` and keychain storage** — `encryptVault` and `decryptVault` serialize the full `keyrings` array instead of a single mnemonic. Keychain storage (macOS) stores each keyring's mnemonic under a namespaced key (`lion-keyring-{id}`). Migration: on first unlock after upgrade, wrap the existing single mnemonic + accounts into a `Keyring` with `id: "default"` and `label: "Main Wallet"`
+- **Background handlers**:
+  - `CREATE_WALLET` — creates a new keyring with a fresh mnemonic, derives account 0, adds both to state
+  - `IMPORT_WALLET` — creates a new keyring from the imported mnemonic, derives account 0, adds both to state. If the mnemonic already exists in another keyring, reject with an error
+  - New: `RENAME_KEYRING { keyringId, label }` — updates the keyring's display name
+  - New: `DELETE_KEYRING { keyringId }` — removes a keyring and all its derived accounts from state. Requires at least one keyring to remain. Prompts re-authentication (password or Touch ID). If the active account belonged to the deleted keyring, fall back to the first account of the next keyring
+  - New: `DERIVE_ACCOUNT { keyringId }` — derives the next account from the keyring's mnemonic at `nextDerivationIndex`, appends to `accounts`, increments the index
+  - `EXPORT_MNEMONIC { keyringId }` — exports the mnemonic of the specified keyring (defaults to the active account's `keyringId` if not provided)
+  - `SWITCH_ACCOUNT` — works exactly as before; sets `activeAccountAddress`. No keyring switching needed — the account already knows its parent keyring
+  - `RENAME_ACCOUNT`, `IMPORT_PRIVATE_KEY` — unchanged
+- **Signing** — `getPrivateKey` looks up the account's `keyringId`, finds the matching keyring, and derives the private key at `derivationIndex`. For imported private keys (`keyringId: "imported"`), looks up `importedKeys[address]` as before
+- **UI — hierarchical account list**:
+  - **AccountSwitcher dropdown** (Header) — displays all accounts grouped under their parent keyring label. Each keyring section has a non-interactive header showing the keyring label (e.g. "Main Wallet", "Work") and a small count badge. Below each header, the keyring's accounts are listed. The "Imported" section appears at the bottom if any standalone keys exist. Selecting any account sets it as active — no intermediate step
+  - **Settings page** — new "Keyrings" section listing all keyrings with their labels and account count. Tapping a keyring expands it to show: rename keyring, show recovery phrase, derive new account, delete keyring (if more than one exists). "Add Keyring" button at the bottom: "Create New" (generates fresh mnemonic) or "Import Existing" (navigates to the import flow)
+  - **Header subtitle** — the active account shows its keyring label as a subtle subtitle under the account name, so the user always knows which keyring the current account belongs to
+  - **Visual distinction** — each keyring gets an auto-assigned color dot (from a predefined palette of 6–8 colors) shown next to accounts in the switcher, so groups are visually distinct at a glance
+- **Migration path**:
+  1. On unlock, check if storage has old format (single `mnemonic` + flat `accounts` without `keyringId`)
+  2. If so, create `keyrings: [{ id: "default", label: "Main Wallet", mnemonic, nextDerivationIndex: accounts.length, createdAt: Date.now() }]` and add `keyringId: "default"` + `derivationIndex: i` to each existing account
+  3. Persist in new format. Old format is never written again
+  4. `importedKeys` stays separate — accounts with imported keys get `keyringId: "imported"`
+- **EIP-1193 impact** — `eth_accounts` and `eth_requestAccounts` continue to return only the active account's address. Switching accounts triggers `accountsChanged` event as before. DApps are unaware of the multi-keyring structure

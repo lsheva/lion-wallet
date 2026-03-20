@@ -85,7 +85,14 @@ export async function handleRpc(
       }
 
       case "wallet_switchEthereumChain": {
-        const [{ chainId: hexChainId }] = params as [{ chainId: Hex }];
+        const switchParams = params as unknown[];
+        if (
+          !switchParams?.[0] ||
+          typeof (switchParams[0] as Record<string, unknown>).chainId !== "string"
+        ) {
+          return err(-32602, "Invalid params: expected [{ chainId: '0x...' }]");
+        }
+        const hexChainId = (switchParams[0] as { chainId: Hex }).chainId;
         const chainId = parseInt(hexChainId, 16);
         const network = getNetworkConfig(chainId);
         if (!network) {
@@ -99,7 +106,14 @@ export async function handleRpc(
       }
 
       case "wallet_addEthereumChain": {
-        const [chainParams] = params as [{ chainId: Hex; chainName?: string }];
+        const addParams = params as unknown[];
+        if (
+          !addParams?.[0] ||
+          typeof (addParams[0] as Record<string, unknown>).chainId !== "string"
+        ) {
+          return err(-32602, "Invalid params: expected [{ chainId: '0x...' }]");
+        }
+        const chainParams = addParams[0] as { chainId: Hex; chainName?: string };
         const chainId = parseInt(chainParams.chainId, 16);
         const existing = getNetworkConfig(chainId);
         if (existing) {

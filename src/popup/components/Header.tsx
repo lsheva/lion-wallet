@@ -24,6 +24,7 @@ export function Header({ title, onBack, right }: HeaderProps) {
       <div class="w-10">
         {onBack !== undefined && (
           <button
+            type="button"
             onClick={handleBack}
             class="p-1 -ml-1 text-accent hover:text-accent-hover transition-colors cursor-pointer"
           >

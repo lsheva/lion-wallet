@@ -20,6 +20,7 @@ export function DevToolbar() {
     >
       {NAV_ITEMS.map((item) => (
         <button
+          type="button"
           key={item.path}
           onClick={() => {
             walletState.setView(item.view);

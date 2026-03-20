@@ -58,7 +58,9 @@ function broadcastEvent(event: string, data: unknown): void {
   browser.tabs.query({}).then((tabs: browser.Tabs.Tab[]) => {
     for (const tab of tabs) {
       if (tab.id != null) {
-        browser.tabs.sendMessage(tab.id, payload).catch(() => {});
+        browser.tabs.sendMessage(tab.id, payload).catch((e: unknown) => {
+          bgLog("[broadcast] sendMessage to tab", tab.id, "failed:", e);
+        });
       }
     }
   });
@@ -66,7 +68,9 @@ function broadcastEvent(event: string, data: unknown): void {
 
 function broadcastPendingCount(): void {
   const count = getPendingCount();
-  browser.runtime.sendMessage({ type: "PENDING_COUNT", count }).catch(() => {});
+  browser.runtime.sendMessage({ type: "PENDING_COUNT", count }).catch(() => {
+    /* popup not open — expected */
+  });
 }
 
 /** RGBA 0–255 — WebKit/Safari often ignores hex strings for badge color. */
@@ -126,11 +130,8 @@ async function retrieveImportedKey(
   }
   if (!password) return null;
   const data = await decryptVault(password);
-  const importedKeys = (data as unknown as Record<string, unknown>).importedKeys as
-    | Record<string, string>
-    | undefined;
-  if (!importedKeys) return null;
-  return (importedKeys[address.toLowerCase()] as Hex) ?? null;
+  if (!data.importedKeys) return null;
+  return (data.importedKeys[address.toLowerCase()] as Hex) ?? null;
 }
 
 async function executeApproval(
@@ -186,7 +187,9 @@ async function executeApproval(
               events: [],
             }),
           )
-          .catch(() => {});
+          .catch((e) => {
+            bgLog("[activity] pushActivityItem failed:", e);
+          });
         break;
       }
       case "eth_signTransaction": {
@@ -367,7 +370,15 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
         };
       }
       await setStorageMode("vault");
-      await encryptVault({ mnemonic, accounts, activeAccountIndex: 0 }, message.password);
+      await encryptVault(
+        {
+          mnemonic,
+          accounts,
+          activeAccountIndex: 0,
+          importedKeys: { [address.toLowerCase()]: message.privateKey },
+        },
+        message.password,
+      );
       await saveAccountsMeta(accounts, 0);
       broadcastEvent(
         "accountsChanged",
@@ -692,5 +703,7 @@ browser.runtime.onMessage.addListener(
   },
 );
 
-loadRpcProviderKey().catch(() => {});
+loadRpcProviderKey().catch((e) => {
+  bgLog("[background] loadRpcProviderKey failed:", e);
+});
 bgLog("[background] service worker loaded");

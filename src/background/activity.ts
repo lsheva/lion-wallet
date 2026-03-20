@@ -50,7 +50,9 @@ async function persistTokenMeta(): Promise<void> {
   if (!tokenMetaMem) return;
   try {
     await browser.storage.local.set({ [TOKEN_META_KEY]: tokenMetaMem });
-  } catch {}
+  } catch (e) {
+    bgLog("[activity] persistTokenMeta failed:", e);
+  }
 }
 
 function tmKey(chainId: number, addr: string): string {
@@ -137,7 +139,9 @@ async function persist(): Promise<void> {
   if (!memCache) return;
   try {
     await browser.storage.local.set({ [STORAGE_KEY]: memCache });
-  } catch {}
+  } catch (e) {
+    bgLog("[activity] persist cache failed:", e);
+  }
 }
 
 function mergeActivityItems(a: ActivityItem, b: ActivityItem): ActivityItem {
@@ -577,7 +581,9 @@ async function enrichEtherscanAsync(
         source: "etherscan",
         hasMore: cache[k].etherscanHasMore === true,
       })
-      .catch(() => {});
+      .catch(() => {
+        /* popup not open — expected */
+      });
   } catch (e) {
     bgLog("[activity] async enrichment error:", e);
   }
@@ -824,7 +830,9 @@ export async function fetchActivity(
       etherscanHasMore: fullPage,
     };
     await persist();
-    enrichEtherscanAsync(address, chainId, phase1More).catch(() => {});
+    enrichEtherscanAsync(address, chainId, phase1More).catch((e) => {
+      bgLog("[activity] enrichEtherscanAsync (loadMore) failed:", e);
+    });
     bgLog("[activity] loadMore merged", mergedMore.length, "items, hasMore:", fullPage);
     return { items: mergedMore, hasMore: fullPage, source: "etherscan" };
   }
@@ -844,7 +852,9 @@ export async function fetchActivity(
         etherscanHasMore: fullPage,
       };
       await persist();
-      enrichEtherscanAsync(address, chainId, phase1).catch(() => {});
+      enrichEtherscanAsync(address, chainId, phase1).catch((e) => {
+        bgLog("[activity] enrichEtherscanAsync failed:", e);
+      });
       return { items: merged, hasMore: fullPage, source: "etherscan" };
     }
     bgLog("[activity] etherscan returned null, falling back to rpc");
@@ -917,5 +927,7 @@ export async function clearActivityCache(): Promise<void> {
   tokenMetaMem = {};
   try {
     await browser.storage.local.remove([STORAGE_KEY, TOKEN_META_KEY]);
-  } catch {}
+  } catch (e) {
+    bgLog("[activity] clearActivityCache failed:", e);
+  }
 }
