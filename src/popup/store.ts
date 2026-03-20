@@ -31,7 +31,7 @@ export const activeAccount = computed(
 const networkMap = computed(() => new Map(networks.value.map((n) => [n.chain.id, n])));
 
 export const activeNetwork = computed(
-  () => networkMap.value.get(activeNetworkId.value) ?? networks.value[0],
+  () => networkMap.value.get(activeNetworkId.value) ?? networks.value[0]!,
 );
 
 function nativeBalanceUsdString(): string | undefined {

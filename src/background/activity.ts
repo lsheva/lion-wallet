@@ -90,15 +90,15 @@ async function resolveTokenMeta(
       ]),
     );
     for (let i = 0; i < missing.length; i++) {
-      const sym = calls[i * 2];
-      const dec = calls[i * 2 + 1];
+      const sym = calls[i * 2]!;
+      const dec = calls[i * 2 + 1]!;
       const meta: TokenMeta = {
         symbol: sym.status === "fulfilled" ? String(sym.value) : "???",
         decimals: dec.status === "fulfilled" ? Number(dec.value) : 18,
       };
-      const k = tmKey(chainId, missing[i]);
+      const k = tmKey(chainId, missing[i]!);
       cache[k] = meta;
-      result.set(missing[i].toLowerCase(), meta);
+      result.set(missing[i]!.toLowerCase(), meta);
     }
     await persistTokenMeta();
   }
@@ -422,7 +422,7 @@ async function enrichWithDecoding(
 
   for (let i = 0; i < items.length; i++) {
     const raw = rawByTxIndex[i] ?? [];
-    items[i].transfers = raw.map((t) => {
+    items[i]!.transfers = raw.map((t) => {
       const info = tokenMeta.get(t.token);
       return {
         token: t.token,
@@ -702,7 +702,7 @@ async function fetchRpcData(
       dir: t.from.toLowerCase() === addrLower ? "out" : "in",
     };
     if (!transfersByHash[t.hash]) transfersByHash[t.hash] = [];
-    transfersByHash[t.hash].push(mv);
+    transfersByHash[t.hash]!.push(mv);
   }
 
   return { hashes: hashes.slice(0, FETCH_PAGE_SIZE), transfersByHash };

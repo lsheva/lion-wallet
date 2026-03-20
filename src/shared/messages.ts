@@ -1,4 +1,5 @@
 import type { Address, Hex } from "viem";
+import browser from "webextension-polyfill";
 import type { GasSpeed, SerializedAccount, TransactionParams, WalletState } from "./types";
 
 export type MessageRequest =
@@ -68,7 +69,6 @@ export interface ExportMnemonicResponse {
 const MESSAGE_TIMEOUT_MS = 60_000;
 
 export async function sendMessage(message: MessageRequest): Promise<MessageResponse> {
-  const browser = (await import("webextension-polyfill")).default;
   const response = await Promise.race([
     browser.runtime.sendMessage(message),
     new Promise<never>((_, reject) =>

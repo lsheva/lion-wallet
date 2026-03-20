@@ -6,12 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsgo --noEmit && vite build",
+    "build": "tsgo --noEmit && node scripts/build.ts",
     "typecheck": "tsgo --noEmit",
-    "build:ext": "tsgo --noEmit && tsgo -p tsconfig.scripts.json --noEmit && pnpm icons && node --experimental-strip-types scripts/build.ts",
+    "build:ext": "tsgo --noEmit && tsgo -p tsconfig.scripts.json --noEmit && pnpm icons && node scripts/build.ts",
     "build:safari": "pnpm build:ext && xcodebuild -project xcode/SafariEVMWallet/SafariEVMWallet.xcodeproj -scheme SafariEVMWallet -configuration Debug build",
     "run:safari": "pnpm build:safari && open \"$(xcodebuild -project xcode/SafariEVMWallet/SafariEVMWallet.xcodeproj -scheme SafariEVMWallet -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/SafariEVMWallet.app\"",
-    "icons": "node --experimental-strip-types scripts/icons.ts",
+    "icons": "node scripts/icons.ts",
     "lint": "biome check src/ scripts/",
     "lint:fix": "biome check --write src/ scripts/",
     "format": "biome format --write src/ scripts/",
@@ -20,13 +20,13 @@
   "dependencies": {
     "@noble/hashes": "^2.0.1",
     "@preact/signals": "^2.8.2",
+    "@web3icons/core": "^4.0.51",
     "animal-avatar-generator": "^1.2.0",
     "lucide-preact": "^0.577.0",
     "preact": "^10.29.0",
     "preact-router": "^4.1.2",
     "qrcode": "^1.5.4",
     "viem": "^2.47.5",
-    "@web3icons/core": "^4.0.51",
     "webextension-polyfill": "^0.12.0"
   },
   "pnpm": {
@@ -39,6 +39,7 @@
     "@preact/preset-vite": "^2.10.4",
     "@tailwindcss/vite": "^4.2.2",
     "@types/qrcode": "^1.5.6",
+    "@types/webextension-polyfill": "^0.12.5",
     "@typescript/native-preview": "7.0.0-dev.20260319.1",
     "rolldown": "1.0.0-rc.10",
     "sharp": "^0.34.5",

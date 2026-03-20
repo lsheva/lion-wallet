@@ -76,8 +76,8 @@ async function simulateViaTrace(
       for (const logEntry of callResult.logs) {
         if (logEntry.topics[0] !== transferTopic || logEntry.topics.length < 3) continue;
 
-        const from = `0x${logEntry.topics[1].slice(26)}`.toLowerCase();
-        const to = `0x${logEntry.topics[2].slice(26)}`.toLowerCase();
+        const from = `0x${logEntry.topics[1]!.slice(26)}`.toLowerCase();
+        const to = `0x${logEntry.topics[2]!.slice(26)}`.toLowerCase();
         const accountLower = account.toLowerCase();
 
         if (from !== accountLower && to !== accountLower) continue;

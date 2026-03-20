@@ -20,7 +20,7 @@ const PAW_TEMPLATE_FILL = "#f2e6d8";
 const PAW_FILL = "#ebe8e6";
 
 const MANIFEST_SIZES = [16, 32, 48, 128];
-const XCODE_APP_ICON_SIZES = [16, 32, 64, 128, 256, 512, 1024];
+const XCODE_APP_ICON_SIZES = [16, 32, 128, 256, 512];
 const TOOLBAR_PT = 48;
 
 const MANIFEST_OUT = "src/icons/generated";

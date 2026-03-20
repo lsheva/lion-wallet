@@ -51,6 +51,9 @@ importers:
       '@types/qrcode':
         specifier: ^1.5.6
         version: 1.5.6
+      '@types/webextension-polyfill':
+        specifier: ^0.12.5
+        version: 0.12.5
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260319.1
         version: 7.0.0-dev.20260319.1
@@ -807,6 +810,9 @@ packages:
 
   '@types/qrcode@1.5.6':
     resolution: {integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==}
+
+  '@types/webextension-polyfill@0.12.5':
+    resolution: {integrity: sha512-uKSAv6LgcVdINmxXMKBuVIcg/2m5JZugoZO8x20g7j2bXJkPIl/lVGQcDlbV+aXAiTyXT2RA5U5mI4IGCDMQeg==}
 
   '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260319.1':
     resolution: {integrity: sha512-CMpCsOVUJ/BLC9x9VaT/DQviTmfHqw/NVwnyAR6ZHVVR1YJynJ6EJBPPHI4oStgTwVSdhna5uTPRiKhUpzvgCA==}
@@ -1977,6 +1983,8 @@ snapshots:
   '@types/qrcode@1.5.6':
     dependencies:
       '@types/node': 25.5.0
+
+  '@types/webextension-polyfill@0.12.5': {}
 
   '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260319.1':
     optional: true

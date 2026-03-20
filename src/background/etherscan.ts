@@ -122,7 +122,7 @@ export async function resolveImplementation(
   const proxyCache = await loadProxyCache();
   const pk = cacheKey(chainId, address);
   if (pk in proxyCache) {
-    const cached = proxyCache[pk];
+    const cached = proxyCache[pk] ?? null;
     log.push(`proxy: cache hit impl=${cached ?? "not a proxy"}`);
     return cached;
   }
@@ -224,7 +224,7 @@ export async function fetchContractAbi(
   const ak = cacheKey(chainId, implAddr);
   if (ak in abiCache) {
     log.push(`etherscan-abi: cache hit for ${implAddr} (${abiCache[ak] ? "has ABI" : "null"})`);
-    return abiCache[ak];
+    return abiCache[ak] ?? null;
   }
 
   try {
@@ -287,9 +287,9 @@ export async function resolveAbis(
       toFetch.map((addr) => fetchContractAbi(addr, chainId)),
     );
     for (let i = 0; i < toFetch.length; i++) {
-      const r = settled[i];
+      const r = settled[i]!;
       if (r.status === "fulfilled" && r.value) {
-        result.set(toFetch[i], r.value);
+        result.set(toFetch[i]!, r.value);
       }
     }
   }

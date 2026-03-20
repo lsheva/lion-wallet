@@ -79,7 +79,7 @@ async function decodeViaEtherscan(
 
 function parseTextSignature(textSig: string): { name: string; types: string[] } | null {
   const match = textSig.match(/^([^(]+)\(([^)]*)\)$/);
-  if (!match) return null;
+  if (!match?.[1]) return null;
   const name = match[1];
   const types = match[2] ? match[2].split(",").map((t) => t.trim()) : [];
   return { name, types };
@@ -119,7 +119,7 @@ async function decodeVia4byte(data: Hex, log: string[]): Promise<DecodedCall | n
       const decoded = decodeAbiParameters(paramDefs, calldataHex);
       const args: DecodedArg[] = decoded.map((val, i) => ({
         name: `param${i}`,
-        type: parsed.types[i],
+        type: parsed.types[i] ?? "unknown",
         value: stringify(val),
       }));
       log.push(`4byte: decoded ${parsed.name}(${args.length} args)`);
