@@ -1,3 +1,5 @@
+import lionIconSvg from "../icons/icon.svg";
+
 const CHANNEL = "LION_WALLET";
 
 let requestId = 0;
@@ -197,7 +199,7 @@ function announceProvider(provider: EIP1193Provider): void {
   const info = {
     uuid: "f7e2c1b4-8a9d-4e3f-9c2b-1d0e8f7a6b5c",
     name: "Lion Wallet",
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect width='48' height='48' rx='12' fill='%234F46E5'/><path d='M14 24l8 8 12-16' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>",
+    icon: `data:image/svg+xml,${encodeURIComponent(lionIconSvg.trim())}`,
     rdns: "dev.wallet.lion",
   };
 

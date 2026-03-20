@@ -208,7 +208,7 @@ scripts/
 
 ### Branding — product rename to Lion Wallet
 
-- **User-facing strings**: manifest (`name`, `description`, `default_title`), popup `index.html` title, Welcome heading, macOS container UI (`Main.storyboard`, `Main.html`, `Script.js`), Xcode `INFOPLIST_KEY_CFBundleDisplayName` for app + extension
+- **User-facing strings**: manifest (`name`, `description`, `default_title`), popup `index.html` title, Welcome heading, macOS container UI (`Main.storyboard`, `Main.html`, `Script.js`), Xcode `INFOPLIST_KEY_CFBundleDisplayName` + **`INFOPLIST_KEY_CFBundleName`** (`Lion Wallet`) for app + extension (short/internal bundle name; `.app` / target filenames stay `SafariEVMWallet` for migration)
 - **Provider identity**: EIP-1193 flag `isLionWallet` (replaces `isSafariEVMWallet`); EIP-6963 `name` / new `uuid` / `rdns` `dev.wallet.lion`
 - **Internal**: page↔extension postMessage channel string `LION_WALLET` (replaces `SAFARI_EVM_WALLET`); `POPUP_ORIGIN` `lion-wallet://popup` (replaces `safari-evm-wallet://popup`)
 - **`package.json`**: `name` set to `lion-wallet` (private package; repo directory may still be `safari-evm-wallet`)

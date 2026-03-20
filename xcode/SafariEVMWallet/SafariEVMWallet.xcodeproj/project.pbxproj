@@ -23,7 +23,7 @@
 		2B8A4E1A2A70427CA0DD4E38 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 88360D99FC8B4C4A9A18D294 /* manifest.json */; };
 		630A6F3BE94C4C8B9960E7B0 /* content-script.js in Resources */ = {isa = PBXBuildFile; fileRef = 54DB8C40143648DCA17E37C7 /* content-script.js */; };
 		BA67433C7C19449BB68A68F2 /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 0DDC905B98534B76BAABD3EE /* icons */; };
-		C889D327F7834930AFF36E4F /* ToolbarItemIcon.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 025D3EF1D35748638D455B63 /* ToolbarItemIcon.pdf */; };
+		C889D327F7834930AFF36E4F /* ToolbarItemIcon.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 025D3EF1D35748638D455B63 /* ToolbarItemIcon.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,7 +72,7 @@
 		0DDC905B98534B76BAABD3EE /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../dist/icons; sourceTree = "<group>"; };
 		1B84B545D8C542C397BACF03 /* SafariEVMWallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SafariEVMWallet.entitlements; sourceTree = "<group>"; };
 		2BC4B4D764984E69B32217A8 /* SafariEVMWallet Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "SafariEVMWallet Extension.entitlements"; sourceTree = "<group>"; };
-		025D3EF1D35748638D455B63 /* ToolbarItemIcon.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = ToolbarItemIcon.pdf; sourceTree = "<group>"; };
+		025D3EF1D35748638D455B63 /* ToolbarItemIcon.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = ToolbarItemIcon.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,7 +143,7 @@
 				5A5AE0527D404E0C962427DE /* Resources */,
 				438715B0504948269AF63304 /* SafariWebExtensionHandler.swift */,
 				B43D35CDB87249FA8830CB99 /* Info.plist */,
-				025D3EF1D35748638D455B63 /* ToolbarItemIcon.pdf */,
+				025D3EF1D35748638D455B63 /* ToolbarItemIcon.xcassets */,
 			);
 			path = "SafariEVMWallet Extension";
 			sourceTree = "<group>";
@@ -267,7 +267,7 @@
 				2FA96D1F084D483DA7BC46E3 /* popup in Resources */,
 				EB36273328CF4CAA8B75700B /* inpage.js in Resources */,
 				BA67433C7C19449BB68A68F2 /* icons in Resources */,
-				C889D327F7834930AFF36E4F /* ToolbarItemIcon.pdf in Resources */,
+				C889D327F7834930AFF36E4F /* ToolbarItemIcon.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -452,14 +452,15 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "SafariEVMWallet Extension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_CFBundleName = "Lion Wallet";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Lion Wallet. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -488,14 +489,15 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "SafariEVMWallet Extension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_CFBundleName = "Lion Wallet";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Lion Wallet. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -537,14 +539,16 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SafariEVMWallet/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_CFBundleName = "Lion Wallet";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Lion Wallet. All rights reserved.";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -589,14 +593,16 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SafariEVMWallet/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_CFBundleName = "Lion Wallet";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Lion Wallet. All rights reserved.";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,

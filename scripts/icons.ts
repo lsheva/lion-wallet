@@ -1,41 +1,43 @@
 import sharp from "sharp";
-import PDFDocument from "pdfkit";
-import SVGtoPDF from "svg-to-pdfkit";
-import { mkdirSync, readFileSync, writeFileSync, createWriteStream } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 /** Full-color lion — app icon, marketing, LargeIcon, Resources. */
 const SVG_APP = "brand/lion.svg";
 /**
  * Paw silhouette template. Path fill must stay `#f2e6d8` (light savanna tint) — the
- * script swaps it for toolbar / manifest PNGs. A subtle blue stroke in the SVG prevents
- * Safari from classifying the rasterized PNGs as grayscale template images.
+ * script swaps it for toolbar / manifest PNGs. A full-opacity blue stroke (2.5 units on
+ * the 9167-unit viewBox ≈ sub-pixel at all render sizes) prevents Safari from classifying
+ * the output as grayscale and applying the system accent color tint.
  */
 const PAW_TEMPLATE = "brand/lion-paw-toolbar.svg";
 const PAW_TEMPLATE_FILL = "#f2e6d8";
 
 /**
- * Paw fills — slightly warm RGB (not neutral gray) so PNGs stay truecolor.
- * Pure gray PNGs are often treated as template masks and tinted with system accent (blue).
+ * Light warm off-white fill — visible on both light and dark toolbars, and slightly
+ * warm so Safari doesn't classify the PNG as grayscale and apply template tinting.
  */
-const PAW_FILL_DARK_UI = "#ebe8e6";
-const PAW_FILL_LIGHT_UI = "#3f3a38";
+const PAW_FILL = "#ebe8e6";
 
 const MANIFEST_SIZES = [16, 32, 48, 128];
 const XCODE_APP_ICON_SIZES = [16, 32, 64, 128, 256, 512, 1024];
-const TOOLBAR_SIZE = 48;
+const TOOLBAR_PT = 48;
 
 const MANIFEST_OUT = "src/icons/generated";
 const XCODE_APP_ICON_DIR =
   "xcode/SafariEVMWallet/SafariEVMWallet/Assets.xcassets/AppIcon.appiconset";
 const XCODE_LARGE_ICON_DIR =
   "xcode/SafariEVMWallet/SafariEVMWallet/Assets.xcassets/LargeIcon.imageset";
-const XCODE_TOOLBAR_DIR =
-  "xcode/SafariEVMWallet/SafariEVMWallet Extension";
-const XCODE_RESOURCES_ICON =
-  "xcode/SafariEVMWallet/SafariEVMWallet/Resources/Icon.png";
+const XCODE_TOOLBAR_IMAGESET =
+  "xcode/SafariEVMWallet/SafariEVMWallet Extension/ToolbarItemIcon.xcassets/ToolbarItemIcon.imageset";
+const XCODE_RESOURCES_ICON = "xcode/SafariEVMWallet/SafariEVMWallet/Resources/Icon.png";
 
-for (const dir of [MANIFEST_OUT, XCODE_APP_ICON_DIR, XCODE_LARGE_ICON_DIR]) {
+for (const dir of [
+  MANIFEST_OUT,
+  XCODE_APP_ICON_DIR,
+  XCODE_LARGE_ICON_DIR,
+  XCODE_TOOLBAR_IMAGESET,
+]) {
   mkdirSync(dir, { recursive: true });
 }
 
@@ -60,12 +62,10 @@ async function render(svgPath: string, size: number): Promise<Buffer> {
     .toBuffer();
 }
 
-// 1. Extension manifest icons; `*-darkui` = dark toolbar variant
+// 1. Extension manifest icons (single light-colored paw)
 for (const size of MANIFEST_SIZES) {
-  const lightUi = await renderPaw(PAW_FILL_LIGHT_UI, size);
-  const darkUi = await renderPaw(PAW_FILL_DARK_UI, size);
-  writeFileSync(resolve(MANIFEST_OUT, `icon-${size}.png`), lightUi);
-  writeFileSync(resolve(MANIFEST_OUT, `icon-${size}-darkui.png`), darkUi);
+  const buf = await renderPaw(PAW_FILL, size);
+  writeFileSync(resolve(MANIFEST_OUT, `icon-${size}.png`), buf);
 }
 console.log("Manifest icons written to", MANIFEST_OUT);
 
@@ -95,17 +95,17 @@ for (const size of XCODE_APP_ICON_SIZES) {
 }
 writeFileSync(
   resolve(XCODE_APP_ICON_DIR, "Contents.json"),
-  JSON.stringify(
-    { images: appIconImages, info: { author: "xcode", version: 1 } },
-    null,
-    2,
-  ),
+  JSON.stringify({ images: appIconImages, info: { author: "xcode", version: 1 } }, null, 2),
 );
 console.log("Xcode AppIcon written to", XCODE_APP_ICON_DIR);
 
 // 3. Xcode LargeIcon
 const largeIconImages: object[] = [];
-for (const [scale, mult] of [["1x", 1], ["2x", 2], ["3x", 3]] as const) {
+for (const [scale, mult] of [
+  ["1x", 1],
+  ["2x", 2],
+  ["3x", 3],
+] as const) {
   const size = 128 * Number(mult);
   const filename = `icon_large_${scale}.png`;
   const buf = await render(SVG_APP, size);
@@ -114,36 +114,16 @@ for (const [scale, mult] of [["1x", 1], ["2x", 2], ["3x", 3]] as const) {
 }
 writeFileSync(
   resolve(XCODE_LARGE_ICON_DIR, "Contents.json"),
-  JSON.stringify(
-    { images: largeIconImages, info: { author: "xcode", version: 1 } },
-    null,
-    2,
-  ),
+  JSON.stringify({ images: largeIconImages, info: { author: "xcode", version: 1 } }, null, 2),
 );
 console.log("Xcode LargeIcon written to", XCODE_LARGE_ICON_DIR);
 
-// 4. Xcode extension folder — toolbar PNGs + vector PDF
-const toolbarDark = await renderPaw(PAW_FILL_DARK_UI, TOOLBAR_SIZE);
-const toolbarLight = await renderPaw(PAW_FILL_LIGHT_UI, TOOLBAR_SIZE);
-writeFileSync(resolve(XCODE_TOOLBAR_DIR, "ToolbarItemIcon-darkui.png"), toolbarDark);
-writeFileSync(resolve(XCODE_TOOLBAR_DIR, "ToolbarItemIcon-lightui.png"), toolbarLight);
-
-// ToolbarItemIcon.pdf — vector PDF so Safari renders the paw without template tinting
-const PDF_PT = 48;
-await new Promise<void>((res, rej) => {
-  const doc = new PDFDocument({ size: [PDF_PT, PDF_PT], margin: 0 });
-  const out = createWriteStream(resolve(XCODE_TOOLBAR_DIR, "ToolbarItemIcon.pdf"));
-  doc.pipe(out);
-  SVGtoPDF(doc, pawSvgWithFill(PAW_FILL_LIGHT_UI), 0, 0, {
-    width: PDF_PT,
-    height: PDF_PT,
-    preserveAspectRatio: "xMidYMid meet",
-  });
-  doc.end();
-  out.on("finish", res);
-  out.on("error", rej);
-});
-console.log("Toolbar vector PDF written");
+// 4. Toolbar icon asset catalog
+const toolbar1x = await renderPaw(PAW_FILL, TOOLBAR_PT);
+const toolbar2x = await renderPaw(PAW_FILL, TOOLBAR_PT * 2);
+writeFileSync(resolve(XCODE_TOOLBAR_IMAGESET, "ToolbarItemIcon.png"), toolbar1x);
+writeFileSync(resolve(XCODE_TOOLBAR_IMAGESET, "ToolbarItemIcon@2x.png"), toolbar2x);
+console.log("Toolbar asset catalog written to", XCODE_TOOLBAR_IMAGESET);
 
 // 5. Container app Resources/Icon.png
 const resourcesBuf = await render(SVG_APP, 256);

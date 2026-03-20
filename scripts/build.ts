@@ -25,6 +25,7 @@ await Promise.all([
     entryPoints: ["src/inpage/provider.ts"],
     outfile: "dist/inpage.js",
     format: "iife",
+    loader: { ".svg": "text" },
   }),
 ]);
 

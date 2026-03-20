@@ -178,21 +178,7 @@ export function Settings() {
         <ApiKeysSection />
 
         {/* Data */}
-        <Card header="Data" padding={false}>
-          <button
-            type="button"
-            onClick={async () => {
-              await sendMessage({ type: "CLEAR_ACTIVITY_CACHE" });
-              walletState.activity.value = [];
-              walletState.activitySource.value = null;
-              walletState.activityHasMore.value = false;
-            }}
-            class="flex items-center gap-2 w-full px-4 py-3 text-danger hover:bg-base/50 transition-colors cursor-pointer text-left"
-          >
-            <Trash2 size={16} />
-            <span class="text-sm font-medium">Clear Activity Cache</span>
-          </button>
-        </Card>
+        <ClearCacheRow />
 
         {/* Security */}
         <Card header="Security" padding={false}>
@@ -218,6 +204,37 @@ export function Settings() {
 
       {showNetworkSelector.value && <NetworkSelector />}
     </div>
+  );
+}
+
+function ClearCacheRow() {
+  const [cleared, setCleared] = useState(false);
+
+  const handleClear = async () => {
+    if (cleared) return;
+    await sendMessage({ type: "CLEAR_ACTIVITY_CACHE" });
+    walletState.activity.value = [];
+    walletState.activitySource.value = null;
+    walletState.activityHasMore.value = false;
+    setCleared(true);
+    setTimeout(() => setCleared(false), 2000);
+  };
+
+  return (
+    <Card header="Data" padding={false}>
+      <button
+        type="button"
+        onClick={handleClear}
+        class={`flex items-center gap-2 w-full px-4 py-3 transition-colors cursor-pointer text-left ${
+          cleared ? "text-success" : "text-danger hover:bg-base/50"
+        }`}
+      >
+        {cleared ? <Check size={16} /> : <Trash2 size={16} />}
+        <span class="text-sm font-medium">
+          {cleared ? "Activity Cache Cleared" : "Clear Activity Cache"}
+        </span>
+      </button>
+    </Card>
   );
 }
 

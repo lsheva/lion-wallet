@@ -1,26 +1,27 @@
+import avatar from "animal-avatar-generator";
+
 interface IdenticonProps {
   address: string;
   size?: number;
 }
 
-function addressToColors(address: string): string[] {
-  const hex = address.replace("0x", "").toLowerCase();
-  const colors: string[] = [];
-  for (let i = 0; i < 3; i++) {
-    const slice = hex.slice(i * 8, i * 8 + 6);
-    colors.push(`#${slice}`);
-  }
-  return colors;
-}
+const AVATAR_COLORS = [
+  "#F0CB95", "#DC994E", "#E9AF69", // mane / face warmth
+  "#D97706", "#FBBF24", "#B45309", // amber brand tones
+];
+
+const BG_COLORS = [
+  "#FEF3C7", "#FFEDD5", "#FFFBEB", "#FFF7ED", "#FFFCF8",
+];
 
 export function Identicon({ address, size = 40 }: IdenticonProps) {
-  const colors = addressToColors(address);
+  const svg = avatar(address, {
+    size,
+    round: true,
+    blackout: false,
+    avatarColors: AVATAR_COLORS,
+    backgroundColors: BG_COLORS,
+  });
 
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40">
-      <circle cx="20" cy="20" r="20" fill={colors[0]} />
-      <circle cx="16" cy="14" r="8" fill={colors[1]} opacity="0.7" />
-      <circle cx="26" cy="24" r="10" fill={colors[2]} opacity="0.6" />
-    </svg>
-  );
+  return <div dangerouslySetInnerHTML={{ __html: svg }} />;
 }
