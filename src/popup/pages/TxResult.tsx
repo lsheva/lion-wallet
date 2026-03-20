@@ -57,7 +57,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
     }
     rpcFailCountRef.current = 0;
     setRpcError(false);
-    return (res.data as { result: unknown })?.result ?? null;
+    return res.data?.result ?? null;
   }, []);
 
   useEffect(() => {

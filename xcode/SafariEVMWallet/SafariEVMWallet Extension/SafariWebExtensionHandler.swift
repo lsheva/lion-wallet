@@ -59,8 +59,9 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 respond(context: context, payload: ["ok": false, "error": "Missing key"])
                 return
             }
+            let reason = dict["reason"] as? String ?? "Authenticate to access wallet"
             let laContext = LAContext()
-            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Authenticate to access wallet") { success, authError in
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authError in
                 if !success {
                     let msg = authError?.localizedDescription ?? "Authentication failed"
                     os_log(.error, "LAContext auth failed: %{public}@", msg)

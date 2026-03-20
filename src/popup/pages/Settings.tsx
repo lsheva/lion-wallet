@@ -380,12 +380,12 @@ function ApiKeysSection() {
   useEffect(() => {
     sendMessage({ type: "GET_RPC_PROVIDER_KEY" }).then((res) => {
       if (res.ok && res.data) {
-        setAlchemyKey((res.data as { key: string | null }).key);
+        setAlchemyKey(res.data.key);
       }
     });
     sendMessage({ type: "GET_ETHERSCAN_KEY" }).then((res) => {
       if (res.ok && res.data) {
-        setEtherscanKey((res.data as { key: string | null }).key);
+        setEtherscanKey(res.data.key);
       }
     });
   }, []);

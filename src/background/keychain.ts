@@ -62,11 +62,12 @@ export async function storeMnemonic(mnemonic: string): Promise<StoreResult> {
   }
 }
 
-export async function retrieveMnemonic(): Promise<string | null> {
+export async function retrieveMnemonic(reason?: string): Promise<string | null> {
   try {
     const res = await sendNative({
       action: "keychain_retrieve",
       key: "mnemonic",
+      ...(reason && { reason }),
     });
     return res.ok ? (res.value ?? null) : null;
   } catch {
@@ -114,11 +115,12 @@ export async function storeImportedKey(address: Address, privateKey: Hex): Promi
   }
 }
 
-export async function retrieveImportedKey(address: Address): Promise<Hex | null> {
+export async function retrieveImportedKey(address: Address, reason?: string): Promise<Hex | null> {
   try {
     const res = await sendNative({
       action: "keychain_retrieve",
       key: importedKeyId(address),
+      ...(reason && { reason }),
     });
     return res.ok ? ((res.value as Hex) ?? null) : null;
   } catch {

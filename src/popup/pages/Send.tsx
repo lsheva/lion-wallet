@@ -78,7 +78,7 @@ export function Send() {
           chainId: network.chain.id,
         });
         if (res.ok && res.data) {
-          setBalance((res.data as { balance: string }).balance);
+          setBalance(res.data.balance);
         }
       } else {
         const account = walletState.activeAccount.value;
@@ -95,7 +95,7 @@ export function Send() {
           origin: POPUP_ORIGIN,
         });
         if (res.ok && res.data) {
-          const hex = (res.data as { result: string }).result;
+          const hex = res.data.result as string;
           const raw = BigInt(hex);
           const formatted = (Number(raw) / 10 ** selectedToken.decimals).toString();
           setBalance(formatted);

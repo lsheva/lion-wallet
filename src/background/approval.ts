@@ -3,7 +3,7 @@ import type { RpcError } from "./rpc-handler";
 
 interface PendingEntry {
   approval: PendingApproval;
-  resolve: (result: unknown) => void;
+  resolve: (result: string) => void;
   reject: (error: RpcError) => void;
 }
 
@@ -15,13 +15,13 @@ export function createPendingApproval(
   params: unknown[],
   origin: string,
   chainId: number,
-): { id: string; promise: Promise<{ result: unknown } | { error: RpcError }> } {
+): { id: string; promise: Promise<{ result: string } | { error: RpcError }> } {
   const id = `approval-${++idCounter}-${Date.now()}`;
 
-  const promise = new Promise<{ result: unknown } | { error: RpcError }>((resolve) => {
+  const promise = new Promise<{ result: string } | { error: RpcError }>((resolve) => {
     pendingQueue.set(id, {
       approval: { id, method, params, origin, timestamp: Date.now(), chainId },
-      resolve: (result: unknown) => resolve({ result }),
+      resolve: (result: string) => resolve({ result }),
       reject: (error: RpcError) => resolve({ error }),
     });
   });
@@ -38,7 +38,7 @@ export function getPendingCount(): number {
   return pendingQueue.size;
 }
 
-export function resolvePendingApproval(id: string, result: unknown): boolean {
+export function resolvePendingApproval(id: string, result: string): boolean {
   const entry = pendingQueue.get(id);
   if (!entry) return false;
   entry.resolve(result);
@@ -56,7 +56,7 @@ export function rejectPendingApproval(id: string, reason?: string): boolean {
 
 export function clearAllPending(): void {
   for (const entry of pendingQueue.values()) {
-    entry.reject({ code: 4001, message: "Wallet locked" });
+    entry.reject({ code: 4001, message: "Wallet reset" });
   }
   pendingQueue.clear();
 }

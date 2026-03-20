@@ -40,12 +40,11 @@ export function SetPassword() {
     setLoading(false);
 
     if (!res.ok) {
-      setError((res as { error?: string }).error ?? "Failed to create wallet");
+      setError(res.error);
       return;
     }
 
-    const data = res.data as { mnemonic: string };
-    sessionStorage.setItem("onboarding_mnemonic", data.mnemonic);
+    sessionStorage.setItem("onboarding_mnemonic", res.data.mnemonic);
     sessionStorage.setItem("onboarding_password", password);
     sessionStorage.removeItem("onboarding_vault_preferred");
     route("/seed-phrase");

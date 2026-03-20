@@ -137,3 +137,18 @@ export interface ActivityItem {
   decoded: DecodedCall | null;
   events: DecodedEvent[];
 }
+
+export interface ApprovalData {
+  approval: PendingApproval;
+  gasPresets: GasPresets | null;
+  account: SerializedAccount;
+  queueSize?: number;
+  decoded?: DecodedCall | null;
+  transfers?: TokenTransfer[] | null;
+  nativeUsdPrice?: number | null;
+  decodedVia?: string | null;
+  simulatedVia?: string | null;
+  hasEtherscanKey?: boolean;
+  hasRpcProviderKey?: boolean;
+  storageMode?: "keychain" | "vault";
+}

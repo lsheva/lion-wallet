@@ -1,6 +1,6 @@
 import { signal } from "@preact/signals";
 import { sendMessage } from "@shared/messages";
-import type { ActivityItem } from "@shared/types";
+import type { ActivityItem, ApprovalData } from "@shared/types";
 import { useEffect } from "preact/hooks";
 import Router, { Route, route } from "preact-router";
 import browser from "webextension-polyfill";
@@ -31,7 +31,7 @@ const APPROVAL_METHODS = new Set([
   "eth_signTypedData",
 ]);
 
-export const pendingApprovalData = signal<Record<string, unknown> | null>(null);
+export const pendingApprovalData = signal<ApprovalData | null>(null);
 export const pendingQueueSize = signal(0);
 
 try {
@@ -62,10 +62,8 @@ export async function routeToNextApprovalOrClose(fallback: () => void): Promise<
   try {
     const res = await sendMessage({ type: "GET_PENDING_APPROVAL" });
     if (res.ok && res.data) {
-      const data = res.data as Record<string, unknown>;
-      const approval = data.approval as { method: string } | undefined;
-      if (approval && APPROVAL_METHODS.has(approval.method)) {
-        pendingApprovalData.value = data;
+      if (APPROVAL_METHODS.has(res.data.approval.method)) {
+        pendingApprovalData.value = res.data;
         route("/approve", true);
         return;
       }
@@ -87,21 +85,15 @@ export function App() {
     if (import.meta.env.DEV) return;
 
     sendMessage({ type: "GET_STATE" }).then((stateRes) => {
-      const state = stateRes.ok
-        ? (stateRes.data as { isInitialized?: boolean } | undefined)
-        : undefined;
-
-      if (!state?.isInitialized) {
+      if (!stateRes.ok || !stateRes.data?.isInitialized) {
         route("/", true);
         return;
       }
 
       sendMessage({ type: "GET_PENDING_APPROVAL" }).then((res) => {
         if (res.ok && res.data) {
-          const data = res.data as Record<string, unknown>;
-          const approval = data.approval as { method: string } | undefined;
-          if (approval && APPROVAL_METHODS.has(approval.method)) {
-            pendingApprovalData.value = data;
+          if (APPROVAL_METHODS.has(res.data.approval.method)) {
+            pendingApprovalData.value = res.data;
             route("/approve", true);
             return;
           }

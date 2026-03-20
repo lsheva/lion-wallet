@@ -1,6 +1,14 @@
 import type { Address, Hex } from "viem";
 import browser from "webextension-polyfill";
-import type { GasSpeed, SerializedAccount, TransactionParams, WalletState } from "./types";
+import type {
+  ActivityItem,
+  ApprovalData,
+  GasPresets,
+  GasSpeed,
+  SerializedAccount,
+  TransactionParams,
+  WalletState,
+} from "./types";
 
 export type MessageRequest =
   | { type: "CREATE_WALLET"; password?: string }
@@ -29,46 +37,53 @@ export type MessageRequest =
   | { type: "GET_ACTIVITY"; address: Address; chainId: number; loadMore?: boolean }
   | { type: "CLEAR_ACTIVITY_CACHE" };
 
+/** Untyped base response — used by the background handler's return type. */
 export type MessageResponse = { ok: true; data?: unknown } | { ok: false; error: string };
 
-export interface CreateWalletResponse {
-  ok: true;
-  data: { mnemonic: string; accounts: SerializedAccount[] };
+/** Maps each message type to the shape of `data` in its success response. `void` = no data field. */
+export interface MessageDataMap {
+  CREATE_WALLET: { mnemonic: string; accounts: SerializedAccount[] };
+  IMPORT_WALLET: { accounts: SerializedAccount[] };
+  IMPORT_PRIVATE_KEY: { accounts: SerializedAccount[] };
+  GET_STATE: WalletState;
+  GET_ACCOUNTS: { accounts: SerializedAccount[] };
+  ADD_ACCOUNT: { account: SerializedAccount };
+  GET_BALANCE: { balance: string; nativeUsdPrice: number | null };
+  SWITCH_NETWORK: void;
+  SWITCH_ACCOUNT: void;
+  EXPORT_PRIVATE_KEY: { privateKey: Hex };
+  EXPORT_MNEMONIC: { mnemonic: string };
+  RPC_REQUEST: { result: unknown };
+  GET_PENDING_APPROVAL: ApprovalData | null;
+  APPROVE_REQUEST: { result: string };
+  REJECT_REQUEST: void;
+  ESTIMATE_GAS: GasPresets;
+  RESET_WALLET: void;
+  GET_ETHERSCAN_KEY: { key: string | null };
+  SET_ETHERSCAN_KEY: void;
+  GET_RPC_PROVIDER_KEY: { key: string | null };
+  SET_RPC_PROVIDER_KEY: void;
+  GET_STORAGE_MODE: { storageMode: "keychain" | "vault" };
+  CHECK_KEYCHAIN_AVAILABLE: { available: boolean; error?: string };
+  GET_ACTIVITY: {
+    items: ActivityItem[];
+    hasMore: boolean;
+    source: "etherscan" | "rpc" | "cache";
+  };
+  CLEAR_ACTIVITY_CACHE: void;
 }
 
-export interface GetStateResponse {
-  ok: true;
-  data: WalletState;
-}
-
-export interface GetAccountsResponse {
-  ok: true;
-  data: { accounts: SerializedAccount[] };
-}
-
-export interface AddAccountResponse {
-  ok: true;
-  data: { account: SerializedAccount };
-}
-
-export interface GetBalanceResponse {
-  ok: true;
-  data: { balance: string; nativeUsdPrice: number | null };
-}
-
-export interface ExportPrivateKeyResponse {
-  ok: true;
-  data: { privateKey: Hex };
-}
-
-export interface ExportMnemonicResponse {
-  ok: true;
-  data: { mnemonic: string };
-}
+/** Typed success/error response keyed by message type. */
+export type TypedResponse<T extends MessageRequest["type"]> =
+  MessageDataMap[T] extends void
+    ? { ok: true; data?: undefined } | { ok: false; error: string }
+    : { ok: true; data: MessageDataMap[T] } | { ok: false; error: string };
 
 const MESSAGE_TIMEOUT_MS = 60_000;
 
-export async function sendMessage(message: MessageRequest): Promise<MessageResponse> {
+export async function sendMessage<M extends MessageRequest>(
+  message: M,
+): Promise<TypedResponse<M["type"]>> {
   const response = await Promise.race([
     browser.runtime.sendMessage(message),
     new Promise<never>((_, reject) =>
@@ -78,7 +93,7 @@ export async function sendMessage(message: MessageRequest): Promise<MessageRespo
       ),
     ),
   ]);
-  return response as MessageResponse;
+  return response as TypedResponse<M["type"]>;
 }
 
 export const CHANNEL = "LION_WALLET";

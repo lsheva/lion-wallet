@@ -34,12 +34,11 @@ export function ShowRecoveryPhrase() {
     setLoading(false);
 
     if (!res.ok) {
-      setError((res as { error?: string }).error ?? "Authentication failed");
+      setError(res.error);
       return;
     }
 
-    const data = res.data as { mnemonic: string };
-    setWords(data.mnemonic.split(" "));
+    setWords(res.data.mnemonic.split(" "));
     setRevealed(true);
   };
 

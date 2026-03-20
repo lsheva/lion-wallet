@@ -12,15 +12,14 @@ export function Welcome() {
 
   useEffect(() => {
     sendMessage({ type: "CHECK_KEYCHAIN_AVAILABLE" }).then((res) => {
-      const data = res.ok ? (res.data as { available?: boolean; error?: string }) : undefined;
       console.log("[Welcome] CHECK_KEYCHAIN_AVAILABLE:", JSON.stringify(res));
-      if (data?.available) {
+      if (res.ok && res.data?.available) {
         setKeychainAvailable(true);
       } else {
         setKeychainAvailable(false);
-        if (data?.error) {
-          console.log("[Welcome] Keychain probe error:", data.error);
-          setError(`Keychain probe failed: ${data.error}`);
+        if (res.ok && res.data?.error) {
+          console.log("[Welcome] Keychain probe error:", res.data.error);
+          setError(`Keychain probe failed: ${res.data.error}`);
         }
       }
     });
@@ -32,13 +31,11 @@ export function Welcome() {
     const res = await sendMessage({ type: "CREATE_WALLET" });
     setLoading(false);
     if (!res.ok) {
-      const errMsg = "error" in res ? res.error : "Unknown error";
-      console.log("[Welcome] CREATE_WALLET failed:", errMsg);
-      setError(errMsg);
+      console.log("[Welcome] CREATE_WALLET failed:", res.error);
+      setError(res.error);
       return;
     }
-    const data = res.data as { mnemonic: string };
-    sessionStorage.setItem("onboarding_mnemonic", data.mnemonic);
+    sessionStorage.setItem("onboarding_mnemonic", res.data.mnemonic);
     route("/seed-phrase");
   };
 

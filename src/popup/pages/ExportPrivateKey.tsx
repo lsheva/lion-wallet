@@ -38,12 +38,11 @@ export function ExportPrivateKey() {
     setLoading(false);
 
     if (!res.ok) {
-      setError((res as { error?: string }).error ?? "Authentication failed");
+      setError(res.error);
       return;
     }
 
-    const data = res.data as { privateKey: string };
-    setPrivateKey(data.privateKey);
+    setPrivateKey(res.data.privateKey);
     setRevealed(true);
   };
 

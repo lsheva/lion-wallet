@@ -58,16 +58,10 @@ function buildNativeToken(): TokenInfo {
 export async function fetchState(): Promise<void> {
   const res = await sendMessage({ type: "GET_STATE" });
   if (!res.ok || !res.data) return;
-  const state = res.data as {
-    accounts: SerializedAccount[];
-    activeAccountIndex: number;
-    activeNetworkId: number;
-    storageMode: "keychain" | "vault";
-  };
-  accounts.value = state.accounts;
-  activeAccountIndex.value = state.activeAccountIndex;
-  activeNetworkId.value = state.activeNetworkId;
-  storageMode.value = state.storageMode;
+  accounts.value = res.data.accounts;
+  activeAccountIndex.value = res.data.activeAccountIndex;
+  activeNetworkId.value = res.data.activeNetworkId;
+  storageMode.value = res.data.storageMode;
 }
 
 export async function fetchBalance(): Promise<void> {
@@ -79,9 +73,8 @@ export async function fetchBalance(): Promise<void> {
     chainId: activeNetworkId.peek(),
   });
   if (res.ok && res.data) {
-    const d = res.data as { balance: string; nativeUsdPrice: number | null };
-    ethBalance.value = d.balance;
-    nativeUsdPrice.value = d.nativeUsdPrice;
+    ethBalance.value = res.data.balance;
+    nativeUsdPrice.value = res.data.nativeUsdPrice;
     tokens.value = [buildNativeToken(), ...tokens.value.filter((t) => t.address)];
   }
 }
@@ -103,14 +96,9 @@ export async function fetchActivity(options?: { loadMore?: boolean }): Promise<v
       ...(options?.loadMore ? { loadMore: true } : {}),
     });
     if (res.ok && res.data) {
-      const data = res.data as {
-        items: ActivityItem[];
-        hasMore: boolean;
-        source: "etherscan" | "rpc" | "cache";
-      };
-      activity.value = data.items;
-      activitySource.value = data.source;
-      activityHasMore.value = data.hasMore;
+      activity.value = res.data.items;
+      activitySource.value = res.data.source;
+      activityHasMore.value = res.data.hasMore;
     }
   } catch {
     /* non-blocking — keep whatever was in the signal */

@@ -1,5 +1,5 @@
 import { toErrorMessage } from "@shared/format";
-import { type MessageResponse, sendMessage } from "@shared/messages";
+import { sendMessage } from "@shared/messages";
 import { Clipboard, Fingerprint } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { route } from "preact-router";
@@ -27,7 +27,7 @@ export function ImportWallet() {
 
   useEffect(() => {
     sendMessage({ type: "CHECK_KEYCHAIN_AVAILABLE" }).then((res) => {
-      setKeychainAvailable(res.ok && (res.data as { available?: boolean })?.available === true);
+      setKeychainAvailable(res.ok && res.data?.available === true);
     });
   }, []);
 
@@ -66,25 +66,22 @@ export function ImportWallet() {
     setLoading(true);
 
     try {
-      let res: MessageResponse | undefined;
-      if (tab === "mnemonic") {
-        res = await sendMessage({
-          type: "IMPORT_WALLET",
-          mnemonic: mnemonic.trim(),
-          ...(usePassword ? { password } : {}),
-        });
-      } else {
-        res = await sendMessage({
-          type: "IMPORT_PRIVATE_KEY",
-          privateKey: privateKey.trim() as `0x${string}`,
-          ...(usePassword ? { password } : {}),
-        });
-      }
+      const res =
+        tab === "mnemonic"
+          ? await sendMessage({
+              type: "IMPORT_WALLET",
+              mnemonic: mnemonic.trim(),
+              ...(usePassword ? { password } : {}),
+            })
+          : await sendMessage({
+              type: "IMPORT_PRIVATE_KEY",
+              privateKey: privateKey.trim() as `0x${string}`,
+              ...(usePassword ? { password } : {}),
+            });
 
-      if (!res || !res.ok) {
-        const errMsg = res && "error" in res ? res.error : "Import failed";
-        console.log("[ImportWallet] error:", errMsg);
-        setError(errMsg);
+      if (!res.ok) {
+        console.log("[ImportWallet] error:", res.error);
+        setError(res.error);
         setLoading(false);
         return;
       }
