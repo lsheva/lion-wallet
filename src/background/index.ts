@@ -45,6 +45,7 @@ import {
 import { decodeTx } from "./tx-decoder";
 import { simulateTx } from "./tx-simulator";
 import { fetchPrices } from "./prices";
+import { fetchNativePrice } from "./etherscan";
 import { getNetworkConfig } from "./networks";
 
 function broadcastEvent(event: string, data: unknown): void {
@@ -405,7 +406,15 @@ async function handleMessage(
       const balance = await client.getBalance({
         address: message.address,
       });
-      return { ok: true, data: { balance: formatEther(balance) } };
+      const cfg = getNetworkConfig(message.chainId);
+      const isTestnet = cfg?.chain.testnet === true;
+      const nativeUsdPrice = isTestnet
+        ? 0
+        : await fetchNativePrice(message.chainId);
+      return {
+        ok: true,
+        data: { balance: formatEther(balance), nativeUsdPrice },
+      };
     }
 
     case "SWITCH_NETWORK": {

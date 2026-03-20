@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import type { JSX } from "preact";
 import { Copy, Check } from "lucide-preact";
 
 interface CopyButtonProps {
@@ -10,7 +11,8 @@ interface CopyButtonProps {
 export function CopyButton({ text, size = 16, class: cls = "" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: JSX.TargetedMouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
@@ -18,6 +20,7 @@ export function CopyButton({ text, size = 16, class: cls = "" }: CopyButtonProps
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
       class={`p-1 text-text-tertiary hover:text-accent transition-colors cursor-pointer ${cls}`}
     >

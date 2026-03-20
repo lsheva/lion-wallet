@@ -95,3 +95,13 @@ export function formatTokenValue(value: string | number): string {
   }
   return out;
 }
+
+/** Fiat string for UI (always two decimal places). */
+export function formatUsd(amount: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}

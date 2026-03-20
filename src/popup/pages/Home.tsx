@@ -1,15 +1,14 @@
 import { useState, useEffect } from "preact/hooks";
 import { route } from "preact-router";
 import { Settings, ArrowUpRight, ArrowDownLeft, Plus, Loader2 } from "lucide-preact";
-import { Identicon } from "../components/Identicon";
-import { AddressDisplay } from "../components/AddressDisplay";
 import { NetworkBadge } from "../components/NetworkBadge";
+import { AccountSwitcher } from "../components/AccountSwitcher";
 import { TokenRow } from "../components/TokenRow";
 import { ActivityRow } from "../components/ActivityRow";
-import { FormattedTokenValue } from "../components/FormattedTokenValue";
 import { walletState, showNetworkSelector, refreshAll, fetchActivity } from "../store";
 import { NetworkSelector } from "./NetworkSelector";
 import { AddToken } from "./AddToken";
+import { formatUsd } from "@shared/format";
 
 const PAGE_SIZE = 5;
 
@@ -31,8 +30,8 @@ function ActivitySection({ account }: { account: { address: string } }) {
   };
 
   return (
-    <div class="bg-surface rounded-2xl mx-4 mb-4">
-      <div class="flex items-center gap-2 px-4 pt-3 pb-1">
+    <div class="bg-surface rounded-2xl w-full">
+      <div class="flex items-center gap-2 px-4 pt-3 pb-2">
         <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Activity</h3>
         {loading && <Loader2 size={12} class="animate-spin text-text-tertiary" />}
       </div>
@@ -71,9 +70,24 @@ function ActivitySection({ account }: { account: { address: string } }) {
   );
 }
 
+/** Native-only USD total for the account card (testnet → $0.00). */
+function balanceUsdTotal(ethBalance: string, nativeUsdPerUnit: number | null): string {
+  const eth = parseFloat(ethBalance);
+  if (Number.isNaN(eth)) return "—";
+  if (nativeUsdPerUnit === 0) return formatUsd(0);
+  if (nativeUsdPerUnit != null && nativeUsdPerUnit > 0) {
+    return formatUsd(eth * nativeUsdPerUnit);
+  }
+  return "—";
+}
+
 export function Home() {
   const account = walletState.activeAccount.value;
   const [showAddToken, setShowAddToken] = useState(false);
+  const usdTotal = balanceUsdTotal(
+    walletState.ethBalance.value,
+    walletState.nativeUsdPrice.value,
+  );
 
   useEffect(() => {
     refreshAll();
@@ -83,7 +97,7 @@ export function Home() {
   return (
     <div class="flex flex-col h-[600px]">
       {/* Header */}
-      <div class="flex items-center justify-between px-4 h-12">
+      <header class="shrink-0 flex items-center justify-between px-4 h-12">
         <NetworkBadge />
         <button
           type="button"
@@ -92,44 +106,41 @@ export function Home() {
         >
           <Settings size={20} />
         </button>
+      </header>
+
+      {/* Outside scroll so account menu stacks above list; avoids overflow clip */}
+      <div class="shrink-0 px-4 pt-3 pb-3">
+        <AccountSwitcher usdTotal={usdTotal} />
       </div>
 
-      <div class="flex-1 overflow-y-auto">
-        {/* Account */}
-        <div class="flex flex-col items-center pt-4 pb-3 px-4">
-          <Identicon address={account.address} size={48} />
-          <div class="mt-2">
-            <AddressDisplay address={account.address} />
-          </div>
-          <p class="text-sm text-text-secondary mt-1 inline-flex items-baseline flex-wrap justify-center gap-x-1">
-            <FormattedTokenValue value={walletState.ethBalance.value} />
-            <span>{walletState.activeNetwork.value.chain.nativeCurrency.symbol}</span>
-          </p>
-        </div>
-
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-4">
         {/* Quick Actions */}
-        <div class="flex gap-3 px-4 pb-4">
+        <div class="flex gap-3 shrink-0">
           <button
             type="button"
             onClick={() => route("/send")}
-            class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-accent text-accent-foreground rounded-full font-medium text-sm hover:bg-accent-hover transition-colors cursor-pointer active:scale-[0.97]"
+            class="flex-1 flex items-center justify-center py-2.5 bg-accent text-accent-foreground rounded-full font-medium text-sm hover:bg-accent-hover transition-colors cursor-pointer active:scale-[0.97]"
           >
-            <ArrowUpRight size={16} />
-            Send
+            <span class="inline-flex items-center gap-1.5 -translate-x-1">
+              <ArrowUpRight size={16} class="shrink-0" aria-hidden />
+              Send
+            </span>
           </button>
           <button
             type="button"
             onClick={() => route("/receive")}
-            class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-surface text-text-primary rounded-full font-medium text-sm shadow-sm hover:bg-divider transition-colors cursor-pointer active:scale-[0.97]"
+            class="flex-1 flex items-center justify-center py-2.5 bg-surface text-text-primary rounded-full font-medium text-sm shadow-sm hover:bg-divider transition-colors cursor-pointer active:scale-[0.97]"
           >
-            <ArrowDownLeft size={16} />
-            Receive
+            <span class="inline-flex items-center gap-1.5 -translate-x-1">
+              <ArrowDownLeft size={16} class="shrink-0" aria-hidden />
+              Receive
+            </span>
           </button>
         </div>
 
         {/* Tokens */}
-        <div class="bg-surface rounded-2xl mx-4 mb-3">
-          <div class="flex items-center justify-between px-4 pt-3 pb-1">
+        <div class="bg-surface rounded-2xl w-full shrink-0">
+          <div class="flex items-center justify-between px-4 pt-3 pb-2">
             <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Tokens</h3>
             <button
               type="button"

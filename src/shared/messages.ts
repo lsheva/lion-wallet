@@ -54,7 +54,7 @@ export interface AddAccountResponse {
 
 export interface GetBalanceResponse {
   ok: true;
-  data: { balance: string };
+  data: { balance: string; nativeUsdPrice: number | null };
 }
 
 export interface ExportPrivateKeyResponse {

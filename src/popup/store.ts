@@ -1,6 +1,7 @@
 import { signal, computed } from "@preact/signals";
 import { sendMessage } from "@shared/messages";
 import { NETWORKS } from "@shared/constants";
+import { formatUsd } from "@shared/format";
 import type { SerializedAccount, NetworkConfig, TokenInfo, ActivityItem } from "@shared/types";
 import type { Address } from "viem";
 
@@ -12,6 +13,8 @@ export const activeAccountIndex = signal(0);
 export const activeNetworkId = signal(1);
 export const showNetworkSelector = signal(false);
 export const ethBalance = signal("0");
+/** Per-unit native token USD price; `0` on testnets; `null` if unavailable. */
+export const nativeUsdPrice = signal<number | null>(null);
 export const tokens = signal<TokenInfo[]>([]);
 export const networks = signal<NetworkConfig[]>(NETWORKS);
 export const storageMode = signal<"keychain" | "vault">("vault");
@@ -33,6 +36,15 @@ export const activeNetwork = computed(
   () => networkMap.value.get(activeNetworkId.value) ?? networks.value[0],
 );
 
+function nativeBalanceUsdString(): string | undefined {
+  const rate = nativeUsdPrice.peek();
+  const bal = parseFloat(ethBalance.peek());
+  if (Number.isNaN(bal) || rate == null) return undefined;
+  if (rate === 0) return formatUsd(0);
+  if (rate > 0) return formatUsd(bal * rate);
+  return undefined;
+}
+
 function buildNativeToken(): TokenInfo {
   const net = activeNetwork.peek();
   return {
@@ -41,6 +53,7 @@ function buildNativeToken(): TokenInfo {
     decimals: net.chain.nativeCurrency.decimals,
     balance: ethBalance.peek(),
     color: net.color,
+    usdValue: nativeBalanceUsdString(),
   };
 }
 
@@ -69,7 +82,9 @@ export async function fetchBalance(): Promise<void> {
     chainId: activeNetworkId.peek(),
   });
   if (res.ok && res.data) {
-    ethBalance.value = (res.data as { balance: string }).balance;
+    const d = res.data as { balance: string; nativeUsdPrice: number | null };
+    ethBalance.value = d.balance;
+    nativeUsdPrice.value = d.nativeUsdPrice;
     tokens.value = [buildNativeToken(), ...tokens.value.filter((t) => t.address)];
   }
 }
@@ -118,6 +133,7 @@ export const walletState = {
   tokens,
   networks,
   ethBalance,
+  nativeUsdPrice,
   showNetworkSelector,
   storageMode,
   activity,
