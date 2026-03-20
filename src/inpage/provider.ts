@@ -3,10 +3,7 @@ import lionIconSvg from "../icons/icon.svg";
 const CHANNEL = "LION_WALLET";
 
 let requestId = 0;
-const pending = new Map<
-  string,
-  { resolve: (v: unknown) => void; reject: (e: unknown) => void }
->();
+const pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: unknown) => void }>();
 
 class EventEmitter {
   private _listeners = new Map<string, Set<(...args: unknown[]) => void>>();
@@ -149,9 +146,7 @@ class EIP1193Provider extends EventEmitter {
       setTimeout(() => {
         if (pending.has(id)) {
           pending.delete(id);
-          reject(
-            Object.assign(new Error("Request timed out"), { code: -32603 }),
-          );
+          reject(Object.assign(new Error("Request timed out"), { code: -32603 }));
         }
       }, 60_000);
     }).then((result) => {
@@ -188,9 +183,7 @@ class EIP1193Provider extends EventEmitter {
     callback: (err: unknown, result?: unknown) => void,
   ): void {
     this.request({ method: payload.method, params: payload.params })
-      .then((result) =>
-        callback(null, { id: payload.id, jsonrpc: "2.0", result }),
-      )
+      .then((result) => callback(null, { id: payload.id, jsonrpc: "2.0", result }))
       .catch((err) => callback(err));
   }
 }
@@ -206,9 +199,7 @@ function announceProvider(provider: EIP1193Provider): void {
   const detail = Object.freeze({ info, provider });
   window.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail }));
   window.addEventListener("eip6963:requestProvider", () => {
-    window.dispatchEvent(
-      new CustomEvent("eip6963:announceProvider", { detail }),
-    );
+    window.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail }));
   });
 }
 

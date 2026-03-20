@@ -1,20 +1,12 @@
-import {
-  generateMnemonic,
-  mnemonicToAccount,
-  privateKeyToAccount,
-  english,
-} from "viem/accounts";
-import { toHex, type Address, type Hex } from "viem";
+import { type Address, type Hex, toHex } from "viem";
+import { english, generateMnemonic, mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 import type { SerializedAccount } from "../shared/types";
 
 export function createMnemonic(): string {
   return generateMnemonic(english);
 }
 
-export function deriveAccount(
-  mnemonic: string,
-  index: number,
-): SerializedAccount {
+export function deriveAccount(mnemonic: string, index: number): SerializedAccount {
   const account = mnemonicToAccount(mnemonic, { addressIndex: index });
   return {
     name: `Account ${index + 1}`,
@@ -29,10 +21,7 @@ export function importFromPrivateKey(privateKey: Hex): Address {
   return account.address;
 }
 
-export function getPrivateKeyForAccount(
-  mnemonic: string,
-  index: number,
-): Hex {
+export function getPrivateKeyForAccount(mnemonic: string, index: number): Hex {
   const hdAccount = mnemonicToAccount(mnemonic, { addressIndex: index });
   const hdKey = hdAccount.getHdKey();
   if (!hdKey.privateKey) throw new Error("Failed to derive private key");

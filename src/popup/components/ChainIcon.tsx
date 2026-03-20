@@ -1,5 +1,5 @@
-import { CHAIN_ICON_BY_ID } from "../chain-icons";
 import { NETWORK_BY_ID } from "@shared/constants";
+import { CHAIN_ICON_BY_ID } from "../chain-icons";
 
 interface ChainIconProps {
   chainId: number;

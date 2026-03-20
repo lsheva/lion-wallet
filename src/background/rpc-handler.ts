@@ -1,13 +1,13 @@
-import { numberToHex, type Hex } from "viem";
-import {
-  getPublicClient,
-  getActiveNetworkId,
-  setActiveNetworkId,
-  getNetworkConfig,
-} from "./networks";
-import { createPendingApproval } from "./approval";
-import { isVaultInitialized, loadAccountsMeta } from "./vault";
+import { type Hex, numberToHex } from "viem";
 import { POPUP_ORIGIN } from "../shared/constants";
+import { createPendingApproval } from "./approval";
+import {
+  getActiveNetworkId,
+  getNetworkConfig,
+  getPublicClient,
+  setActiveNetworkId,
+} from "./networks";
+import { isVaultInitialized, loadAccountsMeta } from "./vault";
 
 export interface RpcError {
   code: number;
@@ -144,12 +144,7 @@ export async function handleRpc(
       }
 
       const chainId = await getActiveNetworkId();
-      const { promise } = createPendingApproval(
-        method,
-        params ?? [],
-        ctx.origin,
-        chainId,
-      );
+      const { promise } = createPendingApproval(method, params ?? [], ctx.origin, chainId);
 
       if (isPopup) {
         return ok({ pending: true });
@@ -167,10 +162,7 @@ export async function handleRpc(
   }
 }
 
-async function proxyToRpc(
-  method: string,
-  params: unknown[] | undefined,
-): Promise<RpcResult> {
+async function proxyToRpc(method: string, params: unknown[] | undefined): Promise<RpcResult> {
   const chainId = await getActiveNetworkId();
   const client = getPublicClient(chainId);
   const transport = client.transport as { url?: string };

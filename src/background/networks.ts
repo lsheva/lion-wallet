@@ -1,14 +1,34 @@
-import browser from "webextension-polyfill";
 import { createPublicClient, http, type PublicClient } from "viem";
 import {
-  mainnet, polygon, arbitrum, optimism, base, avalanche,
-  blast, linea, scroll, zkSync, mantle, celo, gnosis,
-  polygonZkEvm, fantom, moonbeam, astar,
-  sepolia, arbitrumSepolia, baseSepolia, optimismSepolia,
-  polygonAmoy, avalancheFuji, blastSepolia,
-  lineaSepolia, scrollSepolia,
+  arbitrum,
+  arbitrumSepolia,
+  astar,
+  avalanche,
+  avalancheFuji,
+  base,
+  baseSepolia,
+  blast,
+  blastSepolia,
+  celo,
+  fantom,
+  gnosis,
+  linea,
+  lineaSepolia,
+  mainnet,
+  mantle,
+  moonbeam,
+  optimism,
+  optimismSepolia,
+  polygon,
+  polygonAmoy,
+  polygonZkEvm,
+  scroll,
+  scrollSepolia,
+  sepolia,
+  zkSync,
 } from "viem/chains";
-import { NETWORKS, NETWORK_BY_ID, DEFAULT_NETWORK_ID } from "../shared/constants";
+import browser from "webextension-polyfill";
+import { DEFAULT_NETWORK_ID, NETWORK_BY_ID, NETWORKS } from "../shared/constants";
 import type { NetworkConfig } from "../shared/types";
 
 const STORAGE_KEY = "activeNetworkId";

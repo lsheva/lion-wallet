@@ -1,6 +1,6 @@
-import { useState } from "preact/hooks";
+import { Check, Copy } from "lucide-preact";
 import type { JSX } from "preact";
-import { Copy, Check } from "lucide-preact";
+import { useState } from "preact/hooks";
 
 interface CopyButtonProps {
   text: string;
@@ -24,11 +24,7 @@ export function CopyButton({ text, size = 16, class: cls = "" }: CopyButtonProps
       onClick={handleCopy}
       class={`p-1 text-text-tertiary hover:text-accent transition-colors cursor-pointer ${cls}`}
     >
-      {copied ? (
-        <Check size={size} class="text-success" />
-      ) : (
-        <Copy size={size} />
-      )}
+      {copied ? <Check size={size} class="text-success" /> : <Copy size={size} />}
     </button>
   );
 }

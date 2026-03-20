@@ -1,6 +1,6 @@
-import { ComponentChildren } from "preact";
-import { route } from "preact-router";
 import { ArrowLeft } from "lucide-preact";
+import type { ComponentChildren } from "preact";
+import { route } from "preact-router";
 
 interface HeaderProps {
   title: string;

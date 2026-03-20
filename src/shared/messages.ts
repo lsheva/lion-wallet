@@ -1,5 +1,5 @@
 import type { Address, Hex } from "viem";
-import type { SerializedAccount, WalletState, GasSpeed, TransactionParams } from "./types";
+import type { GasSpeed, SerializedAccount, TransactionParams, WalletState } from "./types";
 
 export type MessageRequest =
   | { type: "CREATE_WALLET"; password?: string }
@@ -28,9 +28,7 @@ export type MessageRequest =
   | { type: "GET_ACTIVITY"; address: Address; chainId: number; loadMore?: boolean }
   | { type: "CLEAR_ACTIVITY_CACHE" };
 
-export type MessageResponse =
-  | { ok: true; data?: unknown }
-  | { ok: false; error: string };
+export type MessageResponse = { ok: true; data?: unknown } | { ok: false; error: string };
 
 export interface CreateWalletResponse {
   ok: true;
@@ -74,7 +72,10 @@ export async function sendMessage(message: MessageRequest): Promise<MessageRespo
   const response = await Promise.race([
     browser.runtime.sendMessage(message),
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Background not responding — try again")), MESSAGE_TIMEOUT_MS),
+      setTimeout(
+        () => reject(new Error("Background not responding — try again")),
+        MESSAGE_TIMEOUT_MS,
+      ),
     ),
   ]);
   return response as MessageResponse;

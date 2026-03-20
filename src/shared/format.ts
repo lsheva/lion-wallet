@@ -8,19 +8,14 @@
  */
 
 /** Segment for HTML/Preact rendering (`<sub>` for repeated zero count). */
-export type TokenValuePiece =
-  | { kind: "text"; text: string }
-  | { kind: "sub"; text: string };
+export type TokenValuePiece = { kind: "text"; text: string } | { kind: "sub"; text: string };
 
 export interface TokenValueDisplay {
   pieces: TokenValuePiece[];
 }
 
 export function getTokenValueDisplay(value: string | number): TokenValueDisplay {
-  const num =
-    typeof value === "string"
-      ? parseFloat(value.replace(/,/g, ""))
-      : value;
+  const num = typeof value === "string" ? parseFloat(value.replace(/,/g, "")) : value;
 
   if (Number.isNaN(num) || num === 0) {
     return { pieces: [{ kind: "text", text: "0" }] };

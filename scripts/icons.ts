@@ -1,6 +1,6 @@
-import sharp from "sharp";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import sharp from "sharp";
 
 /** Full-color lion — app icon, marketing, LargeIcon, Resources. */
 const SVG_APP = "brand/lion.svg";

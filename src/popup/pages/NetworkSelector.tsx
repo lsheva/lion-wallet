@@ -1,11 +1,11 @@
+import { ArrowLeft, Check, Loader2, Plus } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { defineChain } from "viem";
-import { Check, Plus, ArrowLeft, Loader2 } from "lucide-preact";
-import { Modal } from "../components/Modal";
-import { Input } from "../components/Input";
 import { Button } from "../components/Button";
-import { walletState, showNetworkSelector, networks } from "../store";
 import { ChainIcon } from "../components/ChainIcon";
+import { Input } from "../components/Input";
+import { Modal } from "../components/Modal";
+import { networks, showNetworkSelector, walletState } from "../store";
 
 async function fetchChainId(rpcUrl: string): Promise<number> {
   const res = await fetch(rpcUrl, {
@@ -29,7 +29,7 @@ export function NetworkSelector() {
   const [error, setError] = useState("");
 
   const filtered = networks.value.filter((n) =>
-    n.chain.name.toLowerCase().includes(search.toLowerCase())
+    n.chain.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleDetectChain = async (url: string) => {
@@ -56,10 +56,22 @@ export function NetworkSelector() {
   };
 
   const handleAdd = () => {
-    if (!name.trim()) { setError("Network name is required"); return; }
-    if (!rpcUrl.trim()) { setError("RPC URL is required"); return; }
-    if (!detectedChainId) { setError("Enter a valid RPC URL to detect Chain ID"); return; }
-    if (!symbol.trim()) { setError("Currency symbol is required"); return; }
+    if (!name.trim()) {
+      setError("Network name is required");
+      return;
+    }
+    if (!rpcUrl.trim()) {
+      setError("RPC URL is required");
+      return;
+    }
+    if (!detectedChainId) {
+      setError("Enter a valid RPC URL to detect Chain ID");
+      return;
+    }
+    if (!symbol.trim()) {
+      setError("Currency symbol is required");
+      return;
+    }
 
     const sym = symbol.trim().toUpperCase();
     networks.value = [
@@ -80,19 +92,31 @@ export function NetworkSelector() {
   };
 
   const resetForm = () => {
-    setName(""); setRpcUrl(""); setDetectedChainId(null); setDetecting(false); setSymbol(""); setError("");
+    setName("");
+    setRpcUrl("");
+    setDetectedChainId(null);
+    setDetecting(false);
+    setSymbol("");
+    setError("");
   };
 
   return (
     <Modal
       open={showNetworkSelector.value}
-      onClose={() => { showNetworkSelector.value = false; setShowAddForm(false); resetForm(); }}
+      onClose={() => {
+        showNetworkSelector.value = false;
+        setShowAddForm(false);
+        resetForm();
+      }}
       title={showAddForm ? "Add Network" : "Select Network"}
     >
       {showAddForm ? (
         <div class="px-4 py-3 space-y-3">
           <button
-            onClick={() => { setShowAddForm(false); resetForm(); }}
+            onClick={() => {
+              setShowAddForm(false);
+              resetForm();
+            }}
             class="flex items-center gap-1 text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer mb-1"
           >
             <ArrowLeft size={14} />
@@ -103,7 +127,10 @@ export function NetworkSelector() {
             label="Network Name"
             placeholder="e.g. Polygon zkEVM"
             value={name}
-            onInput={(v) => { setName(v); setError(""); }}
+            onInput={(v) => {
+              setName(v);
+              setError("");
+            }}
             autoFocus
           />
           <Input
@@ -132,24 +159,24 @@ export function NetworkSelector() {
             label="Currency Symbol"
             placeholder="e.g. ETH"
             value={symbol}
-            onInput={(v) => { setSymbol(v); setError(""); }}
+            onInput={(v) => {
+              setSymbol(v);
+              setError("");
+            }}
           />
 
           {error && <p class="text-xs text-danger">{error}</p>}
 
           <div class="pt-1">
-            <Button onClick={handleAdd} size="md">Add Network</Button>
+            <Button onClick={handleAdd} size="md">
+              Add Network
+            </Button>
           </div>
         </div>
       ) : (
         <>
           <div class="px-4 pt-3 pb-2">
-            <Input
-              placeholder="Search networks..."
-              value={search}
-              onInput={setSearch}
-              autoFocus
-            />
+            <Input placeholder="Search networks..." value={search} onInput={setSearch} autoFocus />
           </div>
 
           <NetworkGroup
@@ -160,7 +187,9 @@ export function NetworkSelector() {
           {filtered.some((n) => n.chain.testnet) && (
             <>
               <div class="px-4 pt-3 pb-1">
-                <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">Testnets</span>
+                <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
+                  Testnets
+                </span>
               </div>
               <NetworkGroup
                 networks={filtered.filter((n) => n.chain.testnet)}
@@ -205,7 +234,9 @@ function NetworkGroup({
             class={`flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left ${isTestnet ? "opacity-80" : ""}`}
           >
             <ChainIcon chainId={network.chain.id} size={20} />
-            <span class={`flex-1 text-sm ${isTestnet ? "text-text-secondary" : "text-text-primary"}`}>
+            <span
+              class={`flex-1 text-sm ${isTestnet ? "text-text-secondary" : "text-text-primary"}`}
+            >
               {network.chain.name}
             </span>
             {isActive && <Check size={16} class="text-accent shrink-0" />}

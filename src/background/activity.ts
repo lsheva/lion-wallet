@@ -1,10 +1,16 @@
+import { type Abi, decodeEventLog, erc20Abi, type Hex } from "viem";
 import browser from "webextension-polyfill";
-import { erc20Abi, decodeEventLog, type Abi, type Hex } from "viem";
-import { getPublicClient } from "./networks";
-import { bgLog } from "./log";
+import type {
+  ActivityItem,
+  DecodedArg,
+  DecodedCall,
+  DecodedEvent,
+  TokenMovement,
+} from "../shared/types";
 import { resolveAbis } from "./etherscan";
-import { tryDecode, stringify } from "./tx-decoder";
-import type { ActivityItem, TokenMovement, DecodedEvent, DecodedArg, DecodedCall } from "../shared/types";
+import { bgLog } from "./log";
+import { getPublicClient } from "./networks";
+import { stringify, tryDecode } from "./tx-decoder";
 
 const STORAGE_KEY = "activityCache";
 const TOKEN_META_KEY = "tokenMeta";
@@ -23,7 +29,10 @@ export type ActivitySource = "etherscan" | "rpc" | "cache";
 
 // ── Token metadata cache (persistent) ────────────────────────────────
 
-interface TokenMeta { symbol: string; decimals: number }
+interface TokenMeta {
+  symbol: string;
+  decimals: number;
+}
 let tokenMetaMem: Record<string, TokenMeta> | null = null;
 
 async function loadTokenMeta(): Promise<Record<string, TokenMeta>> {
@@ -39,7 +48,9 @@ async function loadTokenMeta(): Promise<Record<string, TokenMeta>> {
 
 async function persistTokenMeta(): Promise<void> {
   if (!tokenMetaMem) return;
-  try { await browser.storage.local.set({ [TOKEN_META_KEY]: tokenMetaMem }); } catch {}
+  try {
+    await browser.storage.local.set({ [TOKEN_META_KEY]: tokenMetaMem });
+  } catch {}
 }
 
 function tmKey(chainId: number, addr: string): string {
@@ -64,8 +75,16 @@ async function resolveTokenMeta(
     const client = getPublicClient(chainId);
     const calls = await Promise.allSettled(
       missing.flatMap((addr) => [
-        client.readContract({ address: addr as `0x${string}`, abi: erc20Abi, functionName: "symbol" }),
-        client.readContract({ address: addr as `0x${string}`, abi: erc20Abi, functionName: "decimals" }),
+        client.readContract({
+          address: addr as `0x${string}`,
+          abi: erc20Abi,
+          functionName: "symbol",
+        }),
+        client.readContract({
+          address: addr as `0x${string}`,
+          abi: erc20Abi,
+          functionName: "decimals",
+        }),
       ]),
     );
     for (let i = 0; i < missing.length; i++) {
@@ -116,16 +135,16 @@ async function loadCache(): Promise<Record<string, CacheEntry>> {
 
 async function persist(): Promise<void> {
   if (!memCache) return;
-  try { await browser.storage.local.set({ [STORAGE_KEY]: memCache }); } catch {}
+  try {
+    await browser.storage.local.set({ [STORAGE_KEY]: memCache });
+  } catch {}
 }
 
 function mergeActivityItems(a: ActivityItem, b: ActivityItem): ActivityItem {
-  const transfers =
-    a.transfers.length >= b.transfers.length ? a.transfers : b.transfers;
+  const transfers = a.transfers.length >= b.transfers.length ? a.transfers : b.transfers;
   const events = a.events.length >= b.events.length ? a.events : b.events;
   const decoded = a.decoded ?? b.decoded;
-  const fn =
-    decoded?.functionName ?? (a.fn || b.fn);
+  const fn = decoded?.functionName ?? (a.fn || b.fn);
   return {
     ...a,
     transfers,
@@ -291,7 +310,9 @@ async function enrichWithDecoding(
       if (abi) {
         try {
           decoded = tryDecode(abi as unknown[], txData as Hex);
-        } catch { /* decode failed */ }
+        } catch {
+          /* decode failed */
+        }
       }
     }
 
@@ -311,8 +332,13 @@ async function enrichWithDecoding(
             data: log.data as `0x${string}`,
             topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
           });
-          const abiItem = (logAbi as Array<{ type?: string; name?: string; inputs?: Array<{ name: string; type: string }> }>)
-            .filter((item) => item.type === "event" && item.name === dec.eventName);
+          const abiItem = (
+            logAbi as Array<{
+              type?: string;
+              name?: string;
+              inputs?: Array<{ name: string; type: string }>;
+            }>
+          ).filter((item) => item.type === "event" && item.name === dec.eventName);
           const eventDef = abiItem[0];
           const args: DecodedArg[] = dec.args
             ? Object.entries(dec.args)
@@ -338,7 +364,9 @@ async function enrichWithDecoding(
               });
             }
           }
-        } catch { /* try erc-20 */ }
+        } catch {
+          /* try erc-20 */
+        }
       }
 
       if (!gotTransferFromFullAbi && log.topics.length === 3) {
@@ -360,7 +388,9 @@ async function enrichWithDecoding(
               });
             }
           }
-        } catch { /* not standard Transfer */ }
+        } catch {
+          /* not standard Transfer */
+        }
       }
     }
 
@@ -381,9 +411,10 @@ async function enrichWithDecoding(
     });
   }
 
-  const tokenMeta = transferTokens.size > 0
-    ? await resolveTokenMeta(chainId, [...transferTokens])
-    : new Map<string, TokenMeta>();
+  const tokenMeta =
+    transferTokens.size > 0
+      ? await resolveTokenMeta(chainId, [...transferTokens])
+      : new Map<string, TokenMeta>();
 
   for (let i = 0; i < items.length; i++) {
     const raw = rawByTxIndex[i] ?? [];
@@ -402,7 +433,17 @@ async function enrichWithDecoding(
   const withTransfers = items.filter((i) => i.transfers.length > 0).length;
   const withDecoded = items.filter((i) => i.decoded).length;
   const withEvents = items.filter((i) => i.events.length > 0).length;
-  bgLog("[activity] enriched", items.length, "items:", withTransfers, "transfers,", withDecoded, "decoded,", withEvents, "with events");
+  bgLog(
+    "[activity] enriched",
+    items.length,
+    "items:",
+    withTransfers,
+    "transfers,",
+    withDecoded,
+    "decoded,",
+    withEvents,
+    "with events",
+  );
   return items;
 }
 
@@ -457,13 +498,26 @@ async function fetchEtherscanTxlist(
   txlistUrl.searchParams.set("apikey", apiKey);
 
   try {
-    bgLog("[activity] etherscan txlist:", txlistUrl.toString().replace(/apikey=[^&]+/, "apikey=***"));
+    bgLog(
+      "[activity] etherscan txlist:",
+      txlistUrl.toString().replace(/apikey=[^&]+/, "apikey=***"),
+    );
     const txResp = await fetch(txlistUrl.toString());
     if (!txResp.ok) return null;
 
-    const txBody = (await txResp.json()) as { status?: string; message?: string; result?: Array<Record<string, string>> };
-    bgLog("[activity] txlist status:", txBody.status, "count:", Array.isArray(txBody.result) ? txBody.result.length : "n/a");
-    if (txBody.status !== "1" || !Array.isArray(txBody.result) || txBody.result.length === 0) return null;
+    const txBody = (await txResp.json()) as {
+      status?: string;
+      message?: string;
+      result?: Array<Record<string, string>>;
+    };
+    bgLog(
+      "[activity] txlist status:",
+      txBody.status,
+      "count:",
+      Array.isArray(txBody.result) ? txBody.result.length : "n/a",
+    );
+    if (txBody.status !== "1" || !Array.isArray(txBody.result) || txBody.result.length === 0)
+      return null;
 
     const minBlock = txBody.result.reduce((m, tx) => {
       const b = Number(tx.blockNumber) || 0;
@@ -494,8 +548,10 @@ async function enrichEtherscanAsync(
 ): Promise<void> {
   try {
     const eventsByHash = await fetchAllEvents(
-      address, chainId,
-      String(phase1.minBlock), String(phase1.maxBlock + 1),
+      address,
+      chainId,
+      String(phase1.minBlock),
+      String(phase1.maxBlock + 1),
       phase1.apiKey,
     );
 
@@ -514,12 +570,14 @@ async function enrichEtherscanAsync(
     await persist();
 
     bgLog("[activity] enrichment complete, broadcasting update");
-    browser.runtime.sendMessage({
-      type: "ACTIVITY_UPDATED",
-      items: merged,
-      source: "etherscan",
-      hasMore: cache[k].etherscanHasMore === true,
-    }).catch(() => {});
+    browser.runtime
+      .sendMessage({
+        type: "ACTIVITY_UPDATED",
+        items: merged,
+        source: "etherscan",
+        hasMore: cache[k].etherscanHasMore === true,
+      })
+      .catch(() => {});
   } catch (e) {
     bgLog("[activity] async enrichment error:", e);
   }
@@ -555,11 +613,23 @@ async function fetchRpcData(
       const [t1, t2] = await Promise.all([
         client.request({
           method: "eth_getLogs",
-          params: [{ fromBlock: toHex(from), toBlock: toHex(latest), topics: [null, padded] as [null, `0x${string}`] }],
+          params: [
+            {
+              fromBlock: toHex(from),
+              toBlock: toHex(latest),
+              topics: [null, padded] as [null, `0x${string}`],
+            },
+          ],
         }) as Promise<RpcLog[]>,
         client.request({
           method: "eth_getLogs",
-          params: [{ fromBlock: toHex(from), toBlock: toHex(latest), topics: [null, null, padded] as [null, null, `0x${string}`] }],
+          params: [
+            {
+              fromBlock: toHex(from),
+              toBlock: toHex(latest),
+              topics: [null, null, padded] as [null, null, `0x${string}`],
+            },
+          ],
         }) as Promise<RpcLog[]>,
       ]);
       allLogs = [...t1, ...t2];
@@ -579,7 +649,13 @@ async function fetchRpcData(
   }
 
   const addrLower = address.toLowerCase();
-  const rawTransfers: Array<{ hash: string; token: string; from: string; to: string; value: bigint }> = [];
+  const rawTransfers: Array<{
+    hash: string;
+    token: string;
+    from: string;
+    to: string;
+    value: bigint;
+  }> = [];
   for (const log of allLogs) {
     if (!log.topics?.length || log.topics.length !== 3) continue;
     try {
@@ -590,13 +666,24 @@ async function fetchRpcData(
       });
       if (decoded.eventName === "Transfer") {
         const args = decoded.args as { from: string; to: string; value: bigint };
-        rawTransfers.push({ hash: log.transactionHash.toLowerCase(), token: log.address, from: args.from, to: args.to, value: args.value });
+        rawTransfers.push({
+          hash: log.transactionHash.toLowerCase(),
+          token: log.address,
+          from: args.from,
+          to: args.to,
+          value: args.value,
+        });
       }
-    } catch { /* not a decodable Transfer */ }
+    } catch {
+      /* not a decodable Transfer */
+    }
   }
 
   const uniqueTokens = [...new Set(rawTransfers.map((t) => t.token))];
-  const meta = uniqueTokens.length > 0 ? await resolveTokenMeta(chainId, uniqueTokens) : new Map<string, TokenMeta>();
+  const meta =
+    uniqueTokens.length > 0
+      ? await resolveTokenMeta(chainId, uniqueTokens)
+      : new Map<string, TokenMeta>();
 
   const transfersByHash: Record<string, TokenMovement[]> = {};
   for (const t of rawTransfers) {
@@ -691,8 +778,7 @@ export async function fetchActivity(
     const lastTs = lastFetchTs.get(k) ?? 0;
     if (Date.now() - lastTs < RATE_LIMIT_MS && entry) {
       bgLog("[activity] rate-limited, returning", entry.items.length, "cached items");
-      const hasMore =
-        entry.etherscanHasMore === true || (entry.pendingHashes?.length ?? 0) > 0;
+      const hasMore = entry.etherscanHasMore === true || (entry.pendingHashes?.length ?? 0) > 0;
       return { items: entry.items, hasMore, source: "cache" };
     }
     lastFetchTs.set(k, Date.now());
@@ -769,7 +855,13 @@ export async function fetchActivity(
   try {
     bgLog("[activity] trying rpc fallback...");
     const { hashes, transfersByHash } = await fetchRpcData(address, chainId);
-    bgLog("[activity] rpc found", hashes.length, "hashes,", Object.keys(transfersByHash).length, "with transfers");
+    bgLog(
+      "[activity] rpc found",
+      hashes.length,
+      "hashes,",
+      Object.keys(transfersByHash).length,
+      "with transfers",
+    );
     const existingSet = new Set((entry?.items ?? []).map((i) => i.hash));
     const newHashes = hashes.filter((h) => !existingSet.has(h));
     const toEnrich = newHashes.slice(0, ENRICH_BATCH);
@@ -808,7 +900,12 @@ export async function pushActivityItem(
 ): Promise<void> {
   const cache = await loadCache();
   const k = actCacheKey(address, chainId);
-  const entry = cache[k] ?? { items: [], pendingHashes: [], pendingTransfers: {}, source: "cache" as ActivitySource };
+  const entry = cache[k] ?? {
+    items: [],
+    pendingHashes: [],
+    pendingTransfers: {},
+    source: "cache" as ActivitySource,
+  };
   entry.items = dedup([item, ...entry.items]);
   cache[k] = entry;
   await persist();

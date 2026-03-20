@@ -1,6 +1,5 @@
-import { decodeFunctionData, decodeAbiParameters, type Abi, type Hex } from "viem";
-import type { DecodedCall, DecodedArg } from "../shared/types";
-import type { TransactionParams } from "../shared/types";
+import { type Abi, decodeAbiParameters, decodeFunctionData, type Hex } from "viem";
+import type { DecodedArg, DecodedCall, TransactionParams } from "../shared/types";
 import { fetchContractAbi, resolveImplementation } from "./etherscan";
 
 export function stringify(value: unknown): string {
@@ -12,8 +11,9 @@ export function stringify(value: unknown): string {
 export function tryDecode(abi: unknown[], data: Hex): DecodedCall | null {
   const { functionName, args } = decodeFunctionData({ abi: abi as Abi, data });
 
-  const abiItem = (abi as Array<{ type?: string; name?: string; inputs?: Array<{ name: string; type: string }> }>)
-    .find((item) => item.type === "function" && item.name === functionName);
+  const abiItem = (
+    abi as Array<{ type?: string; name?: string; inputs?: Array<{ name: string; type: string }> }>
+  ).find((item) => item.type === "function" && item.name === functionName);
 
   const decodedArgs: DecodedArg[] = (args ?? []).map((val, i) => ({
     name: abiItem?.inputs?.[i]?.name ?? `arg${i}`,
@@ -95,8 +95,13 @@ async function decodeVia4byte(data: Hex, log: string[]): Promise<DecodedCall | n
     const resp = await fetch(url);
     log.push(`4byte: HTTP ${resp.status} ${resp.statusText}`);
     if (!resp.ok) return null;
-    const json = (await resp.json()) as { count?: number; results?: Array<{ text_signature: string }> };
-    log.push(`4byte: ${json.count ?? 0} results, first: ${json.results?.[0]?.text_signature ?? "none"}`);
+    const json = (await resp.json()) as {
+      count?: number;
+      results?: Array<{ text_signature: string }>;
+    };
+    log.push(
+      `4byte: ${json.count ?? 0} results, first: ${json.results?.[0]?.text_signature ?? "none"}`,
+    );
     const sig = json.results?.[0]?.text_signature;
     if (!sig) return null;
 

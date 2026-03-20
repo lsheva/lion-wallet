@@ -1,12 +1,12 @@
+import { sendMessage } from "@shared/messages";
+import { ChevronDown, ChevronUp, ExternalLink, Search, Zap } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { route } from "preact-router";
-import { Header } from "../components/Header";
-import { Input } from "../components/Input";
+import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Banner } from "../components/Banner";
-import { ExternalLink, Zap, Search, ChevronDown, ChevronUp } from "lucide-preact";
-import { sendMessage } from "@shared/messages";
+import { Header } from "../components/Header";
+import { Input } from "../components/Input";
 
 const KEY_REGEX = /^[A-Za-z0-9_-]{20,40}$/;
 
@@ -92,9 +92,7 @@ export function ApiKeySetup() {
       <Header title="Enhance Your Wallet" onBack={undefined} />
 
       <div class="flex-1 px-4 pt-4 space-y-3 overflow-y-auto">
-        <p class="text-sm text-text-secondary">
-          Optional API keys for better speed and features.
-        </p>
+        <p class="text-sm text-text-secondary">Optional API keys for better speed and features.</p>
 
         <Card>
           <div class="space-y-3">
@@ -109,7 +107,10 @@ export function ApiKeySetup() {
             <Input
               placeholder="Paste Alchemy API key"
               value={alchemyKey}
-              onInput={(v) => { setAlchemyKey(v); setError(""); }}
+              onInput={(v) => {
+                setAlchemyKey(v);
+                setError("");
+              }}
               mono
             />
 
@@ -138,7 +139,10 @@ export function ApiKeySetup() {
             <Input
               placeholder="Paste Etherscan API key"
               value={etherscanKey}
-              onInput={(v) => { setEtherscanKey(v); setError(""); }}
+              onInput={(v) => {
+                setEtherscanKey(v);
+                setError("");
+              }}
               mono
             />
 

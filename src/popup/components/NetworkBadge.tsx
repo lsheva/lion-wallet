@@ -22,11 +22,19 @@ export function NetworkBadge({ clickable = true, class: cls = "" }: NetworkBadge
         ${clickable ? "hover:bg-divider cursor-pointer" : ""}
         ${cls}
       `}
-      style={!isTestnet ? { backgroundColor: `${network.color}18`, color: network.color } : undefined}
+      style={
+        !isTestnet ? { backgroundColor: `${network.color}18`, color: network.color } : undefined
+      }
     >
       <ChainIcon chainId={network.chain.id} size={14} />
       <span class="truncate max-w-[140px]">{network.chain.name}</span>
-      {clickable && <ChevronDown size={14} class={`shrink-0 ${isTestnet ? "text-text-tertiary" : ""}`} style={!isTestnet ? { color: network.color, opacity: 0.6 } : undefined} />}
+      {clickable && (
+        <ChevronDown
+          size={14}
+          class={`shrink-0 ${isTestnet ? "text-text-tertiary" : ""}`}
+          style={!isTestnet ? { color: network.color, opacity: 0.6 } : undefined}
+        />
+      )}
     </button>
   );
 }

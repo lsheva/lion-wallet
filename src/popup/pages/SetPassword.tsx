@@ -1,10 +1,10 @@
-import { useState, useMemo } from "preact/hooks";
+import { sendMessage } from "@shared/messages";
+import { useMemo, useState } from "preact/hooks";
 import { route } from "preact-router";
+import { Banner } from "../components/Banner";
+import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
-import { Button } from "../components/Button";
-import { Banner } from "../components/Banner";
-import { sendMessage } from "@shared/messages";
 
 function getStrength(pw: string): { level: number; label: string; color: string } {
   if (pw.length === 0) return { level: 0, label: "", color: "bg-divider" };
@@ -58,7 +58,8 @@ export function SetPassword() {
         {chosePasswordOverKeychain && (
           <div class="mb-4">
             <Banner variant="warning">
-              Touch ID protects your keys with hardware-backed security. A password is less secure — make it strong.
+              Touch ID protects your keys with hardware-backed security. A password is less secure —
+              make it strong.
             </Banner>
           </div>
         )}
@@ -111,12 +112,7 @@ export function SetPassword() {
       </div>
 
       <div class="px-4 py-4">
-        <Button
-          disabled={!canContinue}
-          onClick={handleContinue}
-          loading={loading}
-          size="lg"
-        >
+        <Button disabled={!canContinue} onClick={handleContinue} loading={loading} size="lg">
           Continue
         </Button>
       </div>

@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "preact/hooks";
 import { CheckCircle2, XCircle } from "lucide-preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { closePopup, pendingQueueSize, routeToNextApprovalOrClose } from "../App";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
-import { routeToNextApprovalOrClose, closePopup, pendingQueueSize } from "../App";
 
 interface SignResultProps {
   status?: "success" | "error";
@@ -48,7 +48,9 @@ export function SignResult({ status = "success" }: SignResultProps) {
 
   return (
     <div class="flex flex-col items-center justify-center h-[600px] px-4">
-      <div class={`w-16 h-16 rounded-full flex items-center justify-center mb-5 ${isSuccess ? "bg-success/10" : "bg-danger/10"}`}>
+      <div
+        class={`w-16 h-16 rounded-full flex items-center justify-center mb-5 ${isSuccess ? "bg-success/10" : "bg-danger/10"}`}
+      >
         {isSuccess ? (
           <CheckCircle2 size={40} class="text-success" />
         ) : (

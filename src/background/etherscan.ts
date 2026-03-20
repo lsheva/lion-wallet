@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
-import { getPublicClient } from "./networks";
 import { bgLog } from "./log";
+import { getPublicClient } from "./networks";
 
 async function getEtherscanApiKey(): Promise<string | null> {
   const result = await browser.storage.local.get("etherscanApiKey");
@@ -42,7 +42,9 @@ async function loadAbiCache(): Promise<Record<string, unknown[] | null>> {
 
 async function persistAbiCache(): Promise<void> {
   if (!abiCacheMem) return;
-  try { await browser.storage.local.set({ [ABI_STORAGE_KEY]: abiCacheMem }); } catch {}
+  try {
+    await browser.storage.local.set({ [ABI_STORAGE_KEY]: abiCacheMem });
+  } catch {}
 }
 
 async function loadProxyCache(): Promise<Record<string, string | null>> {
@@ -58,7 +60,9 @@ async function loadProxyCache(): Promise<Record<string, string | null>> {
 
 async function persistProxyCache(): Promise<void> {
   if (!proxyImplMem) return;
-  try { await browser.storage.local.set({ [PROXY_STORAGE_KEY]: proxyImplMem }); } catch {}
+  try {
+    await browser.storage.local.set({ [PROXY_STORAGE_KEY]: proxyImplMem });
+  } catch {}
 }
 
 // ── Etherscan HTTP helper ───────────────────────────────────────────
@@ -90,7 +94,9 @@ async function etherscanFetch(
     if (!resp.ok) return null;
     const body = await resp.json();
     const bodyStr = JSON.stringify(body);
-    log.push(`etherscan-api: body ${bodyStr.length > 300 ? bodyStr.slice(0, 300) + "..." : bodyStr}`);
+    log.push(
+      `etherscan-api: body ${bodyStr.length > 300 ? `${bodyStr.slice(0, 300)}...` : bodyStr}`,
+    );
     return body;
   } catch (e) {
     log.push(`etherscan-api: fetch error: ${e instanceof Error ? e.message : e}`);
@@ -101,7 +107,8 @@ async function etherscanFetch(
 // ── Proxy resolution ────────────────────────────────────────────────
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const EIP1967_IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc" as `0x${string}`;
+const EIP1967_IMPL_SLOT =
+  "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc" as `0x${string}`;
 
 export async function resolveImplementation(
   address: string,
@@ -127,7 +134,12 @@ export async function resolveImplementation(
 
     if (json?.status === "1" && json.result?.[0]) {
       const info = json.result[0];
-      if (info.Proxy === "1" && info.Implementation && info.Implementation !== ZERO_ADDRESS && info.Implementation !== "") {
+      if (
+        info.Proxy === "1" &&
+        info.Implementation &&
+        info.Implementation !== ZERO_ADDRESS &&
+        info.Implementation !== ""
+      ) {
         log.push(`proxy: Etherscan says impl=${info.Implementation}`);
         impl = info.Implementation;
       }
@@ -143,8 +155,8 @@ export async function resolveImplementation(
         address: address as `0x${string}`,
         slot: EIP1967_IMPL_SLOT,
       });
-      if (slot && slot !== "0x" + "0".repeat(64)) {
-        const resolved = "0x" + slot.slice(26);
+      if (slot && slot !== `0x${"0".repeat(64)}`) {
+        const resolved = `0x${slot.slice(26)}`;
         if (resolved.toLowerCase() !== ZERO_ADDRESS) {
           log.push(`proxy: EIP-1967 slot impl=${resolved}`);
           impl = resolved;
@@ -293,11 +305,10 @@ export async function fetchNativePrice(chainId: number): Promise<number | null> 
 
   const log: string[] = [];
   try {
-    const json = (await etherscanFetch(
-      { module: "stats", action: "ethprice" },
-      chainId,
-      log,
-    )) as { status?: string; result?: { ethusd?: string } } | null;
+    const json = (await etherscanFetch({ module: "stats", action: "ethprice" }, chainId, log)) as {
+      status?: string;
+      result?: { ethusd?: string };
+    } | null;
 
     if (!json || json.status !== "1" || !json.result?.ethusd) return null;
 

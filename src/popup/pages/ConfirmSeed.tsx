@@ -1,7 +1,7 @@
-import { useState, useMemo } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { route } from "preact-router";
-import { Header } from "../components/Header";
 import { Button } from "../components/Button";
+import { Header } from "../components/Header";
 import { refreshAll } from "../store";
 
 export function ConfirmSeed() {
@@ -34,13 +34,14 @@ export function ConfirmSeed() {
     return (selectedCounts[w] || 0) < (shuffledCounts[w] || 0);
   });
 
-  const uniqueRemaining = [...new Set(remaining)].length === remaining.length
-    ? remaining
-    : remaining.filter((w, i, arr) => {
-        const priorSelected = selected.filter((s) => s === w).length;
-        const priorInRemaining = arr.slice(0, i).filter((s) => s === w).length;
-        return priorSelected + priorInRemaining < shuffled.filter((s) => s === w).length;
-      });
+  const uniqueRemaining =
+    [...new Set(remaining)].length === remaining.length
+      ? remaining
+      : remaining.filter((w, i, arr) => {
+          const priorSelected = selected.filter((s) => s === w).length;
+          const priorInRemaining = arr.slice(0, i).filter((s) => s === w).length;
+          return priorSelected + priorInRemaining < shuffled.filter((s) => s === w).length;
+        });
 
   const handleSelect = (word: string) => {
     setError(false);
@@ -83,7 +84,9 @@ export function ConfirmSeed() {
           Tap the words in the correct order to verify your backup.
         </p>
 
-        <div class={`grid grid-cols-4 gap-1.5 min-h-[80px] p-2 bg-surface rounded-[var(--radius-card)] ${error ? "animate-shake" : ""}`}>
+        <div
+          class={`grid grid-cols-4 gap-1.5 min-h-[80px] p-2 bg-surface rounded-[var(--radius-card)] ${error ? "animate-shake" : ""}`}
+        >
           {Array.from({ length: seedWords.length }).map((_, i) => (
             <button
               key={i}
@@ -91,9 +94,10 @@ export function ConfirmSeed() {
               class={`
                 h-8 rounded-[var(--radius-chip)] text-xs font-mono flex items-center justify-center
                 transition-all duration-150
-                ${selected[i]
-                  ? "bg-accent-light text-accent cursor-pointer hover:bg-accent/20"
-                  : "bg-base text-text-tertiary"
+                ${
+                  selected[i]
+                    ? "bg-accent-light text-accent cursor-pointer hover:bg-accent/20"
+                    : "bg-base text-text-tertiary"
                 }
                 ${error && selected[i] ? "bg-[#FFF0F0] text-danger" : ""}
               `}
@@ -123,11 +127,7 @@ export function ConfirmSeed() {
       </div>
 
       <div class="px-4 py-4">
-        <Button
-          disabled={!isCorrect}
-          onClick={handleFinish}
-          size="lg"
-        >
+        <Button disabled={!isCorrect} onClick={handleFinish} size="lg">
           {isCorrect ? "Wallet Created!" : "Verify & Finish"}
         </Button>
       </div>

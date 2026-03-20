@@ -1,30 +1,34 @@
-import Router, { Route, route } from "preact-router";
-import { useEffect } from "preact/hooks";
 import { signal } from "@preact/signals";
+import { sendMessage } from "@shared/messages";
+import type { ActivityItem } from "@shared/types";
+import { useEffect } from "preact/hooks";
+import Router, { Route, route } from "preact-router";
 import browser from "webextension-polyfill";
 import { DevToolbar } from "./mock/DevToolbar";
-import { Welcome } from "./pages/Welcome";
-import { SetPassword } from "./pages/SetPassword";
-import { SeedPhrase } from "./pages/SeedPhrase";
-import { ConfirmSeed } from "./pages/ConfirmSeed";
-import { ImportWallet } from "./pages/ImportWallet";
-import { Home } from "./pages/Home";
-import { Send } from "./pages/Send";
-import { Receive } from "./pages/Receive";
-import { Approve } from "./pages/Approve";
 import { ApiKeySetup } from "./pages/ApiKeySetup";
-import { Settings } from "./pages/Settings";
-import { TxResult } from "./pages/TxResult";
-import { SignResult } from "./pages/SignResult";
+import { Approve } from "./pages/Approve";
+import { ConfirmSeed } from "./pages/ConfirmSeed";
 import { ExportPrivateKey } from "./pages/ExportPrivateKey";
+import { Home } from "./pages/Home";
+import { ImportWallet } from "./pages/ImportWallet";
+import { Receive } from "./pages/Receive";
+import { SeedPhrase } from "./pages/SeedPhrase";
+import { Send } from "./pages/Send";
+import { SetPassword } from "./pages/SetPassword";
+import { Settings } from "./pages/Settings";
 import { ShowRecoveryPhrase } from "./pages/ShowRecoveryPhrase";
-import { sendMessage } from "@shared/messages";
-import { fetchState, activity, activityHasMore, activitySource } from "./store";
-import type { ActivityItem } from "@shared/types";
+import { SignResult } from "./pages/SignResult";
+import { TxResult } from "./pages/TxResult";
+import { Welcome } from "./pages/Welcome";
+import { activity, activityHasMore, activitySource, fetchState } from "./store";
 
 const APPROVAL_METHODS = new Set([
-  "eth_sendTransaction", "eth_signTransaction",
-  "personal_sign", "eth_sign", "eth_signTypedData_v4", "eth_signTypedData",
+  "eth_sendTransaction",
+  "eth_signTransaction",
+  "personal_sign",
+  "eth_sign",
+  "eth_signTypedData_v4",
+  "eth_signTypedData",
 ]);
 
 export const pendingApprovalData = signal<Record<string, unknown> | null>(null);
@@ -83,7 +87,9 @@ export function App() {
     if (import.meta.env.DEV) return;
 
     sendMessage({ type: "GET_STATE" }).then((stateRes) => {
-      const state = stateRes.ok ? (stateRes.data as { isInitialized?: boolean } | undefined) : undefined;
+      const state = stateRes.ok
+        ? (stateRes.data as { isInitialized?: boolean } | undefined)
+        : undefined;
 
       if (!state?.isInitialized) {
         route("/", true);
@@ -106,7 +112,10 @@ export function App() {
   }, []);
 
   return (
-    <div class="relative mx-auto bg-base" style={{ width: 360, minHeight: 600, maxHeight: 600, overflow: "hidden" }}>
+    <div
+      class="relative mx-auto bg-base"
+      style={{ width: 360, minHeight: 600, maxHeight: 600, overflow: "hidden" }}
+    >
       <div class="h-[600px] overflow-y-auto overflow-x-hidden">
         <Router>
           <Route path="/" component={Welcome} />

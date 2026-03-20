@@ -1,14 +1,14 @@
-import { useState, useEffect } from "preact/hooks";
-import { route } from "preact-router";
-import { Settings, ArrowUpRight, ArrowDownLeft, Plus, Loader2 } from "lucide-preact";
-import { NetworkBadge } from "../components/NetworkBadge";
-import { AccountSwitcher } from "../components/AccountSwitcher";
-import { TokenRow } from "../components/TokenRow";
-import { ActivityRow } from "../components/ActivityRow";
-import { walletState, showNetworkSelector, refreshAll, fetchActivity } from "../store";
-import { NetworkSelector } from "./NetworkSelector";
-import { AddToken } from "./AddToken";
 import { formatUsd } from "@shared/format";
+import { ArrowDownLeft, ArrowUpRight, Loader2, Plus, Settings } from "lucide-preact";
+import { useEffect, useState } from "preact/hooks";
+import { route } from "preact-router";
+import { AccountSwitcher } from "../components/AccountSwitcher";
+import { ActivityRow } from "../components/ActivityRow";
+import { NetworkBadge } from "../components/NetworkBadge";
+import { TokenRow } from "../components/TokenRow";
+import { fetchActivity, refreshAll, showNetworkSelector, walletState } from "../store";
+import { AddToken } from "./AddToken";
+import { NetworkSelector } from "./NetworkSelector";
 
 const PAGE_SIZE = 5;
 
@@ -54,7 +54,11 @@ function ActivitySection({ account }: { account: { address: string } }) {
           )}
           {walletState.activitySource.value === "rpc" && (
             <p class="px-4 py-2 text-[10px] text-text-tertiary text-center">
-              <button type="button" onClick={() => route("/settings", true)} class="text-accent hover:text-accent-hover cursor-pointer">
+              <button
+                type="button"
+                onClick={() => route("/settings", true)}
+                class="text-accent hover:text-accent-hover cursor-pointer"
+              >
                 Add Etherscan key
               </button>{" "}
               for full history.
@@ -84,10 +88,7 @@ function balanceUsdTotal(ethBalance: string, nativeUsdPerUnit: number | null): s
 export function Home() {
   const account = walletState.activeAccount.value;
   const [showAddToken, setShowAddToken] = useState(false);
-  const usdTotal = balanceUsdTotal(
-    walletState.ethBalance.value,
-    walletState.nativeUsdPrice.value,
-  );
+  const usdTotal = balanceUsdTotal(walletState.ethBalance.value, walletState.nativeUsdPrice.value);
 
   useEffect(() => {
     refreshAll();
@@ -141,7 +142,9 @@ export function Home() {
         {/* Tokens */}
         <div class="bg-surface rounded-2xl w-full shrink-0">
           <div class="flex items-center justify-between px-4 pt-3 pb-2">
-            <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Tokens</h3>
+            <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+              Tokens
+            </h3>
             <button
               type="button"
               onClick={() => setShowAddToken(true)}

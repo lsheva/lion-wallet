@@ -1,8 +1,8 @@
-import { ArrowUpRight, ArrowDownLeft, FileCode } from "lucide-preact";
+import type { ActivityItem, DecodedEvent } from "@shared/types";
+import { ArrowDownLeft, ArrowUpRight, FileCode } from "lucide-preact";
 import { formatEther, formatUnits } from "viem";
 import { activeNetwork } from "../store";
 import { FormattedTokenValue } from "./FormattedTokenValue";
-import type { ActivityItem, DecodedEvent } from "@shared/types";
 
 interface ActivityRowProps {
   item: ActivityItem;
@@ -60,18 +60,22 @@ export function ActivityRow({ item, userAddress }: ActivityRowProps) {
   return (
     <button
       type="button"
-      onClick={() => explorerUrl && item.hash && window.open(`${explorerUrl}/tx/${item.hash}`, "_blank", "noopener")}
+      onClick={() =>
+        explorerUrl &&
+        item.hash &&
+        window.open(`${explorerUrl}/tx/${item.hash}`, "_blank", "noopener")
+      }
       class="flex items-start w-full px-4 py-2.5 hover:bg-base/50 transition-colors cursor-pointer text-left gap-3"
     >
-      <div class={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${iconColor} bg-current/8`}>
+      <div
+        class={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${iconColor} bg-current/8`}
+      >
         <Icon size={16} />
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5">
           <span class="text-sm font-medium text-text-primary">{label}</span>
-          {item.error && (
-            <span class="text-[10px] font-semibold text-danger">Failed</span>
-          )}
+          {item.error && <span class="text-[10px] font-semibold text-danger">Failed</span>}
         </div>
         <div class="flex items-center gap-1 text-xs text-text-tertiary">
           <span class="font-mono">{truncAddr(counterparty)}</span>
@@ -81,7 +85,10 @@ export function ActivityRow({ item, userAddress }: ActivityRowProps) {
         {otherEvents.length > 0 && (
           <div class="flex flex-wrap gap-1 mt-0.5">
             {otherEvents.map((e, i) => (
-              <span key={i} class="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
+              <span
+                key={i}
+                class="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent font-medium"
+              >
                 {e.name}
               </span>
             ))}
@@ -91,7 +98,9 @@ export function ActivityRow({ item, userAddress }: ActivityRowProps) {
       {hasBalanceDelta && (
         <div class="text-right shrink-0 flex flex-col items-end gap-0.5">
           {hasNativeValue && (
-            <span class={`text-[11px] font-mono inline-flex items-baseline flex-wrap justify-end gap-x-0.5 ${isSent ? "text-danger" : "text-success"}`}>
+            <span
+              class={`text-[11px] font-mono inline-flex items-baseline flex-wrap justify-end gap-x-0.5 ${isSent ? "text-danger" : "text-success"}`}
+            >
               <span>{isSent ? "−" : "+"}</span>
               <FormattedTokenValue value={ethValue} />
               <span>{symbol}</span>

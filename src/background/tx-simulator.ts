@@ -1,4 +1,4 @@
-import { formatUnits, decodeFunctionData, type Address } from "viem";
+import { type Address, decodeFunctionData, formatUnits } from "viem";
 import type { TokenTransfer, TransactionParams } from "../shared/types";
 import { getPublicClient } from "./networks";
 
@@ -21,12 +21,11 @@ async function simulateViaTrace(
 
   try {
     log.push("sim: calling eth_simulateV1");
-    const result = await (client as unknown as {
-      request: (args: {
-        method: string;
-        params: unknown[];
-      }) => Promise<unknown>;
-    }).request({
+    const result = await (
+      client as unknown as {
+        request: (args: { method: string; params: unknown[] }) => Promise<unknown>;
+      }
+    ).request({
       method: "eth_simulateV1",
       params: [
         {
@@ -67,7 +66,9 @@ async function simulateViaTrace(
 
     const transfers: TokenTransfer[] = [];
     const callResult = simBlocks[0].calls[0];
-    log.push(`sim: eth_simulateV1 OK, status=${callResult.status}, logs=${callResult.logs?.length ?? 0}`);
+    log.push(
+      `sim: eth_simulateV1 OK, status=${callResult.status}, logs=${callResult.logs?.length ?? 0}`,
+    );
 
     if (callResult.logs) {
       const transferTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -132,9 +133,27 @@ async function fetchTokenMeta(address: Address, chainId: number): Promise<TokenM
 
   const client = getPublicClient(chainId);
   const erc20Abi = [
-    { type: "function", name: "symbol", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" },
-    { type: "function", name: "name", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" },
-    { type: "function", name: "decimals", inputs: [], outputs: [{ type: "uint8" }], stateMutability: "view" },
+    {
+      type: "function",
+      name: "symbol",
+      inputs: [],
+      outputs: [{ type: "string" }],
+      stateMutability: "view",
+    },
+    {
+      type: "function",
+      name: "name",
+      inputs: [],
+      outputs: [{ type: "string" }],
+      stateMutability: "view",
+    },
+    {
+      type: "function",
+      name: "decimals",
+      inputs: [],
+      outputs: [{ type: "uint8" }],
+      stateMutability: "view",
+    },
   ] as const;
 
   try {
@@ -158,9 +177,37 @@ async function fetchTokenMeta(address: Address, chainId: number): Promise<TokenM
 }
 
 const ERC20_TRANSFER_ABI = [
-  { type: "function", name: "transfer", inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }], stateMutability: "nonpayable" },
-  { type: "function", name: "transferFrom", inputs: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }], stateMutability: "nonpayable" },
-  { type: "function", name: "approve", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }], stateMutability: "nonpayable" },
+  {
+    type: "function",
+    name: "transfer",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "transferFrom",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "approve",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+  },
 ] as const;
 
 async function fallbackErc20Parse(

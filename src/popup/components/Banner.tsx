@@ -1,5 +1,5 @@
-import { ComponentChildren } from "preact";
-import { AlertTriangle, Info, AlertCircle } from "lucide-preact";
+import { AlertCircle, AlertTriangle, Info } from "lucide-preact";
+import type { ComponentChildren } from "preact";
 
 type BannerVariant = "info" | "warning" | "danger";
 

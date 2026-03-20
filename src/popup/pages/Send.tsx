@@ -1,26 +1,26 @@
-import { useState, useEffect, useCallback } from "preact/hooks";
+import { POPUP_ORIGIN } from "@shared/constants";
+import { sendMessage } from "@shared/messages";
+import { ChevronDown, Clipboard } from "lucide-preact";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { route } from "preact-router";
-import { Clipboard, ChevronDown } from "lucide-preact";
 import {
-  isAddress,
-  parseEther,
-  parseUnits,
-  numberToHex,
+  type Address,
   encodeFunctionData,
   erc20Abi,
-  type Address,
   type Hex,
+  isAddress,
+  numberToHex,
+  parseEther,
+  parseUnits,
 } from "viem";
-import { Header } from "../components/Header";
-import { Input } from "../components/Input";
+import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { Banner } from "../components/Banner";
-import { sendMessage } from "@shared/messages";
-import { FormattedTokenValue } from "../components/FormattedTokenValue";
-import { POPUP_ORIGIN } from "@shared/constants";
-import { walletState, type Token } from "../store";
 import { ChainIcon } from "../components/ChainIcon";
+import { FormattedTokenValue } from "../components/FormattedTokenValue";
+import { Header } from "../components/Header";
+import { Input } from "../components/Input";
+import { type Token, walletState } from "../store";
 
 const isNative = (token: Token) => !token.address;
 
@@ -64,11 +64,7 @@ export function Send() {
   const numericAmount = parseFloat(amount.replace(/,/g, "") || "0");
   const insufficientBalance = numericAmount > 0 && numericAmount > numericBalance;
   const canSubmit =
-    to.length > 0 &&
-    isAddress(to) &&
-    numericAmount > 0 &&
-    !insufficientBalance &&
-    !submitting;
+    to.length > 0 && isAddress(to) && numericAmount > 0 && !insufficientBalance && !submitting;
 
   const fetchBalance = useCallback(async () => {
     setLoadingBalance(true);
@@ -100,9 +96,7 @@ export function Send() {
         if (res.ok && res.data) {
           const hex = (res.data as { result: string }).result;
           const raw = BigInt(hex);
-          const formatted = (
-            Number(raw) / Math.pow(10, selectedToken.decimals)
-          ).toString();
+          const formatted = (Number(raw) / 10 ** selectedToken.decimals).toString();
           setBalance(formatted);
         }
       }
@@ -155,11 +149,7 @@ export function Send() {
 
     setSubmitting(true);
     try {
-      const txParams = buildTxParams(
-        selectedToken,
-        to as Address,
-        amount.replace(/,/g, ""),
-      );
+      const txParams = buildTxParams(selectedToken, to as Address, amount.replace(/,/g, ""));
       const account = walletState.activeAccount.value;
 
       await sendMessage({
@@ -184,9 +174,7 @@ export function Send() {
       <div class="flex-1 px-4 pt-4 space-y-4 overflow-y-auto">
         {/* Token selector */}
         <div>
-          <span class="block text-sm font-medium text-text-secondary mb-1.5">
-            Token
-          </span>
+          <span class="block text-sm font-medium text-text-secondary mb-1.5">Token</span>
           <button
             type="button"
             onClick={() => setShowTokenPicker(!showTokenPicker)}
@@ -204,12 +192,8 @@ export function Send() {
                 </div>
               )}
               <div class="text-left">
-                <span class="text-sm font-medium text-text-primary">
-                  {selectedToken.symbol}
-                </span>
-                <span class="text-xs text-text-tertiary ml-1.5">
-                  {selectedToken.name}
-                </span>
+                <span class="text-sm font-medium text-text-primary">{selectedToken.symbol}</span>
+                <span class="text-xs text-text-tertiary ml-1.5">{selectedToken.name}</span>
               </div>
             </div>
             <ChevronDown
@@ -225,9 +209,7 @@ export function Send() {
                   type="button"
                   onClick={() => handleSelectToken(token)}
                   class={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-base/50 transition-colors cursor-pointer text-left ${
-                    token.symbol === selectedToken.symbol
-                      ? "bg-accent-light"
-                      : ""
+                    token.symbol === selectedToken.symbol ? "bg-accent-light" : ""
                   }`}
                 >
                   {isNative(token) ? (
@@ -241,9 +223,7 @@ export function Send() {
                     </div>
                   )}
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-text-primary">
-                      {token.symbol}
-                    </p>
+                    <p class="text-sm font-medium text-text-primary">{token.symbol}</p>
                   </div>
                   <span class="text-xs font-mono text-text-secondary">
                     <FormattedTokenValue value={token.balance} />
@@ -279,9 +259,7 @@ export function Send() {
         {/* Amount */}
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <span class="text-sm font-medium text-text-secondary">
-              Amount
-            </span>
+            <span class="text-sm font-medium text-text-secondary">Amount</span>
             <button
               type="button"
               onClick={handleMax}
@@ -315,20 +293,11 @@ export function Send() {
           />
         </div>
 
-        {error && (
-          <Banner variant="danger">
-            {error}
-          </Banner>
-        )}
+        {error && <Banner variant="danger">{error}</Banner>}
       </div>
 
       <div class="px-4 py-4">
-        <Button
-          onClick={handleReview}
-          disabled={!canSubmit}
-          loading={submitting}
-          size="lg"
-        >
+        <Button onClick={handleReview} disabled={!canSubmit} loading={submitting} size="lg">
           Review Transaction
         </Button>
       </div>

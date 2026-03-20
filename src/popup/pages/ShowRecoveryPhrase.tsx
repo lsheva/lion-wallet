@@ -1,11 +1,11 @@
+import { sendMessage } from "@shared/messages";
+import { Eye, EyeOff, Fingerprint } from "lucide-preact";
 import { useState } from "preact/hooks";
+import { Banner } from "../components/Banner";
+import { Button } from "../components/Button";
+import { CopyButton } from "../components/CopyButton";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
-import { Button } from "../components/Button";
-import { Banner } from "../components/Banner";
-import { CopyButton } from "../components/CopyButton";
-import { Eye, EyeOff, Fingerprint } from "lucide-preact";
-import { sendMessage } from "@shared/messages";
 import { walletState } from "../store";
 
 export function ShowRecoveryPhrase() {
@@ -60,7 +60,10 @@ export function ShowRecoveryPhrase() {
                 type="password"
                 placeholder="Password"
                 value={password}
-                onInput={(v) => { setPassword(v); setError(""); }}
+                onInput={(v) => {
+                  setPassword(v);
+                  setError("");
+                }}
                 error={error || undefined}
                 autoFocus
               />
@@ -91,7 +94,9 @@ export function ShowRecoveryPhrase() {
               <CopyButton text={words.join(" ")} size={14} />
             </div>
 
-            <div class={`grid grid-cols-3 gap-2 transition-all duration-200 ${blurred ? "blur-md select-none" : ""}`}>
+            <div
+              class={`grid grid-cols-3 gap-2 transition-all duration-200 ${blurred ? "blur-md select-none" : ""}`}
+            >
               {words.map((word, i) => (
                 <div
                   key={i}

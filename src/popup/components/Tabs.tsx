@@ -20,9 +20,10 @@ export function Tabs({ items, active, onChange, class: cls = "" }: TabsProps) {
           class={`
             flex-1 px-3 py-1.5 text-sm font-medium rounded-[7px]
             transition-all duration-150 cursor-pointer
-            ${active === item.id
-              ? "bg-surface text-text-primary shadow-sm"
-              : "text-text-secondary hover:text-text-primary"
+            ${
+              active === item.id
+                ? "bg-surface text-text-primary shadow-sm"
+                : "text-text-secondary hover:text-text-primary"
             }
           `}
         >

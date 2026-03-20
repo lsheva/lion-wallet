@@ -6,13 +6,15 @@ interface IdenticonProps {
 }
 
 const AVATAR_COLORS = [
-  "#F0CB95", "#DC994E", "#E9AF69", // mane / face warmth
-  "#D97706", "#FBBF24", "#B45309", // amber brand tones
+  "#F0CB95",
+  "#DC994E",
+  "#E9AF69", // mane / face warmth
+  "#D97706",
+  "#FBBF24",
+  "#B45309", // amber brand tones
 ];
 
-const BG_COLORS = [
-  "#FEF3C7", "#FFEDD5", "#FFFBEB", "#FFF7ED", "#FFFCF8",
-];
+const BG_COLORS = ["#FEF3C7", "#FFEDD5", "#FFFBEB", "#FFF7ED", "#FFFCF8"];
 
 export function Identicon({ address, size = 40 }: IdenticonProps) {
   const svg = avatar(address, {

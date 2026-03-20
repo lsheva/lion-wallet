@@ -1,12 +1,12 @@
-import { useState, useEffect } from "preact/hooks";
+import { type MessageResponse, sendMessage } from "@shared/messages";
+import { Clipboard, Fingerprint } from "lucide-preact";
+import { useEffect, useState } from "preact/hooks";
 import { route } from "preact-router";
+import { Banner } from "../components/Banner";
+import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Tabs } from "../components/Tabs";
-import { Button } from "../components/Button";
-import { Banner } from "../components/Banner";
-import { Clipboard, Fingerprint } from "lucide-preact";
-import { sendMessage, type MessageResponse } from "@shared/messages";
 import { refreshAll } from "../store";
 
 const TABS = [
@@ -26,9 +26,7 @@ export function ImportWallet() {
 
   useEffect(() => {
     sendMessage({ type: "CHECK_KEYCHAIN_AVAILABLE" }).then((res) => {
-      setKeychainAvailable(
-        res.ok && (res.data as { available?: boolean })?.available === true,
-      );
+      setKeychainAvailable(res.ok && (res.data as { available?: boolean })?.available === true);
     });
   }, []);
 
@@ -99,14 +97,24 @@ export function ImportWallet() {
       <Header title="Import Wallet" onBack="/" />
 
       <div class="flex-1 px-4 pt-4 space-y-4 overflow-y-auto">
-        <Tabs items={TABS} active={tab} onChange={(id) => { setTab(id); setError(""); }} />
+        <Tabs
+          items={TABS}
+          active={tab}
+          onChange={(id) => {
+            setTab(id);
+            setError("");
+          }}
+        />
 
         {tab === "mnemonic" ? (
           <Input
             label="Recovery Phrase"
             placeholder="Enter your 12 or 24 word recovery phrase..."
             value={mnemonic}
-            onInput={(v) => { setMnemonic(v); setError(""); }}
+            onInput={(v) => {
+              setMnemonic(v);
+              setError("");
+            }}
             multiline
             rows={4}
             mono
@@ -117,7 +125,10 @@ export function ImportWallet() {
             label="Private Key"
             placeholder="0x..."
             value={privateKey}
-            onInput={(v) => { setPrivateKey(v); setError(""); }}
+            onInput={(v) => {
+              setPrivateKey(v);
+              setError("");
+            }}
             mono
             autoFocus
             rightSlot={
@@ -136,7 +147,8 @@ export function ImportWallet() {
           <>
             {preferPassword && keychainAvailable && (
               <Banner variant="warning">
-                Touch ID protects your keys with hardware-backed security. A password is less secure.
+                Touch ID protects your keys with hardware-backed security. A password is less
+                secure.
               </Banner>
             )}
             <Input
@@ -144,7 +156,10 @@ export function ImportWallet() {
               type="password"
               placeholder="Set a password to encrypt your wallet"
               value={password}
-              onInput={(v) => { setPassword(v); setError(""); }}
+              onInput={(v) => {
+                setPassword(v);
+                setError("");
+              }}
             />
           </>
         )}
@@ -152,7 +167,10 @@ export function ImportWallet() {
         {keychainAvailable && (
           <button
             type="button"
-            onClick={() => { setPreferPassword(!preferPassword); setError(""); }}
+            onClick={() => {
+              setPreferPassword(!preferPassword);
+              setError("");
+            }}
             class="text-xs text-text-tertiary hover:text-accent transition-colors cursor-pointer"
           >
             {preferPassword ? "Use Touch ID instead" : "Use password instead"}

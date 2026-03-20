@@ -1,5 +1,5 @@
-import { signal, computed } from "@preact/signals";
-import { MOCK_ACCOUNTS, MOCK_TOKENS, NETWORKS, type Token, type Network } from "./data";
+import { computed, signal } from "@preact/signals";
+import { MOCK_ACCOUNTS, MOCK_TOKENS, NETWORKS, type Network, type Token } from "./data";
 
 export type WalletView = "onboarding" | "home" | "approval";
 
@@ -12,8 +12,8 @@ export const storageMode = signal<"keychain" | "vault">("keychain");
 const MOCK_NETWORK_BY_ID = new Map(NETWORKS.map((n) => [n.chain.id, n]));
 
 export const activeAccount = computed(() => MOCK_ACCOUNTS[activeAccountIndex.value]);
-export const activeNetwork = computed(() =>
-  MOCK_NETWORK_BY_ID.get(activeNetworkId.value) ?? NETWORKS[0]
+export const activeNetwork = computed(
+  () => MOCK_NETWORK_BY_ID.get(activeNetworkId.value) ?? NETWORKS[0],
 );
 
 export const accounts = signal(MOCK_ACCOUNTS);
@@ -49,7 +49,7 @@ export const walletState = {
   },
   renameAccount(index: number, newName: string) {
     accounts.value = accounts.value.map((acc, i) =>
-      i === index ? { ...acc, name: newName } : acc
+      i === index ? { ...acc, name: newName } : acc,
     );
   },
 };

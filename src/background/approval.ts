@@ -1,5 +1,5 @@
-import type { RpcError } from "./rpc-handler";
 import type { PendingApproval } from "../shared/types";
+import type { RpcError } from "./rpc-handler";
 
 interface PendingEntry {
   approval: PendingApproval;

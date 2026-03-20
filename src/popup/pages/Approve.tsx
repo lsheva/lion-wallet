@@ -1,24 +1,44 @@
-import { useState, useEffect, useRef } from "preact/hooks";
-import type { RefObject } from "preact";
-import { route } from "preact-router";
-import { ChevronDown, ChevronUp, Globe, Zap, Gauge, Rocket, FileCode, ArrowUpRight, ArrowDownLeft, Info, Fingerprint } from "lucide-preact";
-import { formatGwei } from "viem";
-import { Card } from "../components/Card";
-import { Button } from "../components/Button";
-import { Input } from "../components/Input";
-import { BottomActions } from "../components/BottomActions";
-import { CopyButton } from "../components/CopyButton";
-import { Spinner } from "../components/Spinner";
-import { Identicon } from "../components/Identicon";
-import { AddressDisplay } from "../components/AddressDisplay";
-import { pendingApprovalData, routeToNextApprovalOrClose, closePopup } from "../App";
+import { NETWORK_BY_ID, POPUP_ORIGIN } from "@shared/constants";
 import { sendMessage } from "@shared/messages";
-import { FormattedTokenValue } from "../components/FormattedTokenValue";
-import type { GasSpeed, GasPresets, PendingApproval, TransactionParams, SerializedAccount, DecodedCall, TokenTransfer } from "@shared/types";
-import { POPUP_ORIGIN, NETWORK_BY_ID } from "@shared/constants";
-import { MOCK_TX_REQUEST, MOCK_SIGN_REQUEST } from "../mock/data";
-import { walletState } from "../store";
+import type {
+  DecodedCall,
+  GasPresets,
+  GasSpeed,
+  PendingApproval,
+  SerializedAccount,
+  TokenTransfer,
+  TransactionParams,
+} from "@shared/types";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ChevronDown,
+  ChevronUp,
+  FileCode,
+  Fingerprint,
+  Gauge,
+  Globe,
+  Info,
+  Rocket,
+  Zap,
+} from "lucide-preact";
+import type { RefObject } from "preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { route } from "preact-router";
+import { formatGwei } from "viem";
+import { closePopup, pendingApprovalData, routeToNextApprovalOrClose } from "../App";
+import { AddressDisplay } from "../components/AddressDisplay";
+import { BottomActions } from "../components/BottomActions";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
 import { ChainIcon } from "../components/ChainIcon";
+import { CopyButton } from "../components/CopyButton";
+import { FormattedTokenValue } from "../components/FormattedTokenValue";
+import { Identicon } from "../components/Identicon";
+import { Input } from "../components/Input";
+import { Spinner } from "../components/Spinner";
+import { MOCK_SIGN_REQUEST, MOCK_TX_REQUEST } from "../mock/data";
+import { walletState } from "../store";
 
 const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
 
@@ -98,7 +118,10 @@ export function Approve() {
       ...(isTx ? { gasSpeed } : {}),
       ...(isVaultMode ? { password } : {}),
     });
-    if (!res.ok && (res.error === "Wrong password" || res.error === "Authentication failed or cancelled")) {
+    if (
+      !res.ok &&
+      (res.error === "Wrong password" || res.error === "Authentication failed or cancelled")
+    ) {
       setAuthError(res.error);
       setSubmitting(false);
       return;
@@ -107,7 +130,10 @@ export function Approve() {
     if (res.ok) {
       const result = (res.data as Record<string, unknown>)?.result;
       if (isTx) {
-        sessionStorage.setItem("txResult", JSON.stringify({ hash: result, method: data.approval.method }));
+        sessionStorage.setItem(
+          "txResult",
+          JSON.stringify({ hash: result, method: data.approval.method }),
+        );
         route("/tx-success", true);
       } else {
         sessionStorage.setItem("signResult", JSON.stringify({ signature: result }));
@@ -158,7 +184,9 @@ export function Approve() {
     return (
       <div class="flex flex-col items-center justify-center h-[600px] px-4 text-center">
         <p class="text-text-secondary text-sm">No pending request.</p>
-        <Button class="mt-4" onClick={() => route("/home", true)}>Back to Wallet</Button>
+        <Button class="mt-4" onClick={() => route("/home", true)}>
+          Back to Wallet
+        </Button>
       </div>
     );
   }
@@ -190,7 +218,9 @@ export function Approve() {
         <div class="flex items-center gap-1.5">
           {network && <ChainIcon chainId={network.chain.id} size={14} />}
           <span>{network?.chain.name ?? `Chain ${approval.chainId}`}</span>
-          {network?.chain.testnet && <span class="text-[10px] text-warning font-medium">testnet</span>}
+          {network?.chain.testnet && (
+            <span class="text-[10px] text-warning font-medium">testnet</span>
+          )}
         </div>
         <span class="inline-flex items-center gap-1">
           {data.account.name} · {truncateAddress(data.account.address)}
@@ -227,7 +257,10 @@ export function Approve() {
             type="password"
             placeholder="Enter password to sign"
             value={password}
-            onInput={(v) => { setPassword(v); setAuthError(""); }}
+            onInput={(v) => {
+              setPassword(v);
+              setAuthError("");
+            }}
             error={authError || undefined}
           />
         </div>
@@ -238,15 +271,18 @@ export function Approve() {
           Reject
         </Button>
         <Button onClick={handleConfirm} fullWidth loading={submitting}>
-          {isVaultMode
-            ? (isTx ? "Confirm" : "Sign")
-            : (
-                <span class="inline-flex items-center gap-1.5">
-                  <Fingerprint size={16} />
-                  {isTx ? "Confirm" : "Sign"}
-                </span>
-              )
-          }
+          {isVaultMode ? (
+            isTx ? (
+              "Confirm"
+            ) : (
+              "Sign"
+            )
+          ) : (
+            <span class="inline-flex items-center gap-1.5">
+              <Fingerprint size={16} />
+              {isTx ? "Confirm" : "Sign"}
+            </span>
+          )}
         </Button>
       </BottomActions>
     </div>
@@ -307,12 +343,30 @@ function ApiKeyHint({ text }: { text: string }) {
   );
 }
 
-function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, showData, setShowData }: TxContentProps) {
+function TxContent({
+  data,
+  gasSpeed,
+  setGasSpeed,
+  showDetails,
+  setShowDetails,
+  showData,
+  setShowData,
+}: TxContentProps) {
   const detailsRef = useRef<HTMLDivElement>(null);
   const dataRef = useRef<HTMLDivElement>(null);
   const argsRef = useRef<HTMLButtonElement>(null);
   const [argsExpanded, setArgsExpanded] = useState(false);
-  const { approval, gasPresets, decoded, transfers, nativeUsdPrice, decodedVia, simulatedVia, hasEtherscanKey, hasRpcProviderKey } = data;
+  const {
+    approval,
+    gasPresets,
+    decoded,
+    transfers,
+    nativeUsdPrice,
+    decodedVia,
+    simulatedVia,
+    hasEtherscanKey,
+    hasRpcProviderKey,
+  } = data;
   const _debug = (data as unknown as Record<string, unknown>)._debug;
   console.log("[popup] TxContent — decoded:", decoded, "transfers:", transfers, "_debug:", _debug);
   const txParams = approval.params[0] as TransactionParams;
@@ -333,17 +387,11 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
         />
       )}
 
-      {showEtherscanHint && (
-        <ApiKeyHint text="Add Etherscan key for better tx decoding —" />
-      )}
+      {showEtherscanHint && <ApiKeyHint text="Add Etherscan key for better tx decoding —" />}
 
-      {transfers && transfers.length > 0 && (
-        <TransfersCard transfers={transfers} />
-      )}
+      {transfers && transfers.length > 0 && <TransfersCard transfers={transfers} />}
 
-      {showAlchemyHint && (
-        <ApiKeyHint text="Add Alchemy key for transaction simulation —" />
-      )}
+      {showAlchemyHint && <ApiKeyHint text="Add Alchemy key for transaction simulation —" />}
 
       <div ref={detailsRef}>
         <Card padding={false}>
@@ -357,8 +405,14 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
             }}
           >
             <div class="flex items-center justify-between px-4 py-2.5">
-              <span class="text-xs text-text-secondary uppercase tracking-wider font-semibold">Gas & Details</span>
-              {showDetails ? <ChevronUp size={14} class="text-text-tertiary" /> : <ChevronDown size={14} class="text-text-tertiary" />}
+              <span class="text-xs text-text-secondary uppercase tracking-wider font-semibold">
+                Gas & Details
+              </span>
+              {showDetails ? (
+                <ChevronUp size={14} class="text-text-tertiary" />
+              ) : (
+                <ChevronDown size={14} class="text-text-tertiary" />
+              )}
             </div>
           </button>
 
@@ -381,7 +435,9 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
                       }`}
                     >
                       <Icon size={16} class={active ? "text-accent" : "text-text-tertiary"} />
-                      <span class={`text-xs font-medium ${active ? "text-accent" : "text-text-secondary"}`}>
+                      <span
+                        class={`text-xs font-medium ${active ? "text-accent" : "text-text-secondary"}`}
+                      >
                         {GAS_LABELS[speed]}
                       </span>
                       <span class="font-mono text-[10px] text-text-tertiary">
@@ -418,7 +474,8 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
                   <div class="flex justify-between">
                     <span class="text-text-secondary">Priority Fee</span>
                     <span class="font-mono text-text-primary">
-                      {parseFloat(formatGwei(BigInt(currentGas.maxPriorityFeePerGas))).toFixed(2)} gwei
+                      {parseFloat(formatGwei(BigInt(currentGas.maxPriorityFeePerGas))).toFixed(2)}{" "}
+                      gwei
                     </span>
                   </div>
                   {gasPresets && (
@@ -503,11 +560,15 @@ function decodeMessage(method: string, params: unknown[]): string {
 
 function getMethodLabel(method: string): string {
   switch (method) {
-    case "personal_sign": return "Personal Sign";
-    case "eth_sign": return "Eth Sign";
+    case "personal_sign":
+      return "Personal Sign";
+    case "eth_sign":
+      return "Eth Sign";
     case "eth_signTypedData_v4":
-    case "eth_signTypedData": return "Typed Data";
-    default: return "Sign";
+    case "eth_signTypedData":
+      return "Typed Data";
+    default:
+      return "Sign";
   }
 }
 
@@ -536,7 +597,9 @@ function SignContent({ data }: { data: ApprovalData }) {
 
       <Card header="Message" padding={false}>
         <div class="px-4 py-3 max-h-[200px] overflow-y-auto">
-          <pre class={`font-mono text-xs text-text-primary whitespace-pre-wrap break-words leading-relaxed ${isTypedData ? "text-[10px]" : ""}`}>
+          <pre
+            class={`font-mono text-xs text-text-primary whitespace-pre-wrap break-words leading-relaxed ${isTypedData ? "text-[10px]" : ""}`}
+          >
             {message}
           </pre>
         </div>
@@ -580,7 +643,9 @@ function DecodedCallCard({
 }) {
   return (
     <Card>
-      <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2.5">Contract Action</p>
+      <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2.5">
+        Contract Action
+      </p>
       <div class="space-y-2.5">
         <div class="flex items-center gap-2">
           <FileCode size={16} class="text-accent shrink-0" />
@@ -611,9 +676,13 @@ function DecodedCallCard({
             {decoded.args.length > COLLAPSED_ARGS && (
               <div class="flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] text-accent">
                 {argsExpanded ? (
-                  <><ChevronUp size={12} /> Show less</>
+                  <>
+                    <ChevronUp size={12} /> Show less
+                  </>
                 ) : (
-                  <><ChevronDown size={12} /> {decoded.args.length - COLLAPSED_ARGS} more</>
+                  <>
+                    <ChevronDown size={12} /> {decoded.args.length - COLLAPSED_ARGS} more
+                  </>
                 )}
               </div>
             )}
@@ -623,9 +692,14 @@ function DecodedCallCard({
         <div class="flex items-center justify-between pt-1.5 border-t border-divider">
           <span class="text-xs text-text-secondary">Interacting with</span>
           <span class="inline-flex items-center gap-1 font-mono text-xs text-text-primary">
-            {decoded.contractName
-              ? <>{decoded.contractName} <span class="text-text-tertiary">({truncateAddress(toAddress)})</span></>
-              : truncateAddress(toAddress)}
+            {decoded.contractName ? (
+              <>
+                {decoded.contractName}{" "}
+                <span class="text-text-tertiary">({truncateAddress(toAddress)})</span>
+              </>
+            ) : (
+              truncateAddress(toAddress)
+            )}
             <CopyButton text={toAddress} size={12} />
           </span>
         </div>
@@ -637,7 +711,9 @@ function DecodedCallCard({
 function TransfersCard({ transfers }: { transfers: TokenTransfer[] }) {
   return (
     <Card>
-      <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2">Token Transfers</p>
+      <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2">
+        Token Transfers
+      </p>
       <div class="divide-y divide-divider">
         {transfers.map((t, i) => (
           <div key={`${t.direction}-${t.symbol}-${i}`} class="flex items-center gap-2.5 py-2">
@@ -648,10 +724,14 @@ function TransfersCard({ transfers }: { transfers: TokenTransfer[] }) {
               >
                 {t.symbol.slice(0, 1)}
               </div>
-              <div class={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center ${t.direction === "out" ? "bg-danger" : "bg-success"}`}>
-                {t.direction === "out"
-                  ? <ArrowUpRight size={9} class="text-white" />
-                  : <ArrowDownLeft size={9} class="text-white" />}
+              <div
+                class={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center ${t.direction === "out" ? "bg-danger" : "bg-success"}`}
+              >
+                {t.direction === "out" ? (
+                  <ArrowUpRight size={9} class="text-white" />
+                ) : (
+                  <ArrowDownLeft size={9} class="text-white" />
+                )}
               </div>
             </div>
             <div class="flex-1 min-w-0">
@@ -660,7 +740,9 @@ function TransfersCard({ transfers }: { transfers: TokenTransfer[] }) {
               </p>
             </div>
             <div class="text-right shrink-0">
-              <p class={`font-mono text-sm font-medium inline-flex items-baseline flex-wrap justify-end gap-x-0.5 ${t.direction === "out" ? "text-danger" : "text-success"}`}>
+              <p
+                class={`font-mono text-sm font-medium inline-flex items-baseline flex-wrap justify-end gap-x-0.5 ${t.direction === "out" ? "text-danger" : "text-success"}`}
+              >
                 <span>{t.direction === "out" ? "-" : "+"}</span>
                 <FormattedTokenValue value={t.amount} />
                 <span>{t.symbol}</span>
@@ -683,7 +765,11 @@ function truncateAddress(addr: string): string {
 function DevApprove() {
   const [mode, setMode] = useState<"tx" | "sign">("tx");
 
-  return mode === "tx" ? <DevTx onSwitch={() => setMode("sign")} /> : <DevSign onSwitch={() => setMode("tx")} />;
+  return mode === "tx" ? (
+    <DevTx onSwitch={() => setMode("sign")} />
+  ) : (
+    <DevSign onSwitch={() => setMode("tx")} />
+  );
 }
 
 function DevTx({ onSwitch }: { onSwitch: () => void }) {
@@ -701,7 +787,11 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
     <div class="flex flex-col h-[600px]">
       <div class="text-center py-3 border-b border-divider relative">
         <h1 class="text-base font-semibold text-text-primary">Transaction Request</h1>
-        <button type="button" onClick={onSwitch} class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium text-accent bg-accent-light px-2 py-0.5 rounded-full cursor-pointer">
+        <button
+          type="button"
+          onClick={onSwitch}
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium text-accent bg-accent-light px-2 py-0.5 rounded-full cursor-pointer"
+        >
           +1 more
         </button>
       </div>
@@ -747,8 +837,14 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
               }}
             >
               <div class="flex items-center justify-between px-4 py-2.5">
-                <span class="text-xs text-text-secondary uppercase tracking-wider font-semibold">Gas & Details</span>
-                {showDetails ? <ChevronUp size={14} class="text-text-tertiary" /> : <ChevronDown size={14} class="text-text-tertiary" />}
+                <span class="text-xs text-text-secondary uppercase tracking-wider font-semibold">
+                  Gas & Details
+                </span>
+                {showDetails ? (
+                  <ChevronUp size={14} class="text-text-tertiary" />
+                ) : (
+                  <ChevronDown size={14} class="text-text-tertiary" />
+                )}
               </div>
             </button>
 
@@ -756,17 +852,25 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
               <div class="grid grid-cols-3 gap-2">
                 {(["slow", "normal", "fast"] as GasSpeed[]).map((speed) => {
                   const Icon = GAS_ICONS[speed];
-                  const mockEth = speed === "slow" ? "0.001200" : speed === "normal" ? "0.001440" : "0.001800";
+                  const mockEth =
+                    speed === "slow" ? "0.001200" : speed === "normal" ? "0.001440" : "0.001800";
                   return (
                     <button
                       type="button"
                       key={speed}
                       class={`flex flex-col items-center gap-1.5 py-2.5 px-2 rounded-[var(--radius-chip)] border transition-all cursor-pointer ${
-                        speed === "normal" ? "border-accent bg-accent-light" : "border-divider hover:border-text-tertiary"
+                        speed === "normal"
+                          ? "border-accent bg-accent-light"
+                          : "border-divider hover:border-text-tertiary"
                       }`}
                     >
-                      <Icon size={16} class={speed === "normal" ? "text-accent" : "text-text-tertiary"} />
-                      <span class={`text-xs font-medium ${speed === "normal" ? "text-accent" : "text-text-secondary"}`}>
+                      <Icon
+                        size={16}
+                        class={speed === "normal" ? "text-accent" : "text-text-tertiary"}
+                      />
+                      <span
+                        class={`text-xs font-medium ${speed === "normal" ? "text-accent" : "text-text-secondary"}`}
+                      >
                         {GAS_LABELS[speed]}
                       </span>
                       <span class="font-mono text-[10px] text-text-tertiary">
@@ -795,7 +899,12 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
                 <div ref={dataRef} class="border-t border-divider pt-2">
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); const expanding = !showData; setShowData(expanding); if (expanding) scrollEndIntoView(dataRef); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const expanding = !showData;
+                      setShowData(expanding);
+                      if (expanding) scrollEndIntoView(dataRef);
+                    }}
                     class="flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
                   >
                     <span>{showData ? "Hide" : "Show"} raw data</span>
@@ -838,7 +947,11 @@ function DevSign({ onSwitch }: { onSwitch: () => void }) {
     <div class="flex flex-col h-[600px]">
       <div class="text-center py-3 border-b border-divider relative">
         <h1 class="text-base font-semibold text-text-primary">Signature Request</h1>
-        <button type="button" onClick={onSwitch} class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium text-accent bg-accent-light px-2 py-0.5 rounded-full cursor-pointer">
+        <button
+          type="button"
+          onClick={onSwitch}
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium text-accent bg-accent-light px-2 py-0.5 rounded-full cursor-pointer"
+        >
           +1 more
         </button>
       </div>
@@ -855,9 +968,7 @@ function DevSign({ onSwitch }: { onSwitch: () => void }) {
           </span>
         </div>
 
-        <p class="text-sm text-text-secondary">
-          This site is requesting your signature.
-        </p>
+        <p class="text-sm text-text-secondary">This site is requesting your signature.</p>
 
         <Card header="Message" padding={false}>
           <div class="px-4 py-3 max-h-[200px] overflow-y-auto">

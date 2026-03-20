@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "preact/hooks";
-import type { JSX } from "preact";
 import { Check, ChevronDown } from "lucide-preact";
-import { Identicon } from "./Identicon";
+import type { JSX } from "preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { fetchActivity, walletState } from "../store";
 import { AddressDisplay } from "./AddressDisplay";
-import { walletState, fetchActivity } from "../store";
+import { Identicon } from "./Identicon";
 
 interface AccountSwitcherProps {
   usdTotal: string;

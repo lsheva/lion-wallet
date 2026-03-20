@@ -1,9 +1,9 @@
-import { useState, useMemo } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { route } from "preact-router";
-import { Header } from "../components/Header";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { CopyButton } from "../components/CopyButton";
+import { Header } from "../components/Header";
 
 export function SeedPhrase() {
   const [confirmed, setConfirmed] = useState(false);
@@ -24,7 +24,8 @@ export function SeedPhrase() {
 
       <div class="flex-1 px-4 pt-2 space-y-4 overflow-y-auto">
         <Banner variant="warning">
-          Write down these {words.length} words in order and store them safely. Never share them with anyone.
+          Write down these {words.length} words in order and store them safely. Never share them
+          with anyone.
         </Banner>
 
         <div class="grid grid-cols-3 gap-2">
@@ -40,7 +41,10 @@ export function SeedPhrase() {
         </div>
 
         <div class="flex justify-center">
-          <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-accent transition-colors cursor-pointer">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-accent transition-colors cursor-pointer"
+          >
             <CopyButton text={words.join(" ")} size={14} />
             <span>Copy to clipboard</span>
           </button>
@@ -58,11 +62,7 @@ export function SeedPhrase() {
       </div>
 
       <div class="px-4 py-4">
-        <Button
-          disabled={!confirmed}
-          onClick={() => route("/confirm-seed")}
-          size="lg"
-        >
+        <Button disabled={!confirmed} onClick={() => route("/confirm-seed")} size="lg">
           Continue
         </Button>
       </div>

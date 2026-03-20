@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from "preact/hooks";
+import { NETWORK_BY_ID, POPUP_ORIGIN } from "@shared/constants";
+import { sendMessage } from "@shared/messages";
+import { CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-preact";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { route } from "preact-router";
-import { CheckCircle2, XCircle, Loader2, ExternalLink } from "lucide-preact";
+import { closePopup, pendingQueueSize, routeToNextApprovalOrClose } from "../App";
+import { AddressDisplay } from "../components/AddressDisplay";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
-import { AddressDisplay } from "../components/AddressDisplay";
-import { sendMessage } from "@shared/messages";
-import { POPUP_ORIGIN, NETWORK_BY_ID } from "@shared/constants";
 import { walletState } from "../store";
-import { routeToNextApprovalOrClose, closePopup, pendingQueueSize } from "../App";
 
 interface TxResultProps {
   status?: "success" | "error";
@@ -40,23 +40,19 @@ export function TxResult({ status = "success" }: TxResultProps) {
 
   const network = walletState.activeNetwork.value;
   const explorerUrl = NETWORK_BY_ID.get(network.chain.id)?.chain.blockExplorers?.default?.url;
-  const txExplorerUrl =
-    explorerUrl && txHash ? `${explorerUrl}/tx/${txHash}` : null;
+  const txExplorerUrl = explorerUrl && txHash ? `${explorerUrl}/tx/${txHash}` : null;
 
-  const rpc = useCallback(
-    async (method: string, params: unknown[]) => {
-      const res = await sendMessage({
-        type: "RPC_REQUEST",
-        id: crypto.randomUUID(),
-        method,
-        params,
-        origin: POPUP_ORIGIN,
-      });
-      if (!res.ok) return null;
-      return (res.data as { result: unknown })?.result ?? null;
-    },
-    [],
-  );
+  const rpc = useCallback(async (method: string, params: unknown[]) => {
+    const res = await sendMessage({
+      type: "RPC_REQUEST",
+      id: crypto.randomUUID(),
+      method,
+      params,
+      origin: POPUP_ORIGIN,
+    });
+    if (!res.ok) return null;
+    return (res.data as { result: unknown })?.result ?? null;
+  }, []);
 
   useEffect(() => {
     if (isError || !txHash || isDev) {
@@ -135,10 +131,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
     return () => clearInterval(autoCloseRef.current);
   }, [isDev, isError, queueSize]);
 
-  const progressPct = Math.min(
-    (confirmations / TARGET_CONFIRMATIONS) * 100,
-    100,
-  );
+  const progressPct = Math.min((confirmations / TARGET_CONFIRMATIONS) * 100, 100);
 
   if (isError) {
     return (
@@ -146,9 +139,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
         <div class="w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-danger/10">
           <XCircle size={40} class="text-danger" />
         </div>
-        <h1 class="text-xl font-semibold text-text-primary mb-1">
-          Transaction Failed
-        </h1>
+        <h1 class="text-xl font-semibold text-text-primary mb-1">Transaction Failed</h1>
         <p class="text-sm text-text-secondary text-center mb-6">
           Something went wrong. The transaction was not submitted.
         </p>
@@ -195,9 +186,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
 
       <div class="w-full mb-5">
         <div class="flex items-center justify-between text-xs mb-1.5">
-          <span class="text-text-secondary">
-            {mined ? "Confirmed" : "Confirming"}
-          </span>
+          <span class="text-text-secondary">{mined ? "Confirmed" : "Confirming"}</span>
           <span class="font-mono text-text-primary">
             {confirmations}/{TARGET_CONFIRMATIONS} blocks
           </span>

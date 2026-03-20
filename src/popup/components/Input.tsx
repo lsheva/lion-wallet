@@ -1,6 +1,6 @@
-import { ComponentChildren } from "preact";
-import { useState } from "preact/hooks";
 import { Eye, EyeOff } from "lucide-preact";
+import type { ComponentChildren } from "preact";
+import { useState } from "preact/hooks";
 
 interface InputProps {
   label?: string;
@@ -80,9 +80,7 @@ export function Input({
           </button>
         )}
         {rightSlot && !isPassword && (
-          <div class="absolute right-2.5 top-1/2 -translate-y-1/2">
-            {rightSlot}
-          </div>
+          <div class="absolute right-2.5 top-1/2 -translate-y-1/2">{rightSlot}</div>
         )}
       </div>
       {error && <p class="text-xs text-danger">{error}</p>}

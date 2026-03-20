@@ -1,5 +1,5 @@
 import { route } from "preact-router";
-import { walletState, type WalletView } from "./state";
+import { type WalletView, walletState } from "./state";
 
 const NAV_ITEMS: { label: string; path: string; view: WalletView }[] = [
   { label: "Welcome", path: "/", view: "onboarding" },

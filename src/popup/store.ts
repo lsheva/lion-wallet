@@ -1,12 +1,11 @@
-import { signal, computed } from "@preact/signals";
-import { sendMessage } from "@shared/messages";
+import { computed, signal } from "@preact/signals";
 import { NETWORKS } from "@shared/constants";
 import { formatUsd } from "@shared/format";
-import type { SerializedAccount, NetworkConfig, TokenInfo, ActivityItem } from "@shared/types";
+import { sendMessage } from "@shared/messages";
+import type { ActivityItem, NetworkConfig, SerializedAccount, TokenInfo } from "@shared/types";
 import type { Address } from "viem";
 
-export type { TokenInfo as Token };
-export type { ActivityItem };
+export type { ActivityItem, TokenInfo as Token };
 
 export const accounts = signal<SerializedAccount[]>([]);
 export const activeAccountIndex = signal(0);
@@ -19,18 +18,17 @@ export const tokens = signal<TokenInfo[]>([]);
 export const networks = signal<NetworkConfig[]>(NETWORKS);
 export const storageMode = signal<"keychain" | "vault">("vault");
 
-export const activeAccount = computed(() =>
-  accounts.value[activeAccountIndex.value] ?? {
-    name: "Account 1",
-    address: "0x0000000000000000000000000000000000000000" as Address,
-    path: "m/44'/60'/0'/0/0",
-    index: 0,
-  },
+export const activeAccount = computed(
+  () =>
+    accounts.value[activeAccountIndex.value] ?? {
+      name: "Account 1",
+      address: "0x0000000000000000000000000000000000000000" as Address,
+      path: "m/44'/60'/0'/0/0",
+      index: 0,
+    },
 );
 
-const networkMap = computed(() =>
-  new Map(networks.value.map((n) => [n.chain.id, n])),
-);
+const networkMap = computed(() => new Map(networks.value.map((n) => [n.chain.id, n])));
 
 export const activeNetwork = computed(
   () => networkMap.value.get(activeNetworkId.value) ?? networks.value[0],
@@ -74,8 +72,7 @@ export async function fetchState(): Promise<void> {
 
 export async function fetchBalance(): Promise<void> {
   const account = activeAccount.peek();
-  if (!account.address || account.address === "0x0000000000000000000000000000000000000000")
-    return;
+  if (!account.address || account.address === "0x0000000000000000000000000000000000000000") return;
   const res = await sendMessage({
     type: "GET_BALANCE",
     address: account.address as Address,
@@ -96,8 +93,7 @@ export const activityHasMore = signal(false);
 
 export async function fetchActivity(options?: { loadMore?: boolean }): Promise<void> {
   const account = activeAccount.peek();
-  if (!account.address || account.address === "0x0000000000000000000000000000000000000000")
-    return;
+  if (!account.address || account.address === "0x0000000000000000000000000000000000000000") return;
   activityLoading.value = true;
   try {
     const res = await sendMessage({
@@ -107,7 +103,11 @@ export async function fetchActivity(options?: { loadMore?: boolean }): Promise<v
       ...(options?.loadMore ? { loadMore: true } : {}),
     });
     if (res.ok && res.data) {
-      const data = res.data as { items: ActivityItem[]; hasMore: boolean; source: "etherscan" | "rpc" | "cache" };
+      const data = res.data as {
+        items: ActivityItem[];
+        hasMore: boolean;
+        source: "etherscan" | "rpc" | "cache";
+      };
       activity.value = data.items;
       activitySource.value = data.source;
       activityHasMore.value = data.hasMore;

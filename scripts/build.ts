@@ -1,38 +1,37 @@
-import { rmSync, cpSync, existsSync } from "node:fs";
+import { cpSync, existsSync, rmSync } from "node:fs";
+import { build } from "rolldown";
 import { build as viteBuild } from "vite";
-import { build as esbuild } from "esbuild";
 
 rmSync("dist", { recursive: true, force: true });
 
 await viteBuild();
 
-const shared = { bundle: true, platform: "browser" as const, target: "es2020" };
+const shared = { platform: "browser" as const };
 await Promise.all([
-  esbuild({
+  build({
     ...shared,
-    entryPoints: ["src/background/index.ts"],
-    outfile: "dist/background.js",
-    format: "esm",
+    input: "src/background/index.ts",
+    output: { file: "dist/background.js", format: "esm", minify: true, codeSplitting: false },
   }),
-  esbuild({
+  build({
     ...shared,
-    entryPoints: ["src/content/index.ts"],
-    outfile: "dist/content-script.js",
-    format: "iife",
+    input: "src/content/index.ts",
+    output: { file: "dist/content-script.js", format: "iife", minify: true, codeSplitting: false },
   }),
-  esbuild({
+  build({
     ...shared,
-    entryPoints: ["src/inpage/provider.ts"],
-    outfile: "dist/inpage.js",
-    format: "iife",
-    loader: { ".svg": "text" },
+    input: "src/inpage/provider.ts",
+    output: { file: "dist/inpage.js", format: "iife", minify: true, codeSplitting: false },
+    moduleTypes: { ".svg": "text" },
   }),
 ]);
 
 cpSync("src/manifest.json", "dist/manifest.json");
 
-if (existsSync("src/icons/generated")) {
-  cpSync("src/icons/generated", "dist/icons", { recursive: true });
+if (!existsSync("src/icons/generated")) {
+  console.error("Error: src/icons/generated missing. Run `pnpm icons` first.");
+  process.exit(1);
 }
+cpSync("src/icons/generated", "dist/icons", { recursive: true });
 
 console.log("Build complete.");

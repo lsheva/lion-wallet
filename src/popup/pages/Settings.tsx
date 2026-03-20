@@ -1,16 +1,28 @@
-import { useState, useEffect } from "preact/hooks";
-import { route } from "preact-router";
-import { ChevronRight, Plus, Pencil, Check, Key, Zap, X, ExternalLink, Fingerprint, ShieldCheck, Trash2 } from "lucide-preact";
-import { Header } from "../components/Header";
-import { Card } from "../components/Card";
-import { Input } from "../components/Input";
-import { Identicon } from "../components/Identicon";
-import { CopyButton } from "../components/CopyButton";
-import { Button } from "../components/Button";
-import { walletState, showNetworkSelector } from "../store";
 import { sendMessage } from "@shared/messages";
-import { NetworkSelector } from "./NetworkSelector";
+import {
+  Check,
+  ChevronRight,
+  ExternalLink,
+  Fingerprint,
+  Key,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  X,
+  Zap,
+} from "lucide-preact";
+import { useEffect, useState } from "preact/hooks";
+import { route } from "preact-router";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
 import { ChainIcon } from "../components/ChainIcon";
+import { CopyButton } from "../components/CopyButton";
+import { Header } from "../components/Header";
+import { Identicon } from "../components/Identicon";
+import { Input } from "../components/Input";
+import { showNetworkSelector, walletState } from "../store";
+import { NetworkSelector } from "./NetworkSelector";
 
 function SettingsRow({ label, onClick }: { label: string; onClick?: () => void }) {
   return (
@@ -131,15 +143,24 @@ export function Settings() {
                   type="password"
                   placeholder="Enter password"
                   value={addPassword}
-                  onInput={(v) => { setAddPassword(v); setAddError(""); }}
+                  onInput={(v) => {
+                    setAddPassword(v);
+                    setAddError("");
+                  }}
                   error={addError || undefined}
                   autoFocus
                 />
                 <div class="flex gap-2">
-                  <Button size="sm" onClick={handleAddAccount}>Add</Button>
+                  <Button size="sm" onClick={handleAddAccount}>
+                    Add
+                  </Button>
                   <button
                     type="button"
-                    onClick={() => { setAddingAccount(false); setAddPassword(""); setAddError(""); }}
+                    onClick={() => {
+                      setAddingAccount(false);
+                      setAddPassword("");
+                      setAddError("");
+                    }}
                     class="text-xs text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
                   >
                     Cancel
@@ -163,7 +184,9 @@ export function Settings() {
         <Card header="Network" padding={false}>
           <button
             type="button"
-            onClick={() => { showNetworkSelector.value = true; }}
+            onClick={() => {
+              showNetworkSelector.value = true;
+            }}
             class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer"
           >
             <div class="flex items-center gap-2">
@@ -259,9 +282,7 @@ function ApiKeyRow({
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const maskedKey = currentKey
-    ? `${currentKey.slice(0, 4)}${"•".repeat(8)}`
-    : "Not set";
+  const maskedKey = currentKey ? `${currentKey.slice(0, 4)}${"•".repeat(8)}` : "Not set";
 
   const handleSave = async () => {
     setSaving(true);

@@ -1,13 +1,13 @@
+import { sendMessage } from "@shared/messages";
+import { Eye, EyeOff, Fingerprint } from "lucide-preact";
 import { useState } from "preact/hooks";
-import { Header } from "../components/Header";
-import { Input } from "../components/Input";
-import { Button } from "../components/Button";
 import { Banner } from "../components/Banner";
+import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
-import { Eye, EyeOff, Fingerprint } from "lucide-preact";
+import { Header } from "../components/Header";
+import { Input } from "../components/Input";
 import { walletState } from "../store";
-import { sendMessage } from "@shared/messages";
 
 export function ExportPrivateKey() {
   const [password, setPassword] = useState("");
@@ -71,7 +71,10 @@ export function ExportPrivateKey() {
                 type="password"
                 placeholder="Password"
                 value={password}
-                onInput={(v) => { setPassword(v); setError(""); }}
+                onInput={(v) => {
+                  setPassword(v);
+                  setError("");
+                }}
                 error={error || undefined}
                 autoFocus
               />

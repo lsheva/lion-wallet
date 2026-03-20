@@ -1,52 +1,52 @@
+import { type Address, formatEther, type Hex, numberToHex } from "viem";
 import browser from "webextension-polyfill";
 import type { MessageRequest, MessageResponse } from "../shared/messages";
 import { CHANNEL } from "../shared/messages";
-import type { WalletState, GasSpeed, TransactionParams } from "../shared/types";
+import type { GasSpeed, TransactionParams, WalletState } from "../shared/types";
 import {
-  encryptVault,
-  decryptVault,
-  isVaultInitialized,
-  clearVault,
-  saveAccountsMeta,
-  loadAccountsMeta,
-  getStorageMode,
-  setStorageMode,
-  type StorageMode,
-} from "./vault";
-import * as wallet from "./wallet";
-import * as keychain from "./keychain";
-import {
-  getActiveNetworkId,
-  setActiveNetworkId,
-  getPublicClient,
-  loadRpcProviderKey,
-  setRpcProviderKeyInMemory,
-  hasRpcProviderKey,
-} from "./networks";
-import { formatEther, numberToHex, type Address, type Hex } from "viem";
-import { handleRpc, setApprovalCreatedCallback } from "./rpc-handler";
-import { bgLog } from "./log";
-import {
+  clearAllPending,
   getPendingApproval,
   getPendingCount,
-  resolvePendingApproval,
   rejectPendingApproval,
-  clearAllPending,
+  resolvePendingApproval,
 } from "./approval";
+import { fetchNativePrice } from "./etherscan";
+import * as keychain from "./keychain";
+import { bgLog } from "./log";
 import {
+  getActiveNetworkId,
+  getNetworkConfig,
+  getPublicClient,
+  hasRpcProviderKey,
+  loadRpcProviderKey,
+  setActiveNetworkId,
+  setRpcProviderKeyInMemory,
+} from "./networks";
+import { fetchPrices } from "./prices";
+import { handleRpc, setApprovalCreatedCallback } from "./rpc-handler";
+import {
+  estimateGasPresets,
+  ethSign,
   getAccountForSigning,
+  personalSign,
   sendTransaction,
   signTransaction,
-  personalSign,
-  ethSign,
   signTypedDataV4,
-  estimateGasPresets,
 } from "./signing";
 import { decodeTx } from "./tx-decoder";
 import { simulateTx } from "./tx-simulator";
-import { fetchPrices } from "./prices";
-import { fetchNativePrice } from "./etherscan";
-import { getNetworkConfig } from "./networks";
+import {
+  clearVault,
+  decryptVault,
+  encryptVault,
+  getStorageMode,
+  isVaultInitialized,
+  loadAccountsMeta,
+  type StorageMode,
+  saveAccountsMeta,
+  setStorageMode,
+} from "./vault";
+import * as wallet from "./wallet";
 
 function broadcastEvent(event: string, data: unknown): void {
   const payload = {

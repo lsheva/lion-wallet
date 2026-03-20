@@ -1,7 +1,7 @@
 import { Fuel } from "lucide-preact";
 import { activeNetwork, type Token } from "../store";
-import { FormattedTokenValue } from "./FormattedTokenValue";
 import { ChainIcon } from "./ChainIcon";
+import { FormattedTokenValue } from "./FormattedTokenValue";
 
 interface TokenRowProps {
   token: Token;

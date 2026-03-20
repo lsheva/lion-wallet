@@ -1,5 +1,5 @@
+import type { Address, Hex } from "viem";
 import browser from "webextension-polyfill";
-import type { Hex, Address } from "viem";
 import { bgLog } from "./log";
 
 const APP_ID = "dev.wallet.SafariEVMWallet";
@@ -11,14 +11,9 @@ interface NativeResponse {
   error?: string;
 }
 
-async function sendNative(
-  message: Record<string, unknown>,
-): Promise<NativeResponse> {
+async function sendNative(message: Record<string, unknown>): Promise<NativeResponse> {
   bgLog("[keychain] sendNative:", message.action);
-  const res = (await browser.runtime.sendNativeMessage(
-    APP_ID,
-    message,
-  )) as NativeResponse;
+  const res = (await browser.runtime.sendNativeMessage(APP_ID, message)) as NativeResponse;
   bgLog("[keychain] response:", JSON.stringify(res));
   return res;
 }
@@ -99,10 +94,7 @@ function importedKeyId(address: Address): string {
   return `imported-${address.toLowerCase()}`;
 }
 
-export async function storeImportedKey(
-  address: Address,
-  privateKey: Hex,
-): Promise<StoreResult> {
+export async function storeImportedKey(address: Address, privateKey: Hex): Promise<StoreResult> {
   try {
     const res = await sendNative({
       action: "keychain_store",
@@ -121,9 +113,7 @@ export async function storeImportedKey(
   }
 }
 
-export async function retrieveImportedKey(
-  address: Address,
-): Promise<Hex | null> {
+export async function retrieveImportedKey(address: Address): Promise<Hex | null> {
   try {
     const res = await sendNative({
       action: "keychain_retrieve",
@@ -146,8 +136,6 @@ export async function deleteImportedKey(address: Address): Promise<void> {
   }
 }
 
-export async function deleteAllImportedKeys(
-  addresses: Address[],
-): Promise<void> {
+export async function deleteAllImportedKeys(addresses: Address[]): Promise<void> {
   await Promise.all(addresses.map(deleteImportedKey));
 }

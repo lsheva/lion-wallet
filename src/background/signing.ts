@@ -1,13 +1,13 @@
 import {
+  type Address,
   createWalletClient,
-  http,
-  parseGwei,
   formatEther,
   formatGwei,
   type Hex,
-  type Address,
+  http,
+  parseGwei,
 } from "viem";
-import type { GasPresets, GasSpeed, TransactionParams, SerializedAccount } from "../shared/types";
+import type { GasPresets, GasSpeed, SerializedAccount, TransactionParams } from "../shared/types";
 import { getPublicClient, getRpcUrl } from "./networks";
 import * as wallet from "./wallet";
 

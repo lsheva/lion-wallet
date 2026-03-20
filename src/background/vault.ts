@@ -1,5 +1,5 @@
 import browser from "webextension-polyfill";
-import type { EncryptedVault, VaultData, SerializedAccount } from "../shared/types";
+import type { EncryptedVault, SerializedAccount, VaultData } from "../shared/types";
 
 const VAULT_KEY = "vault";
 const ACCOUNTS_META_KEY = "accountsMeta";
@@ -53,10 +53,7 @@ function fromBase64(base64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-async function deriveKey(
-  password: string,
-  salt: ArrayBuffer,
-): Promise<CryptoKey> {
+async function deriveKey(password: string, salt: ArrayBuffer): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
@@ -74,20 +71,13 @@ async function deriveKey(
   );
 }
 
-export async function encryptVault(
-  data: VaultData,
-  password: string,
-): Promise<void> {
+export async function encryptVault(data: VaultData, password: string): Promise<void> {
   const salt = crypto.getRandomValues(new Uint8Array(32));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt.buffer);
 
   const encoded = new TextEncoder().encode(JSON.stringify(data));
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    encoded,
-  );
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
 
   const vault: EncryptedVault = {
     salt: toBase64(salt.buffer),
@@ -129,9 +119,5 @@ export async function isVaultInitialized(): Promise<boolean> {
 }
 
 export async function clearVault(): Promise<void> {
-  await browser.storage.local.remove([
-    VAULT_KEY,
-    ACCOUNTS_META_KEY,
-    STORAGE_MODE_KEY,
-  ]);
+  await browser.storage.local.remove([VAULT_KEY, ACCOUNTS_META_KEY, STORAGE_MODE_KEY]);
 }

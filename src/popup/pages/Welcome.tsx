@@ -1,9 +1,9 @@
-import { useState, useEffect } from "preact/hooks";
-import { route } from "preact-router";
-import { Button } from "../components/Button";
-import { Banner } from "../components/Banner";
-import { Shield, Fingerprint } from "lucide-preact";
 import { sendMessage } from "@shared/messages";
+import { Fingerprint, Shield } from "lucide-preact";
+import { useEffect, useState } from "preact/hooks";
+import { route } from "preact-router";
+import { Banner } from "../components/Banner";
+import { Button } from "../components/Button";
 
 export function Welcome() {
   const [loading, setLoading] = useState(false);
