@@ -48,6 +48,10 @@ The strongest privacy policy is having nothing to track. Lucid makes no network 
 
 Lucid stores keys encrypted on-device. It never transmits seed phrases or private keys. It provides clear export and backup flows so users understand what they're protecting. Self-custody is not a feature — it's the entire point.
 
+### 7. Platform-native security
+
+When the operating system offers hardened security infrastructure — Keychain, biometrics, secure enclave — Lucid uses it. On macOS, the mnemonic and private keys live in the system Keychain, scoped to the app and gated by Touch ID. No extra encryption layer, no redundant password — the OS provides the vault. On platforms without these primitives, the same keys are encrypted with a user password using PBKDF2 + AES-GCM. Platform security is always additive and never required; the wallet works correctly either way.
+
 ## What Lucid Is Not
 
 - **Not a DeFi aggregator.** No built-in swaps, bridges, or staking. Lucid connects you to dApps; it doesn't replace them.

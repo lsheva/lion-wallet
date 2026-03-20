@@ -1,11 +1,11 @@
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { route } from "preact-router";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Tabs } from "../components/Tabs";
 import { Button } from "../components/Button";
 import { Banner } from "../components/Banner";
-import { Clipboard } from "lucide-preact";
+import { Clipboard, Fingerprint } from "lucide-preact";
 import { sendMessage, type MessageResponse } from "@shared/messages";
 import { refreshAll } from "../store";
 
@@ -21,6 +21,18 @@ export function ImportWallet() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [keychainAvailable, setKeychainAvailable] = useState<boolean | null>(null);
+  const [preferPassword, setPreferPassword] = useState(false);
+
+  useEffect(() => {
+    sendMessage({ type: "CHECK_KEYCHAIN_AVAILABLE" }).then((res) => {
+      setKeychainAvailable(
+        res.ok && (res.data as { available?: boolean })?.available === true,
+      );
+    });
+  }, []);
+
+  const usePassword = keychainAvailable === false || preferPassword;
 
   const handlePaste = async () => {
     const text = await navigator.clipboard.readText();
@@ -42,7 +54,7 @@ export function ImportWallet() {
       }
     }
 
-    if (password.length < 4) {
+    if (usePassword && password.length < 4) {
       setError("Password must be at least 4 characters");
       return;
     }
@@ -56,18 +68,19 @@ export function ImportWallet() {
         res = await sendMessage({
           type: "IMPORT_WALLET",
           mnemonic: mnemonic.trim(),
-          password,
+          ...(usePassword ? { password } : {}),
         });
       } else {
         res = await sendMessage({
           type: "IMPORT_PRIVATE_KEY",
           privateKey: privateKey.trim() as `0x${string}`,
-          password,
+          ...(usePassword ? { password } : {}),
         });
       }
 
       if (!res || !res.ok) {
         const errMsg = res && "error" in res ? res.error : "Import failed";
+        console.log("[ImportWallet] error:", errMsg);
         setError(errMsg);
         setLoading(false);
         return;
@@ -109,6 +122,7 @@ export function ImportWallet() {
             autoFocus
             rightSlot={
               <button
+                type="button"
                 onClick={handlePaste}
                 class="text-text-tertiary hover:text-accent transition-colors cursor-pointer"
               >
@@ -118,20 +132,46 @@ export function ImportWallet() {
           />
         )}
 
-        <Input
-          label="Password"
-          type="password"
-          placeholder="Set a password to encrypt your wallet"
-          value={password}
-          onInput={(v) => { setPassword(v); setError(""); }}
-        />
+        {usePassword && (
+          <>
+            {preferPassword && keychainAvailable && (
+              <Banner variant="warning">
+                Touch ID protects your keys with hardware-backed security. A password is less secure.
+              </Banner>
+            )}
+            <Input
+              label="Password"
+              type="password"
+              placeholder="Set a password to encrypt your wallet"
+              value={password}
+              onInput={(v) => { setPassword(v); setError(""); }}
+            />
+          </>
+        )}
+
+        {keychainAvailable && (
+          <button
+            type="button"
+            onClick={() => { setPreferPassword(!preferPassword); setError(""); }}
+            class="text-xs text-text-tertiary hover:text-accent transition-colors cursor-pointer"
+          >
+            {preferPassword ? "Use Touch ID instead" : "Use password instead"}
+          </button>
+        )}
 
         {error && <Banner variant="danger">{error}</Banner>}
       </div>
 
       <div class="px-4 py-4">
         <Button onClick={handleImport} size="lg" loading={loading}>
-          Import
+          {!usePassword ? (
+            <span class="inline-flex items-center gap-1.5">
+              <Fingerprint size={18} />
+              Import
+            </span>
+          ) : (
+            "Import"
+          )}
         </Button>
       </div>
     </div>

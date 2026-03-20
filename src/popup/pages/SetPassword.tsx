@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useState, useMemo } from "preact/hooks";
 import { route } from "preact-router";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
@@ -28,6 +28,11 @@ export function SetPassword() {
   const match = password.length > 0 && password === confirm;
   const canContinue = match && strength.level >= 2;
 
+  const chosePasswordOverKeychain = useMemo(
+    () => sessionStorage.getItem("onboarding_vault_preferred") === "true",
+    [],
+  );
+
   const handleContinue = async () => {
     setLoading(true);
     setError("");
@@ -42,6 +47,7 @@ export function SetPassword() {
     const data = res.data as { mnemonic: string };
     sessionStorage.setItem("onboarding_mnemonic", data.mnemonic);
     sessionStorage.setItem("onboarding_password", password);
+    sessionStorage.removeItem("onboarding_vault_preferred");
     route("/seed-phrase");
   };
 
@@ -49,6 +55,14 @@ export function SetPassword() {
     <div class="flex flex-col h-[600px]">
       <Header title="Set Password" onBack="/" />
       <div class="flex-1 px-4 pt-4">
+        {chosePasswordOverKeychain && (
+          <div class="mb-4">
+            <Banner variant="warning">
+              Touch ID protects your keys with hardware-backed security. A password is less secure — make it strong.
+            </Banner>
+          </div>
+        )}
+
         <p class="text-sm text-text-secondary mb-6">
           Create a password to encrypt your wallet on this device.
         </p>

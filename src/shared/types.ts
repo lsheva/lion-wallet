@@ -1,4 +1,4 @@
-import type { Address, Hex } from "viem";
+import type { Address, Chain, Hex } from "viem";
 
 export interface SerializedAccount {
   name: string;
@@ -20,18 +20,13 @@ export interface EncryptedVault {
 }
 
 export interface NetworkConfig {
-  id: number;
-  name: string;
-  symbol: string;
+  chain: Chain;
   color: string;
-  rpcUrl: string;
-  blockExplorerUrl?: string;
-  testnet?: boolean;
 }
 
 export interface WalletState {
   isInitialized: boolean;
-  isUnlocked: boolean;
+  storageMode: "keychain" | "vault";
   accounts: SerializedAccount[];
   activeAccountIndex: number;
   activeNetworkId: number;
@@ -111,4 +106,33 @@ export interface TokenTransfer {
   usdValue?: string;
   color: string;
   tokenAddress?: string;
+}
+
+export interface TokenMovement {
+  token: string;
+  symbol: string;
+  amount: string;
+  decimals: number;
+  dir: "in" | "out";
+}
+
+export interface DecodedEvent {
+  name: string;
+  args: DecodedArg[];
+  contract: string;
+}
+
+export interface ActivityItem {
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  ts: number;
+  error: boolean;
+  method: string;
+  fn: string;
+  block: number;
+  transfers: TokenMovement[];
+  decoded: DecodedCall | null;
+  events: DecodedEvent[];
 }

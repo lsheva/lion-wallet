@@ -1,4 +1,5 @@
-import type { DecodedCall, TokenTransfer } from "@shared/types";
+import { defineChain } from "viem";
+import type { DecodedCall, NetworkConfig, TokenTransfer } from "@shared/types";
 
 export type { DecodedCall, TokenTransfer };
 
@@ -31,32 +32,35 @@ export interface Token {
 }
 
 export const MOCK_TOKENS: Token[] = [
-  { symbol: "ETH", name: "Ethereum", balance: "3.4521", usdValue: "$8,234.12", color: "#627EEA", decimals: 18 },
+  { symbol: "ETH", name: "Ether", balance: "3.4521", usdValue: "$8,234.12", color: "#627EEA", decimals: 18 },
   { symbol: "USDC", name: "USD Coin", balance: "1,200.00", usdValue: "$1,200.00", color: "#2775CA", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6 },
   { symbol: "UNI", name: "Uniswap", balance: "45.20", usdValue: "$312.50", color: "#FF007A", address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", decimals: 18 },
   { symbol: "LINK", name: "Chainlink", balance: "120.00", usdValue: "$1,560.00", color: "#2A5ADA", address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", decimals: 18 },
 ];
 
-export interface Network {
-  id: number;
-  name: string;
-  symbol: string;
-  color: string;
-  rpcUrl: string;
-  testnet?: boolean;
+export type Network = NetworkConfig;
+
+function mockChain(id: number, name: string, symbol: string, rpcUrl: string, testnet?: boolean) {
+  return defineChain({
+    id,
+    name,
+    nativeCurrency: { name: symbol, symbol, decimals: 18 },
+    rpcUrls: { default: { http: [rpcUrl] } },
+    ...(testnet ? { testnet } : {}),
+  });
 }
 
 export const NETWORKS: Network[] = [
-  { id: 1, name: "Ethereum", symbol: "ETH", color: "#627EEA", rpcUrl: "https://eth.llamarpc.com" },
-  { id: 137, name: "Polygon", symbol: "MATIC", color: "#8247E5", rpcUrl: "https://polygon-rpc.com" },
-  { id: 42161, name: "Arbitrum One", symbol: "ETH", color: "#28A0F0", rpcUrl: "https://arb1.arbitrum.io/rpc" },
-  { id: 10, name: "Optimism", symbol: "ETH", color: "#FF0420", rpcUrl: "https://mainnet.optimism.io" },
-  { id: 8453, name: "Base", symbol: "ETH", color: "#0052FF", rpcUrl: "https://mainnet.base.org" },
-  { id: 56, name: "BNB Smart Chain", symbol: "BNB", color: "#F0B90B", rpcUrl: "https://bsc-dataseed.binance.org" },
-  { id: 43114, name: "Avalanche", symbol: "AVAX", color: "#E84142", rpcUrl: "https://api.avax.network/ext/bc/C/rpc" },
-  { id: 11155111, name: "Sepolia", symbol: "ETH", color: "#CFB5F0", rpcUrl: "https://rpc.sepolia.org", testnet: true },
-  { id: 421614, name: "Arbitrum Sepolia", symbol: "ETH", color: "#28A0F0", rpcUrl: "https://sepolia-rollup.arbitrum.io/rpc", testnet: true },
-  { id: 31337, name: "Hardhat", symbol: "ETH", color: "#FFF100", rpcUrl: "http://127.0.0.1:8545", testnet: true },
+  { chain: mockChain(1, "Ethereum", "ETH", "https://eth.llamarpc.com"), color: "#627EEA" },
+  { chain: mockChain(137, "Polygon", "MATIC", "https://polygon-rpc.com"), color: "#8247E5" },
+  { chain: mockChain(42161, "Arbitrum One", "ETH", "https://arb1.arbitrum.io/rpc"), color: "#28A0F0" },
+  { chain: mockChain(10, "Optimism", "ETH", "https://mainnet.optimism.io"), color: "#FF0420" },
+  { chain: mockChain(8453, "Base", "ETH", "https://mainnet.base.org"), color: "#0052FF" },
+  { chain: mockChain(56, "BNB Smart Chain", "BNB", "https://bsc-dataseed.binance.org"), color: "#F0B90B" },
+  { chain: mockChain(43114, "Avalanche", "AVAX", "https://api.avax.network/ext/bc/C/rpc"), color: "#E84142" },
+  { chain: mockChain(11155111, "Sepolia", "ETH", "https://rpc.sepolia.org", true), color: "#CFB5F0" },
+  { chain: mockChain(421614, "Arbitrum Sepolia", "ETH", "https://sepolia-rollup.arbitrum.io/rpc", true), color: "#28A0F0" },
+  { chain: mockChain(31337, "Hardhat", "ETH", "http://127.0.0.1:8545", true), color: "#FFF100" },
 ];
 
 export interface DecodedArg {

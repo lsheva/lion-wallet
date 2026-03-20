@@ -3,13 +3,13 @@ import type { DecodedCall, DecodedArg } from "../shared/types";
 import type { TransactionParams } from "../shared/types";
 import { fetchContractAbi, resolveImplementation } from "./etherscan";
 
-function stringify(value: unknown): string {
+export function stringify(value: unknown): string {
   if (typeof value === "bigint") return value.toString();
   if (Array.isArray(value)) return `[${value.map(stringify).join(", ")}]`;
   return String(value);
 }
 
-function tryDecode(abi: unknown[], data: Hex): DecodedCall | null {
+export function tryDecode(abi: unknown[], data: Hex): DecodedCall | null {
   const { functionName, args } = decodeFunctionData({ abi: abi as Abi, data });
 
   const abiItem = (abi as Array<{ type?: string; name?: string; inputs?: Array<{ name: string; type: string }> }>)

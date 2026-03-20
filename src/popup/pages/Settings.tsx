@@ -1,6 +1,6 @@
 import { useState, useEffect } from "preact/hooks";
 import { route } from "preact-router";
-import { ChevronRight, Plus, Lock, Pencil, Check, Key, Zap, X, ExternalLink } from "lucide-preact";
+import { ChevronRight, Plus, Pencil, Check, Key, Zap, X, ExternalLink, Fingerprint, ShieldCheck, Trash2 } from "lucide-preact";
 import { Header } from "../components/Header";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -10,6 +10,7 @@ import { Button } from "../components/Button";
 import { walletState, showNetworkSelector } from "../store";
 import { sendMessage } from "@shared/messages";
 import { NetworkSelector } from "./NetworkSelector";
+import { ChainIcon } from "../components/ChainIcon";
 
 function SettingsRow({ label, onClick }: { label: string; onClick?: () => void }) {
   return (
@@ -29,6 +30,26 @@ export function Settings() {
   const network = walletState.activeNetwork.value;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [addingAccount, setAddingAccount] = useState(false);
+  const [addPassword, setAddPassword] = useState("");
+  const [addError, setAddError] = useState("");
+
+  const isVaultMode = walletState.storageMode.value === "vault";
+
+  const handleAddAccount = async () => {
+    if (isVaultMode && !addingAccount) {
+      setAddingAccount(true);
+      return;
+    }
+    if (isVaultMode && addPassword.length < 4) {
+      setAddError("Enter your password");
+      return;
+    }
+    setAddError("");
+    await walletState.addAccount(isVaultMode ? addPassword : undefined);
+    setAddingAccount(false);
+    setAddPassword("");
+  };
 
   return (
     <div class="flex flex-col h-[600px]">
@@ -104,14 +125,37 @@ export function Settings() {
                 )}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => walletState.addAccount()}
-              class="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-base/50 transition-colors cursor-pointer"
-            >
-              <Plus size={16} />
-              <span class="text-sm font-medium">Add Account</span>
-            </button>
+            {addingAccount ? (
+              <div class="px-4 py-3 space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Enter password"
+                  value={addPassword}
+                  onInput={(v) => { setAddPassword(v); setAddError(""); }}
+                  error={addError || undefined}
+                  autoFocus
+                />
+                <div class="flex gap-2">
+                  <Button size="sm" onClick={handleAddAccount}>Add</Button>
+                  <button
+                    type="button"
+                    onClick={() => { setAddingAccount(false); setAddPassword(""); setAddError(""); }}
+                    class="text-xs text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAddAccount}
+                class="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-base/50 transition-colors cursor-pointer"
+              >
+                <Plus size={16} />
+                <span class="text-sm font-medium">Add Account</span>
+              </button>
+            )}
           </div>
         </Card>
 
@@ -123,8 +167,8 @@ export function Settings() {
             class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer"
           >
             <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: network.color }} />
-              <span class="text-sm text-text-primary">{network.name}</span>
+              <ChainIcon chainId={network.chain.id} size={16} />
+              <span class="text-sm text-text-primary">{network.chain.name}</span>
             </div>
             <ChevronRight size={16} class="text-text-tertiary" />
           </button>
@@ -133,25 +177,43 @@ export function Settings() {
         {/* API Keys */}
         <ApiKeysSection />
 
+        {/* Data */}
+        <Card header="Data" padding={false}>
+          <button
+            type="button"
+            onClick={async () => {
+              await sendMessage({ type: "CLEAR_ACTIVITY_CACHE" });
+              walletState.activity.value = [];
+              walletState.activitySource.value = null;
+              walletState.activityHasMore.value = false;
+            }}
+            class="flex items-center gap-2 w-full px-4 py-3 text-danger hover:bg-base/50 transition-colors cursor-pointer text-left"
+          >
+            <Trash2 size={16} />
+            <span class="text-sm font-medium">Clear Activity Cache</span>
+          </button>
+        </Card>
+
         {/* Security */}
         <Card header="Security" padding={false}>
           <div class="divide-y divide-divider">
-            <SettingsRow label="Auto-lock timer" onClick={() => route("/auto-lock")} />
+            <div class="flex items-center gap-2 px-4 py-3">
+              {walletState.storageMode.value === "keychain" ? (
+                <>
+                  <Fingerprint size={16} class="text-accent" />
+                  <span class="text-sm text-text-primary">Secured by Touch ID</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={16} class="text-accent" />
+                  <span class="text-sm text-text-primary">Secured by password</span>
+                </>
+              )}
+            </div>
             <SettingsRow label="Export Private Key" onClick={() => route("/export-key")} />
             <SettingsRow label="Show Recovery Phrase" onClick={() => route("/show-phrase")} />
           </div>
         </Card>
-
-        <Button
-          variant="ghost"
-          onClick={async () => {
-            await walletState.lock();
-            route("/unlock");
-          }}
-        >
-          <Lock size={16} />
-          Lock Wallet
-        </Button>
       </div>
 
       {showNetworkSelector.value && <NetworkSelector />}

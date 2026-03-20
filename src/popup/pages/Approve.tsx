@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "preact/hooks";
 import type { RefObject } from "preact";
 import { route } from "preact-router";
-import { ChevronDown, ChevronUp, Globe, Zap, Gauge, Rocket, FileCode, ArrowUpRight, ArrowDownLeft, Info } from "lucide-preact";
+import { ChevronDown, ChevronUp, Globe, Zap, Gauge, Rocket, FileCode, ArrowUpRight, ArrowDownLeft, Info, Fingerprint } from "lucide-preact";
 import { formatGwei } from "viem";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
+import { Input } from "../components/Input";
 import { BottomActions } from "../components/BottomActions";
 import { CopyButton } from "../components/CopyButton";
 import { Spinner } from "../components/Spinner";
@@ -12,14 +13,14 @@ import { Identicon } from "../components/Identicon";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { pendingApprovalData, routeToNextApprovalOrClose, closePopup } from "../App";
 import { sendMessage } from "@shared/messages";
+import { FormattedTokenValue } from "../components/FormattedTokenValue";
 import type { GasSpeed, GasPresets, PendingApproval, TransactionParams, SerializedAccount, DecodedCall, TokenTransfer } from "@shared/types";
-import { POPUP_ORIGIN, NETWORKS } from "@shared/constants";
+import { POPUP_ORIGIN, NETWORK_BY_ID } from "@shared/constants";
 import { MOCK_TX_REQUEST, MOCK_SIGN_REQUEST } from "../mock/data";
 import { walletState } from "../store";
+import { ChainIcon } from "../components/ChainIcon";
 
 const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
-
-const NETWORK_BY_ID = new Map(NETWORKS.map((n) => [n.id, n]));
 
 interface ApprovalData {
   approval: PendingApproval;
@@ -33,6 +34,7 @@ interface ApprovalData {
   simulatedVia?: string | null;
   hasEtherscanKey?: boolean;
   hasRpcProviderKey?: boolean;
+  storageMode?: "keychain" | "vault";
 }
 
 export function Approve() {
@@ -42,8 +44,11 @@ export function Approve() {
   const [showData, setShowData] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
 
   const isDev = import.meta.env.DEV;
+  const isVaultMode = data?.storageMode === "vault";
 
   useEffect(() => {
     if (isDev) {
@@ -79,22 +84,35 @@ export function Approve() {
       return;
     }
     if (!data) return;
+
+    if (isVaultMode && password.length < 4) {
+      setAuthError("Enter your password to continue");
+      return;
+    }
+
+    setAuthError("");
     setSubmitting(true);
     const res = await sendMessage({
       type: "APPROVE_REQUEST",
       id: data.approval.id,
       ...(isTx ? { gasSpeed } : {}),
+      ...(isVaultMode ? { password } : {}),
     });
+    if (!res.ok && (res.error === "Wrong password" || res.error === "Authentication failed or cancelled")) {
+      setAuthError(res.error);
+      setSubmitting(false);
+      return;
+    }
     pendingApprovalData.value = null;
     if (res.ok) {
       const result = (res.data as Record<string, unknown>)?.result;
       if (isTx) {
         sessionStorage.setItem("txResult", JSON.stringify({ hash: result, method: data.approval.method }));
+        route("/tx-success");
       } else {
         sessionStorage.setItem("signResult", JSON.stringify({ signature: result }));
+        route("/sign-success");
       }
-      const fallbackRoute = isTx ? "/tx-success" : "/sign-success";
-      await routeToNextApprovalOrClose(() => route(fallbackRoute));
     } else {
       if (isTx) {
         sessionStorage.setItem("txResult", JSON.stringify({ error: res.error }));
@@ -170,8 +188,9 @@ export function Approve() {
 
       <div class="flex items-center justify-between px-4 py-1.5 text-xs text-text-tertiary border-b border-divider">
         <div class="flex items-center gap-1.5">
-          {network && <span class="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: network.color }} />}
-          <span>{network?.name ?? `Chain ${approval.chainId}`}</span>
+          {network && <ChainIcon chainId={network.chain.id} size={14} />}
+          <span>{network?.chain.name ?? `Chain ${approval.chainId}`}</span>
+          {network?.chain.testnet && <span class="text-[10px] text-warning font-medium">testnet</span>}
         </div>
         <span class="inline-flex items-center gap-1">
           {data.account.name} · {truncateAddress(data.account.address)}
@@ -202,12 +221,32 @@ export function Approve() {
         )}
       </div>
 
+      {isVaultMode && (
+        <div class="px-4 pt-2">
+          <Input
+            type="password"
+            placeholder="Enter password to sign"
+            value={password}
+            onInput={(v) => { setPassword(v); setAuthError(""); }}
+            error={authError || undefined}
+          />
+        </div>
+      )}
+
       <BottomActions>
         <Button variant="secondary" onClick={handleReject} fullWidth disabled={submitting}>
           Reject
         </Button>
         <Button onClick={handleConfirm} fullWidth loading={submitting}>
-          {isTx ? "Confirm" : "Sign"}
+          {isVaultMode
+            ? (isTx ? "Confirm" : "Sign")
+            : (
+                <span class="inline-flex items-center gap-1.5">
+                  <Fingerprint size={16} />
+                  {isTx ? "Confirm" : "Sign"}
+                </span>
+              )
+          }
         </Button>
       </BottomActions>
     </div>
@@ -361,8 +400,9 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
                 <>
                   <div class="flex justify-between">
                     <span class="text-text-secondary">Estimated fee</span>
-                    <span class="font-mono font-medium text-text-primary">
-                      {parseFloat(currentGas.estimatedCostEth).toFixed(6)} ETH
+                    <span class="font-mono font-medium text-text-primary inline-flex items-baseline gap-0.5 flex-wrap justify-end">
+                      <FormattedTokenValue value={currentGas.estimatedCostEth} />
+                      <span>ETH</span>
                     </span>
                   </div>
                   <div class="flex justify-between">
@@ -620,8 +660,10 @@ function TransfersCard({ transfers }: { transfers: TokenTransfer[] }) {
               </p>
             </div>
             <div class="text-right shrink-0">
-              <p class={`font-mono text-sm font-medium ${t.direction === "out" ? "text-danger" : "text-success"}`}>
-                {t.direction === "out" ? "-" : "+"}{t.amount} {t.symbol}
+              <p class={`font-mono text-sm font-medium inline-flex items-baseline flex-wrap justify-end gap-x-0.5 ${t.direction === "out" ? "text-danger" : "text-success"}`}>
+                <span>{t.direction === "out" ? "-" : "+"}</span>
+                <FormattedTokenValue value={t.amount} />
+                <span>{t.symbol}</span>
               </p>
               <p class="text-xs text-text-secondary">{t.usdValue ?? "--"}</p>
             </div>
@@ -666,8 +708,8 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
 
       <div class="flex items-center justify-between px-4 py-1.5 text-xs text-text-tertiary border-b border-divider">
         <div class="flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: network.color }} />
-          <span>{network.name}</span>
+          <ChainIcon chainId={network.chain.id} size={14} />
+          <span>{network.chain.name}</span>
         </div>
         <span class="inline-flex items-center gap-1">
           {account.name} · {truncateAddress(account.address)}

@@ -1,9 +1,11 @@
 import { useState } from "preact/hooks";
+import { defineChain } from "viem";
 import { Check, Plus, ArrowLeft, Loader2 } from "lucide-preact";
 import { Modal } from "../components/Modal";
 import { Input } from "../components/Input";
 import { Button } from "../components/Button";
 import { walletState, showNetworkSelector, networks } from "../store";
+import { ChainIcon } from "../components/ChainIcon";
 
 async function fetchChainId(rpcUrl: string): Promise<number> {
   const res = await fetch(rpcUrl, {
@@ -27,7 +29,7 @@ export function NetworkSelector() {
   const [error, setError] = useState("");
 
   const filtered = networks.value.filter((n) =>
-    n.name.toLowerCase().includes(search.toLowerCase())
+    n.chain.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDetectChain = async (url: string) => {
@@ -40,7 +42,7 @@ export function NetworkSelector() {
     setDetecting(true);
     try {
       const id = await fetchChainId(url.trim());
-      if (networks.value.some((n) => n.id === id)) {
+      if (networks.value.some((n) => n.chain.id === id)) {
         setError(`Chain ID ${id} already exists`);
         setDetectedChainId(null);
       } else {
@@ -59,9 +61,18 @@ export function NetworkSelector() {
     if (!detectedChainId) { setError("Enter a valid RPC URL to detect Chain ID"); return; }
     if (!symbol.trim()) { setError("Currency symbol is required"); return; }
 
+    const sym = symbol.trim().toUpperCase();
     networks.value = [
       ...networks.value,
-      { id: detectedChainId, name: name.trim(), symbol: symbol.trim().toUpperCase(), color: "#8E8E93", rpcUrl: rpcUrl.trim() },
+      {
+        chain: defineChain({
+          id: detectedChainId,
+          name: name.trim(),
+          nativeCurrency: { name: sym, symbol: sym, decimals: 18 },
+          rpcUrls: { default: { http: [rpcUrl.trim()] } },
+        }),
+        color: "#8E8E93",
+      },
     ];
     walletState.switchNetwork(detectedChainId);
     setShowAddForm(false);
@@ -141,30 +152,23 @@ export function NetworkSelector() {
             />
           </div>
 
-          <div class="divide-y divide-divider">
-            {filtered.map((network) => {
-              const isActive = network.id === walletState.activeNetworkId.value;
-              return (
-                <button
-                  key={network.id}
-                  onClick={() => walletState.switchNetwork(network.id)}
-                  class="flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
-                >
-                  <span
-                    class="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: network.color }}
-                  />
-                  <span class="flex-1 text-sm text-text-primary">
-                    {network.name}
-                    {network.testnet && (
-                      <span class="ml-1.5 text-xs text-text-tertiary">(testnet)</span>
-                    )}
-                  </span>
-                  {isActive && <Check size={16} class="text-accent shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
+          <NetworkGroup
+            networks={filtered.filter((n) => !n.chain.testnet)}
+            activeId={walletState.activeNetworkId.value}
+            onSelect={(id) => walletState.switchNetwork(id)}
+          />
+          {filtered.some((n) => n.chain.testnet) && (
+            <>
+              <div class="px-4 pt-3 pb-1">
+                <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">Testnets</span>
+              </div>
+              <NetworkGroup
+                networks={filtered.filter((n) => n.chain.testnet)}
+                activeId={walletState.activeNetworkId.value}
+                onSelect={(id) => walletState.switchNetwork(id)}
+              />
+            </>
+          )}
 
           <button
             onClick={() => setShowAddForm(true)}
@@ -176,5 +180,38 @@ export function NetworkSelector() {
         </>
       )}
     </Modal>
+  );
+}
+
+function NetworkGroup({
+  networks: nets,
+  activeId,
+  onSelect,
+}: {
+  networks: import("@shared/types").NetworkConfig[];
+  activeId: number;
+  onSelect: (id: number) => void;
+}) {
+  return (
+    <div class="divide-y divide-divider">
+      {nets.map((network) => {
+        const isActive = network.chain.id === activeId;
+        const isTestnet = !!network.chain.testnet;
+        return (
+          <button
+            type="button"
+            key={network.chain.id}
+            onClick={() => onSelect(network.chain.id)}
+            class={`flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left ${isTestnet ? "opacity-80" : ""}`}
+          >
+            <ChainIcon chainId={network.chain.id} size={20} />
+            <span class={`flex-1 text-sm ${isTestnet ? "text-text-secondary" : "text-text-primary"}`}>
+              {network.chain.name}
+            </span>
+            {isActive && <Check size={16} class="text-accent shrink-0" />}
+          </button>
+        );
+      })}
+    </div>
   );
 }

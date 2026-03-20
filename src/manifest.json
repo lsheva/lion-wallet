@@ -9,7 +9,7 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["storage", "activeTab", "tabs"],
+  "permissions": ["storage", "activeTab", "tabs", "nativeMessaging"],
   "host_permissions": [
     "https://api.etherscan.io/*",
     "https://www.4byte.directory/*",

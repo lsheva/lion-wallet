@@ -151,3 +151,51 @@ scripts/
 - **Performance**: type checking ~4.3x faster (0.9s vs 4.0s on this codebase)
 - **`typescript` (5.9.3) retained** as dev dependency for IDE/editor language service support
 - Deleted stale `tsconfig.tsbuildinfo`; added `*.tsbuildinfo` to `.gitignore`
+
+### macOS Keychain Integration — Security Architecture Redesign
+
+- **Eliminated lock/unlock model**: wallet is always "ready" if initialized. No more locked state, no unlock page, no auto-lock timer. Account metadata (addresses, names, paths) stored unencrypted in `browser.storage.local` and always available for view-only operations (balances, dApp connections, network switching)
+- **Two storage modes**: `"keychain"` (macOS primary) and `"vault"` (cross-platform fallback), detected at wallet creation and stored in `browser.storage.local` as `storageMode`
+- **Keychain path**: mnemonic and imported private keys stored plain in macOS Keychain via `SafariWebExtensionHandler.swift` using the Security framework. Items scoped to app (`kSecAttrService: "dev.wallet.SafariEVMWallet"`), protected by `.userPresence` access control (Touch ID / system password on every retrieval). No additional encryption layer
+- **Vault fallback path**: existing PBKDF2 (600k iterations) + AES-GCM encryption preserved for non-macOS platforms. Password required at wallet creation and for each signing/export operation
+- **Per-operation authentication**: mnemonic/keys never held in memory beyond a single operation scope. Signing, exporting, and adding accounts require fresh authentication each time — Touch ID for Keychain path, password for vault path
+- **Native messaging bridge**: `src/background/keychain.ts` wraps `browser.runtime.sendNativeMessage` with full error handling. All functions return safe defaults when Keychain is unavailable, enabling graceful cross-platform fallback
+- **Swift handler rewrite**: `SafariWebExtensionHandler.swift` upgraded from echo-only to full Keychain CRUD router (`keychain_store`, `keychain_retrieve`, `keychain_delete`, `keychain_has`, `keychain_status`) using `SecItemAdd`/`SecItemCopyMatching`/`SecItemDelete`
+- **`wallet.ts` simplified**: removed all persistent in-memory state (`unlockedMnemonic`, `unlockedAccounts`, `importedKeys`). Now contains only pure derivation/signing utility functions
+- **`signing.ts` refactored**: all signing functions accept an account/signer parameter instead of reading global state
+- **`rpc-handler.ts` simplified**: `eth_requestAccounts` returns accounts immediately from stored metadata. Removed `waitForUnlock`/`notifyUnlocked`/`rejectUnlockWaiters` mechanism. Signing methods no longer check `isUnlocked` — authentication happens at `APPROVE_REQUEST` time
+- **Approval page**: Keychain mode shows Fingerprint icon on Confirm/Sign button (Touch ID triggers via background). Vault mode shows inline password field before confirmation
+- **Export pages**: `ExportPrivateKey.tsx` and `ShowRecoveryPhrase.tsx` adapt to storage mode — Touch ID button for Keychain, password field for vault
+- **Settings**: removed Lock Wallet button and Auto-lock timer. Added storage mode indicator ("Secured by Touch ID" / "Secured by password")
+- **Onboarding**: Keychain-aware branching — if Keychain available, skips password setup entirely. Import page conditionally shows password field
+- **Manifest**: added `nativeMessaging` permission
+- **Removed**: `Unlock.tsx`, `AutoLockTimer.tsx`, `AUTO_LOCK_TIMEOUT_MS` constant, `cachedPassword` mechanism, `UNLOCK`/`LOCK` message types
+- **`WalletState`**: replaced `isUnlocked` with `storageMode: "keychain" | "vault"`
+- **`PHILOSOPHY.md`**: added principle 7 "Platform-native security"
+
+### Home Page Polish — Token Display & Formatting
+
+- **Card width fix**: tokens section on Home page now uses `mx-4 rounded-2xl` instead of full-width `rounded-t-2xl`, matching the padding of content above it
+- **`formatTokenValue` helper** (`src/shared/format.ts`): reusable formatter for token balances — trims to 4 meaningful digits after the decimal point, applies K/M/G/T suffixes for large values, strips trailing zeros. Used across TokenRow, Send, Approve, and totalBalanceUsd
+- **Token names**: native token name sourced from viem's `chain.nativeCurrency.name` (e.g. "Ether", "POL", "BNB") — no custom mapping
+- **TokenRow layout**: symbol moved from left column to right, next to the balance value (e.g. "3.4521 ETH"). Full token name shown as the primary left-side label
+- **Gas token badge**: native/gas tokens (no contract address) display a small "Gas" pill badge next to the token name
+- **Style guide compliance**: added missing `type="button"` to buttons in Home.tsx; removed unused `network` variable
+
+### NetworkConfig Refactor — Embed viem Chain
+
+- **`NetworkConfig` simplified** to `{ chain: Chain; color: string }` — viem's `Chain` object is embedded directly instead of duplicating its fields (`id`, `name`, `symbol`, `rpcUrl`, `blockExplorerUrl`, `testnet`)
+- **`constants.ts`**: `NETWORKS` array reduced to `[{ chain: mainnet, color: "#627EEA" }, ...]`, importing chain definitions from `viem/chains`. Added `NETWORK_BY_ID` map for O(1) lookups
+- **`networks.ts`**: removed duplicated `viemChains` record — now derives chain from `NETWORK_BY_ID`. Removed `getViemChain()` (unused). RPC URL fallback uses `chain.rpcUrls.default.http[0]`
+- **All field access updated**: `network.id` → `network.chain.id`, `network.name` → `network.chain.name`, `network.symbol` → `network.chain.nativeCurrency.symbol`, `network.blockExplorerUrl` → `network.chain.blockExplorers?.default?.url`, `network.testnet` → `network.chain.testnet`
+- **`store.ts`**: `buildNativeToken` reads `name`, `symbol`, `decimals` directly from `chain.nativeCurrency`; removed `NATIVE_TOKEN_NAMES` map
+- **`NetworkSelector.tsx`**: custom network creation uses `defineChain()` from viem to construct a proper `Chain` object
+- **Mock data**: `Network` type aliased to `NetworkConfig`; mock networks use `defineChain()` helper
+
+### Expanded Chain Support + Testnet Visual Distinction
+
+- **86 chains total**: 49 mainnets (by TVL/popularity), 36 testnets (one per mainnet where available in viem), plus Hardhat for local dev. All imported directly from `viem/chains` — zero hardcoded chain IDs
+- **Brand colors**: `CHAIN_COLORS` map assigns brand-accurate hex colors to all 49 mainnets; testnets and unknown chains fall back to neutral `#8E8E93`. Helper `nc(chain)` builds `NetworkConfig` from color map
+- **Alchemy RPC slugs**: expanded from 8 to 26 chains (mainnets + testnets) using `chain.id` keys
+- **Testnet visual distinction**: NetworkSelector groups mainnets and testnets into separate sections with a "Testnets" header; testnet rows render with reduced opacity, lighter text, and a ring on the color dot. NetworkBadge shows an orange-tinted warning style when a testnet is active. Approve page header shows a "testnet" label next to chain name
+- **Style guide fixes**: replaced all `array.find` by ID with map lookups (`NETWORK_BY_ID`, computed `networkMap`); removed duplicated local maps (Approve.tsx); all chain IDs use `chain.id` references

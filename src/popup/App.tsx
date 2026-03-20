@@ -1,13 +1,13 @@
 import Router, { Route, route } from "preact-router";
 import { useEffect } from "preact/hooks";
 import { signal } from "@preact/signals";
+import browser from "webextension-polyfill";
 import { DevToolbar } from "./mock/DevToolbar";
 import { Welcome } from "./pages/Welcome";
 import { SetPassword } from "./pages/SetPassword";
 import { SeedPhrase } from "./pages/SeedPhrase";
 import { ConfirmSeed } from "./pages/ConfirmSeed";
 import { ImportWallet } from "./pages/ImportWallet";
-import { Unlock } from "./pages/Unlock";
 import { Home } from "./pages/Home";
 import { Send } from "./pages/Send";
 import { Receive } from "./pages/Receive";
@@ -16,11 +16,11 @@ import { ApiKeySetup } from "./pages/ApiKeySetup";
 import { Settings } from "./pages/Settings";
 import { TxResult } from "./pages/TxResult";
 import { SignResult } from "./pages/SignResult";
-import { AutoLockTimer } from "./pages/AutoLockTimer";
 import { ExportPrivateKey } from "./pages/ExportPrivateKey";
 import { ShowRecoveryPhrase } from "./pages/ShowRecoveryPhrase";
 import { sendMessage } from "@shared/messages";
-import { fetchState } from "./store";
+import { fetchState, activity, activityHasMore, activitySource } from "./store";
+import type { ActivityItem } from "@shared/types";
 
 const APPROVAL_METHODS = new Set([
   "eth_sendTransaction", "eth_signTransaction",
@@ -28,6 +28,31 @@ const APPROVAL_METHODS = new Set([
 ]);
 
 export const pendingApprovalData = signal<Record<string, unknown> | null>(null);
+export const pendingQueueSize = signal(0);
+
+try {
+  browser.runtime.onMessage.addListener((msg: unknown) => {
+    const m = msg as {
+      type?: string;
+      count?: number;
+      args?: string[];
+      items?: ActivityItem[];
+      source?: string;
+      hasMore?: boolean;
+    };
+    if (m.type === "PENDING_COUNT" && typeof m.count === "number") {
+      pendingQueueSize.value = m.count;
+    } else if (m.type === "BG_LOG" && m.args) {
+      console.log("[bg]", ...m.args);
+    } else if (m.type === "ACTIVITY_UPDATED" && m.items) {
+      activity.value = m.items;
+      if (m.source) activitySource.value = m.source as "etherscan" | "rpc" | "cache";
+      if (typeof m.hasMore === "boolean") activityHasMore.value = m.hasMore;
+    }
+  });
+} catch {
+  /* dev mode — no extension runtime */
+}
 
 export async function routeToNextApprovalOrClose(fallback: () => void): Promise<void> {
   try {
@@ -42,7 +67,7 @@ export async function routeToNextApprovalOrClose(fallback: () => void): Promise<
       }
     }
   } catch {
-    // background unavailable — fall through to fallback
+    /* background unavailable */
   }
   fallback();
 }
@@ -57,14 +82,10 @@ export function App() {
     if (import.meta.env.DEV) return;
 
     sendMessage({ type: "GET_STATE" }).then((stateRes) => {
-      const state = stateRes.ok ? (stateRes.data as { isInitialized?: boolean; isUnlocked?: boolean } | undefined) : undefined;
+      const state = stateRes.ok ? (stateRes.data as { isInitialized?: boolean } | undefined) : undefined;
 
       if (!state?.isInitialized) {
         route("/", true);
-        return;
-      }
-      if (!state.isUnlocked) {
-        route("/unlock", true);
         return;
       }
 
@@ -94,7 +115,6 @@ export function App() {
           <Route path="/confirm-seed" component={ConfirmSeed} />
           <Route path="/import" component={ImportWallet} />
           <Route path="/api-key-setup" component={ApiKeySetup} />
-          <Route path="/unlock" component={Unlock} />
           <Route path="/home" component={Home} />
           <Route path="/send" component={Send} />
           <Route path="/receive" component={Receive} />
@@ -104,7 +124,6 @@ export function App() {
           <Route path="/sign-success" component={() => <SignResult status="success" />} />
           <Route path="/sign-error" component={() => <SignResult status="error" />} />
           <Route path="/settings" component={Settings} />
-          <Route path="/auto-lock" component={AutoLockTimer} />
           <Route path="/export-key" component={ExportPrivateKey} />
           <Route path="/show-phrase" component={ShowRecoveryPhrase} />
         </Router>

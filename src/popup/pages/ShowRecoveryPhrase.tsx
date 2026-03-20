@@ -4,8 +4,9 @@ import { Input } from "../components/Input";
 import { Button } from "../components/Button";
 import { Banner } from "../components/Banner";
 import { CopyButton } from "../components/CopyButton";
-import { Eye, EyeOff } from "lucide-preact";
+import { Eye, EyeOff, Fingerprint } from "lucide-preact";
 import { sendMessage } from "@shared/messages";
+import { walletState } from "../store";
 
 export function ShowRecoveryPhrase() {
   const [password, setPassword] = useState("");
@@ -14,9 +15,11 @@ export function ShowRecoveryPhrase() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [words, setWords] = useState<string[]>([]);
+  const storageMode = walletState.storageMode.value;
+  const isVault = storageMode === "vault";
 
   const handleReveal = async () => {
-    if (password.length < 4) {
+    if (isVault && password.length < 4) {
       setError("Incorrect password");
       return;
     }
@@ -25,13 +28,13 @@ export function ShowRecoveryPhrase() {
 
     const res = await sendMessage({
       type: "EXPORT_MNEMONIC",
-      password,
+      ...(isVault ? { password } : {}),
     });
 
     setLoading(false);
 
     if (!res.ok) {
-      setError((res as { error?: string }).error ?? "Incorrect password");
+      setError((res as { error?: string }).error ?? "Authentication failed");
       return;
     }
 
@@ -51,23 +54,34 @@ export function ShowRecoveryPhrase() {
 
         {!revealed ? (
           <>
-            <Input
-              label="Enter password to continue"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onInput={(v) => { setPassword(v); setError(""); }}
-              error={error}
-              autoFocus
-            />
+            {isVault && (
+              <Input
+                label="Enter password to continue"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onInput={(v) => { setPassword(v); setError(""); }}
+                error={error || undefined}
+                autoFocus
+              />
+            )}
+            {!isVault && error && <Banner variant="danger">{error}</Banner>}
             <Button onClick={handleReveal} size="lg" loading={loading}>
-              Reveal Recovery Phrase
+              {isVault ? (
+                "Reveal Recovery Phrase"
+              ) : (
+                <span class="inline-flex items-center gap-1.5">
+                  <Fingerprint size={16} />
+                  Reveal Recovery Phrase
+                </span>
+              )}
             </Button>
           </>
         ) : (
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <button
+                type="button"
                 onClick={() => setBlurred(!blurred)}
                 class="flex items-center gap-1.5 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
               >

@@ -1,17 +1,19 @@
 import { signal, computed } from "@preact/signals";
 import { MOCK_ACCOUNTS, MOCK_TOKENS, NETWORKS, type Token, type Network } from "./data";
 
-export type WalletView = "onboarding" | "locked" | "home" | "approval";
+export type WalletView = "onboarding" | "home" | "approval";
 
 export const currentView = signal<WalletView>("onboarding");
-export const isUnlocked = signal(false);
 export const activeAccountIndex = signal(0);
 export const activeNetworkId = signal(1);
 export const showNetworkSelector = signal(false);
+export const storageMode = signal<"keychain" | "vault">("keychain");
+
+const MOCK_NETWORK_BY_ID = new Map(NETWORKS.map((n) => [n.chain.id, n]));
 
 export const activeAccount = computed(() => MOCK_ACCOUNTS[activeAccountIndex.value]);
 export const activeNetwork = computed(() =>
-  NETWORKS.find((n) => n.id === activeNetworkId.value) ?? NETWORKS[0]
+  MOCK_NETWORK_BY_ID.get(activeNetworkId.value) ?? NETWORKS[0]
 );
 
 export const accounts = signal(MOCK_ACCOUNTS);
@@ -23,7 +25,6 @@ export const ethBalance = computed(() => "3.4521");
 
 export const walletState = {
   currentView,
-  isUnlocked,
   activeAccountIndex,
   activeNetworkId,
   activeAccount,
@@ -34,15 +35,8 @@ export const walletState = {
   totalBalanceUsd,
   ethBalance,
   showNetworkSelector,
+  storageMode,
 
-  unlock() {
-    isUnlocked.value = true;
-    currentView.value = "home";
-  },
-  lock() {
-    isUnlocked.value = false;
-    currentView.value = "locked";
-  },
   setView(view: WalletView) {
     currentView.value = view;
   },

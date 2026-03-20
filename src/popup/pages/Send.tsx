@@ -17,8 +17,10 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Banner } from "../components/Banner";
 import { sendMessage } from "@shared/messages";
+import { FormattedTokenValue } from "../components/FormattedTokenValue";
 import { POPUP_ORIGIN } from "@shared/constants";
 import { walletState, type Token } from "../store";
+import { ChainIcon } from "../components/ChainIcon";
 
 const isNative = (token: Token) => !token.address;
 
@@ -76,7 +78,7 @@ export function Send() {
         const res = await sendMessage({
           type: "GET_BALANCE",
           address: account.address as Address,
-          chainId: network.id,
+          chainId: network.chain.id,
         });
         if (res.ok && res.data) {
           setBalance((res.data as { balance: string }).balance);
@@ -109,7 +111,7 @@ export function Send() {
     } finally {
       setLoadingBalance(false);
     }
-  }, [selectedToken, network.id]);
+  }, [selectedToken, network.chain.id]);
 
   useEffect(() => {
     setBalance(null);
@@ -191,12 +193,16 @@ export function Send() {
             class="w-full flex items-center justify-between px-3 py-2.5 bg-surface rounded-[var(--radius-card)] ring-1 ring-transparent hover:ring-accent/30 transition-shadow cursor-pointer"
           >
             <div class="flex items-center gap-2.5">
-              <div
-                class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                style={{ backgroundColor: selectedToken.color }}
-              >
-                {selectedToken.symbol.slice(0, 1)}
-              </div>
+              {isNative(selectedToken) ? (
+                <ChainIcon chainId={network.chain.id} size={28} />
+              ) : (
+                <div
+                  class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                  style={{ backgroundColor: selectedToken.color }}
+                >
+                  {selectedToken.symbol.slice(0, 1)}
+                </div>
+              )}
               <div class="text-left">
                 <span class="text-sm font-medium text-text-primary">
                   {selectedToken.symbol}
@@ -224,19 +230,23 @@ export function Send() {
                       : ""
                   }`}
                 >
-                  <div
-                    class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-                    style={{ backgroundColor: token.color }}
-                  >
-                    {token.symbol.slice(0, 1)}
-                  </div>
+                  {isNative(token) ? (
+                    <ChainIcon chainId={network.chain.id} size={24} />
+                  ) : (
+                    <div
+                      class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                      style={{ backgroundColor: token.color }}
+                    >
+                      {token.symbol.slice(0, 1)}
+                    </div>
+                  )}
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-text-primary">
                       {token.symbol}
                     </p>
                   </div>
                   <span class="text-xs font-mono text-text-secondary">
-                    {token.balance}
+                    <FormattedTokenValue value={token.balance} />
                   </span>
                 </button>
               ))}
@@ -280,7 +290,7 @@ export function Send() {
               <span class="text-text-tertiary">
                 Bal:{" "}
                 <span class="font-mono">
-                  {loadingBalance ? "..." : rawBalance}
+                  {loadingBalance ? "..." : <FormattedTokenValue value={rawBalance} />}
                 </span>
               </span>
               <span class="font-semibold text-accent hover:text-accent-hover transition-colors">

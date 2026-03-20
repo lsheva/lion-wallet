@@ -45,6 +45,9 @@ importers:
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260319.1
         version: 7.0.0-dev.20260319.1
+      '@web3icons/core':
+        specifier: ^4.0.51
+        version: 4.0.51(typescript@5.9.3)
       esbuild:
         specifier: ^0.27.4
         version: 0.27.4
@@ -784,6 +787,16 @@ packages:
   '@typescript/native-preview@7.0.0-dev.20260319.1':
     resolution: {integrity: sha512-K9evb5u4QmH3Xv2XUg9OWUETYMrIX1C7Hls1ce8DW+Nlbb26NnQ5SPQCt8fGq4FGqZ9BodMwfane1pTd+BWYwQ==}
     hasBin: true
+
+  '@web3icons/common@0.11.46':
+    resolution: {integrity: sha512-iwqDpB3sYLuBOM40jSci56Yj6XlkfSOaPRQqYYeGeWYtpsm9K5PVvJaC3bOfZxIYQ9zziu/Ncwm6Ma8bkNh/MA==}
+    peerDependencies:
+      typescript: ^5.0.0
+
+  '@web3icons/core@4.0.51':
+    resolution: {integrity: sha512-fkSBeTYxv/oohFwEVGNSnOHzk0M2qS2N2RXeWrdf3/EhrrHbcE34ES9QZoqQUXlxIkWXvI2ZwyTkyXtEWB/jMg==}
+    peerDependencies:
+      typescript: ^5.0.0
 
   abitype@1.2.3:
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
@@ -1898,6 +1911,15 @@ snapshots:
       '@typescript/native-preview-linux-x64': 7.0.0-dev.20260319.1
       '@typescript/native-preview-win32-arm64': 7.0.0-dev.20260319.1
       '@typescript/native-preview-win32-x64': 7.0.0-dev.20260319.1
+
+  '@web3icons/common@0.11.46(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
+
+  '@web3icons/core@4.0.51(typescript@5.9.3)':
+    dependencies:
+      '@web3icons/common': 0.11.46(typescript@5.9.3)
+      typescript: 5.9.3
 
   abitype@1.2.3(typescript@5.9.3):
     optionalDependencies:

@@ -5,9 +5,9 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { sendMessage } from "@shared/messages";
-import { POPUP_ORIGIN, NETWORKS } from "@shared/constants";
+import { POPUP_ORIGIN, NETWORK_BY_ID } from "@shared/constants";
 import { walletState } from "../store";
-import { routeToNextApprovalOrClose, closePopup } from "../App";
+import { routeToNextApprovalOrClose, closePopup, pendingQueueSize } from "../App";
 
 interface TxResultProps {
   status?: "success" | "error";
@@ -21,7 +21,9 @@ export function TxResult({ status = "success" }: TxResultProps) {
   const isError = status === "error";
   const [confirmations, setConfirmations] = useState(0);
   const [mined, setMined] = useState(false);
+  const [autoCloseIn, setAutoCloseIn] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const autoCloseRef = useRef<ReturnType<typeof setInterval>>();
   const receiptBlockRef = useRef<bigint | null>(null);
 
   const stored = (() => {
@@ -34,9 +36,10 @@ export function TxResult({ status = "success" }: TxResultProps) {
 
   const txHash = stored.hash as string | undefined;
   const errorMessage = stored.error as string | undefined;
+  const queueSize = pendingQueueSize.value;
 
   const network = walletState.activeNetwork.value;
-  const explorerUrl = NETWORKS.find((n) => n.id === network.id)?.blockExplorerUrl;
+  const explorerUrl = NETWORK_BY_ID.get(network.chain.id)?.chain.blockExplorers?.default?.url;
   const txExplorerUrl =
     explorerUrl && txHash ? `${explorerUrl}/tx/${txHash}` : null;
 
@@ -117,6 +120,21 @@ export function TxResult({ status = "success" }: TxResultProps) {
     return () => sessionStorage.removeItem("txResult");
   }, []);
 
+  useEffect(() => {
+    if (isDev || isError || queueSize <= 0) return;
+    setAutoCloseIn(5);
+    let seconds = 5;
+    autoCloseRef.current = setInterval(() => {
+      seconds--;
+      setAutoCloseIn(seconds);
+      if (seconds <= 0) {
+        clearInterval(autoCloseRef.current);
+        routeToNextApprovalOrClose(closePopup);
+      }
+    }, 1000);
+    return () => clearInterval(autoCloseRef.current);
+  }, [isDev, isError, queueSize]);
+
   const progressPct = Math.min(
     (confirmations / TARGET_CONFIRMATIONS) * 100,
     100,
@@ -140,10 +158,15 @@ export function TxResult({ status = "success" }: TxResultProps) {
             {errorMessage ?? "Unknown error occurred"}
           </p>
         </Card>
-        <div class="w-full space-y-3">
+        <div class="w-full space-y-2">
           <Button onClick={() => routeToNextApprovalOrClose(closePopup)} size="lg">
             {isDev ? "Back to Wallet" : "Done"}
           </Button>
+          {queueSize > 0 && (
+            <p class="text-xs text-text-tertiary text-center">
+              {queueSize} pending request{queueSize > 1 ? "s" : ""} remaining
+            </p>
+          )}
         </div>
       </div>
     );
@@ -209,14 +232,27 @@ export function TxResult({ status = "success" }: TxResultProps) {
         </Card>
       )}
 
-      <div class="w-full">
+      <div class="w-full space-y-2">
         <Button
-          onClick={() => routeToNextApprovalOrClose(closePopup)}
+          onClick={() => {
+            clearInterval(autoCloseRef.current);
+            if (queueSize > 0) {
+              routeToNextApprovalOrClose(closePopup);
+            } else {
+              closePopup();
+            }
+          }}
           size="lg"
           variant={mined ? "primary" : "secondary"}
         >
           {mined ? "Done" : "Dismiss"}
         </Button>
+        {queueSize > 0 && (
+          <p class="text-xs text-text-tertiary text-center">
+            {queueSize} pending request{queueSize > 1 ? "s" : ""} remaining
+            {autoCloseIn != null && ` · next in ${autoCloseIn}s`}
+          </p>
+        )}
       </div>
     </div>
   );

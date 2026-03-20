@@ -1,16 +1,19 @@
-import { useEffect } from "preact/hooks";
+import { useState, useEffect, useRef } from "preact/hooks";
 import { CheckCircle2, XCircle } from "lucide-preact";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
-import { routeToNextApprovalOrClose, closePopup } from "../App";
+import { routeToNextApprovalOrClose, closePopup, pendingQueueSize } from "../App";
 
 interface SignResultProps {
   status?: "success" | "error";
 }
 
 export function SignResult({ status = "success" }: SignResultProps) {
+  const isDev = import.meta.env.DEV;
   const isSuccess = status === "success";
+  const [autoCloseIn, setAutoCloseIn] = useState<number | null>(null);
+  const autoCloseRef = useRef<ReturnType<typeof setInterval>>();
 
   const stored = (() => {
     try {
@@ -22,10 +25,26 @@ export function SignResult({ status = "success" }: SignResultProps) {
 
   const signature = stored.signature as string | undefined;
   const errorMessage = stored.error as string | undefined;
+  const queueSize = pendingQueueSize.value;
 
   useEffect(() => {
     return () => sessionStorage.removeItem("signResult");
   }, []);
+
+  useEffect(() => {
+    if (isDev || !isSuccess || queueSize <= 0) return;
+    setAutoCloseIn(5);
+    let seconds = 5;
+    autoCloseRef.current = setInterval(() => {
+      seconds--;
+      setAutoCloseIn(seconds);
+      if (seconds <= 0) {
+        clearInterval(autoCloseRef.current);
+        routeToNextApprovalOrClose(closePopup);
+      }
+    }, 1000);
+    return () => clearInterval(autoCloseRef.current);
+  }, [isDev, isSuccess, queueSize]);
 
   return (
     <div class="flex flex-col items-center justify-center h-[600px] px-4">
@@ -67,10 +86,26 @@ export function SignResult({ status = "success" }: SignResultProps) {
         </Card>
       )}
 
-      <div class="w-full space-y-3">
-        <Button onClick={() => routeToNextApprovalOrClose(closePopup)} size="lg">
+      <div class="w-full space-y-2">
+        <Button
+          onClick={() => {
+            clearInterval(autoCloseRef.current);
+            if (queueSize > 0) {
+              routeToNextApprovalOrClose(closePopup);
+            } else {
+              closePopup();
+            }
+          }}
+          size="lg"
+        >
           Done
         </Button>
+        {queueSize > 0 && (
+          <p class="text-xs text-text-tertiary text-center">
+            {queueSize} pending request{queueSize > 1 ? "s" : ""} remaining
+            {autoCloseIn != null && ` · next in ${autoCloseIn}s`}
+          </p>
+        )}
       </div>
     </div>
   );

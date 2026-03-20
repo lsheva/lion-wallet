@@ -1,18 +1,46 @@
 import browser from "webextension-polyfill";
-import type { EncryptedVault, VaultData } from "../shared/types";
+import type { EncryptedVault, VaultData, SerializedAccount } from "../shared/types";
 
-const STORAGE_KEY = "vault";
+const VAULT_KEY = "vault";
+const ACCOUNTS_META_KEY = "accountsMeta";
+const STORAGE_MODE_KEY = "storageMode";
 const PBKDF2_ITERATIONS = 600_000;
 
-let cachedPassword: string | null = null;
+export type StorageMode = "keychain" | "vault";
 
-export function getCachedPassword(): string | null {
-  return cachedPassword;
+// ── Account metadata (always available, unencrypted) ────────────────
+
+export interface AccountsMeta {
+  accounts: SerializedAccount[];
+  activeAccountIndex: number;
 }
 
-export function clearCachedPassword(): void {
-  cachedPassword = null;
+export async function saveAccountsMeta(
+  accounts: SerializedAccount[],
+  activeAccountIndex: number,
+): Promise<void> {
+  await browser.storage.local.set({
+    [ACCOUNTS_META_KEY]: { accounts, activeAccountIndex } satisfies AccountsMeta,
+  });
 }
+
+export async function loadAccountsMeta(): Promise<AccountsMeta | null> {
+  const result = await browser.storage.local.get(ACCOUNTS_META_KEY);
+  return (result[ACCOUNTS_META_KEY] as AccountsMeta) ?? null;
+}
+
+// ── Storage mode ────────────────────────────────────────────────────
+
+export async function getStorageMode(): Promise<StorageMode> {
+  const result = await browser.storage.local.get(STORAGE_MODE_KEY);
+  return (result[STORAGE_MODE_KEY] as StorageMode) ?? "vault";
+}
+
+export async function setStorageMode(mode: StorageMode): Promise<void> {
+  await browser.storage.local.set({ [STORAGE_MODE_KEY]: mode });
+}
+
+// ── Encrypted vault (fallback path) ─────────────────────────────────
 
 function toBase64(buffer: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buffer)));
@@ -67,13 +95,12 @@ export async function encryptVault(
     ciphertext: toBase64(ciphertext),
   };
 
-  await browser.storage.local.set({ [STORAGE_KEY]: vault });
-  cachedPassword = password;
+  await browser.storage.local.set({ [VAULT_KEY]: vault });
 }
 
 export async function decryptVault(password: string): Promise<VaultData> {
-  const result = await browser.storage.local.get(STORAGE_KEY);
-  const vault = result[STORAGE_KEY] as EncryptedVault | undefined;
+  const result = await browser.storage.local.get(VAULT_KEY);
+  const vault = result[VAULT_KEY] as EncryptedVault | undefined;
   if (!vault) throw new Error("No vault found");
 
   const salt = fromBase64(vault.salt);
@@ -93,15 +120,18 @@ export async function decryptVault(password: string): Promise<VaultData> {
     throw new Error("Wrong password");
   }
 
-  cachedPassword = password;
   return JSON.parse(new TextDecoder().decode(decrypted));
 }
 
 export async function isVaultInitialized(): Promise<boolean> {
-  const result = await browser.storage.local.get(STORAGE_KEY);
-  return result[STORAGE_KEY] != null;
+  const meta = await loadAccountsMeta();
+  return meta != null && meta.accounts.length > 0;
 }
 
 export async function clearVault(): Promise<void> {
-  await browser.storage.local.remove(STORAGE_KEY);
+  await browser.storage.local.remove([
+    VAULT_KEY,
+    ACCOUNTS_META_KEY,
+    STORAGE_MODE_KEY,
+  ]);
 }

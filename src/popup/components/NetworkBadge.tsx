@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-preact";
 import { activeNetwork, showNetworkSelector } from "../store";
+import { ChainIcon } from "./ChainIcon";
 
 interface NetworkBadgeProps {
   clickable?: boolean;
@@ -8,20 +9,24 @@ interface NetworkBadgeProps {
 
 export function NetworkBadge({ clickable = true, class: cls = "" }: NetworkBadgeProps) {
   const network = activeNetwork.value;
+  const isTestnet = !!network.chain.testnet;
 
   return (
     <button
+      type="button"
       onClick={clickable ? () => (showNetworkSelector.value = true) : undefined}
       class={`
         inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
-        bg-surface text-sm font-medium text-text-primary
+        text-sm font-medium transition-colors
+        ${isTestnet ? "bg-surface text-text-secondary" : "bg-surface text-text-primary"}
         ${clickable ? "hover:bg-divider cursor-pointer" : ""}
-        transition-colors ${cls}
+        ${cls}
       `}
+      style={!isTestnet ? { backgroundColor: `${network.color}18`, color: network.color } : undefined}
     >
-      <span class="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: network.color }} />
-      <span class="truncate max-w-[100px]">{network.name}</span>
-      {clickable && <ChevronDown size={14} class="text-text-tertiary shrink-0" />}
+      <ChainIcon chainId={network.chain.id} size={14} />
+      <span class="truncate max-w-[140px]">{network.chain.name}</span>
+      {clickable && <ChevronDown size={14} class={`shrink-0 ${isTestnet ? "text-text-tertiary" : ""}`} style={!isTestnet ? { color: network.color, opacity: 0.6 } : undefined} />}
     </button>
   );
 }

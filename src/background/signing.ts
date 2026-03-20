@@ -7,28 +7,29 @@ import {
   type Hex,
   type Address,
 } from "viem";
-import type { GasPresets, GasSpeed, TransactionParams } from "../shared/types";
+import type { GasPresets, GasSpeed, TransactionParams, SerializedAccount } from "../shared/types";
 import { getPublicClient, getRpcUrl } from "./networks";
 import * as wallet from "./wallet";
 
-function getAccount() {
-  const mnemonic = wallet.getMnemonic();
-  if (!mnemonic) throw new Error("Wallet is locked");
-  const idx = wallet.getActiveAccountIndex();
-  const accounts = wallet.getAccounts();
-  const active = accounts[idx];
-  if (active?.path === "imported") {
-    const pk = wallet.getImportedKey(active.address);
-    if (!pk) throw new Error("Imported private key not found");
-    return wallet.getSignerFromKey(pk);
+type Account = ReturnType<typeof wallet.getSigner> | ReturnType<typeof wallet.getSignerFromKey>;
+
+export function getAccountForSigning(
+  mnemonic: string,
+  accountIndex: number,
+  accounts: SerializedAccount[],
+  importedKey?: Hex,
+): Account {
+  const active = accounts[accountIndex];
+  if (active?.path === "imported" && importedKey) {
+    return wallet.getSignerFromKey(importedKey);
   }
-  return wallet.getSigner(mnemonic, idx);
+  return wallet.getSigner(mnemonic, accountIndex);
 }
 
-function getWalletClient(chainId: number) {
+function getWalletClient(account: Account, chainId: number) {
   const chain = getPublicClient(chainId).chain;
   return createWalletClient({
-    account: getAccount(),
+    account,
     chain,
     transport: http(getRpcUrl(chainId)),
   });
@@ -37,12 +38,13 @@ function getWalletClient(chainId: number) {
 export async function estimateGasPresets(
   chainId: number,
   tx: TransactionParams,
+  fromAddress?: Address,
 ): Promise<GasPresets> {
   const client = getPublicClient(chainId);
 
   const [gasLimit, block, priorityFee] = await Promise.all([
     client.estimateGas({
-      account: tx.from ?? wallet.getAccounts()[wallet.getActiveAccountIndex()]?.address,
+      account: tx.from ?? fromAddress,
       to: tx.to,
       value: tx.value ? BigInt(tx.value) : undefined,
       data: tx.data,
@@ -84,12 +86,13 @@ export async function estimateGasPresets(
 }
 
 export async function sendTransaction(
+  account: Account,
   chainId: number,
   params: TransactionParams,
   gasSpeed: GasSpeed = "normal",
 ): Promise<Hex> {
-  const client = getWalletClient(chainId);
-  const presets = await estimateGasPresets(chainId, params);
+  const client = getWalletClient(account, chainId);
+  const presets = await estimateGasPresets(chainId, params, account.address);
   const gas = presets[gasSpeed];
 
   return client.sendTransaction({
@@ -105,13 +108,13 @@ export async function sendTransaction(
 }
 
 export async function signTransaction(
+  account: Account,
   chainId: number,
   params: TransactionParams,
   gasSpeed: GasSpeed = "normal",
 ): Promise<Hex> {
-  const account = getAccount();
   const publicClient = getPublicClient(chainId);
-  const presets = await estimateGasPresets(chainId, params);
+  const presets = await estimateGasPresets(chainId, params, account.address);
   const gas = presets[gasSpeed];
 
   const nonce = params.nonce
@@ -131,21 +134,18 @@ export async function signTransaction(
   });
 }
 
-export async function personalSign(message: string | Hex): Promise<Hex> {
-  const account = getAccount();
+export async function personalSign(account: Account, message: string | Hex): Promise<Hex> {
   if (message.startsWith("0x")) {
     return account.signMessage({ message: { raw: message as Hex } });
   }
   return account.signMessage({ message });
 }
 
-export async function ethSign(hash: Hex): Promise<Hex> {
-  const account = getAccount();
+export async function ethSign(account: Account, hash: Hex): Promise<Hex> {
   return account.signMessage({ message: { raw: hash } });
 }
 
-export async function signTypedDataV4(params: [Address, string]): Promise<Hex> {
-  const account = getAccount();
+export async function signTypedDataV4(account: Account, params: [Address, string]): Promise<Hex> {
   const typedData = JSON.parse(params[1]);
   const { domain, types, primaryType, message } = typedData;
 

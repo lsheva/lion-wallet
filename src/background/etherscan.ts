@@ -1,33 +1,67 @@
 import browser from "webextension-polyfill";
 import { getPublicClient } from "./networks";
+import { bgLog } from "./log";
 
 async function getEtherscanApiKey(): Promise<string | null> {
   const result = await browser.storage.local.get("etherscanApiKey");
   return (result.etherscanApiKey as string) ?? null;
 }
 
-interface CacheEntry<T> {
+// ── Price cache (in-memory, short TTL) ──────────────────────────────
+
+interface TimedEntry<T> {
   value: T;
   expiresAt: number;
 }
 
-const ABI_CACHE = new Map<string, CacheEntry<unknown[] | null>>();
-const PRICE_CACHE = new Map<string, CacheEntry<number>>();
-const CACHE_TTL = 5 * 60 * 1000;
+const PRICE_CACHE = new Map<string, TimedEntry<number>>();
+const PRICE_TTL = 5 * 60 * 1000;
 
-function cached<T>(cache: Map<string, CacheEntry<T>>, key: string): T | undefined {
-  const entry = cache.get(key);
-  if (!entry) return undefined;
-  if (Date.now() > entry.expiresAt) {
-    cache.delete(key);
-    return undefined;
+// ── Persistent ABI + proxy caches ───────────────────────────────────
+
+const ABI_STORAGE_KEY = "abiCache";
+const PROXY_STORAGE_KEY = "proxyImplCache";
+
+let abiCacheMem: Record<string, unknown[] | null> | null = null;
+let proxyImplMem: Record<string, string | null> | null = null;
+
+function cacheKey(chainId: number, addr: string): string {
+  return `${chainId}:${addr.toLowerCase()}`;
+}
+
+async function loadAbiCache(): Promise<Record<string, unknown[] | null>> {
+  if (abiCacheMem) return abiCacheMem;
+  try {
+    const r = await browser.storage.local.get(ABI_STORAGE_KEY);
+    abiCacheMem = (r[ABI_STORAGE_KEY] as Record<string, unknown[] | null>) ?? {};
+  } catch {
+    abiCacheMem = {};
   }
-  return entry.value;
+  return abiCacheMem;
 }
 
-function cacheSet<T>(cache: Map<string, CacheEntry<T>>, key: string, value: T): void {
-  cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL });
+async function persistAbiCache(): Promise<void> {
+  if (!abiCacheMem) return;
+  try { await browser.storage.local.set({ [ABI_STORAGE_KEY]: abiCacheMem }); } catch {}
 }
+
+async function loadProxyCache(): Promise<Record<string, string | null>> {
+  if (proxyImplMem) return proxyImplMem;
+  try {
+    const r = await browser.storage.local.get(PROXY_STORAGE_KEY);
+    proxyImplMem = (r[PROXY_STORAGE_KEY] as Record<string, string | null>) ?? {};
+  } catch {
+    proxyImplMem = {};
+  }
+  return proxyImplMem;
+}
+
+async function persistProxyCache(): Promise<void> {
+  if (!proxyImplMem) return;
+  try { await browser.storage.local.set({ [PROXY_STORAGE_KEY]: proxyImplMem }); } catch {}
+}
+
+// ── Etherscan HTTP helper ───────────────────────────────────────────
 
 const BASE_URL = "https://api.etherscan.io/v2/api";
 
@@ -64,9 +98,9 @@ async function etherscanFetch(
   }
 }
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+// ── Proxy resolution ────────────────────────────────────────────────
 
-// EIP-1967 implementation slot
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const EIP1967_IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc" as `0x${string}`;
 
 export async function resolveImplementation(
@@ -74,7 +108,16 @@ export async function resolveImplementation(
   chainId: number,
   log: string[],
 ): Promise<string | null> {
-  // Try Etherscan getsourcecode first (returns Implementation field for known proxies)
+  const proxyCache = await loadProxyCache();
+  const pk = cacheKey(chainId, address);
+  if (pk in proxyCache) {
+    const cached = proxyCache[pk];
+    log.push(`proxy: cache hit impl=${cached ?? "not a proxy"}`);
+    return cached;
+  }
+
+  let impl: string | null = null;
+
   try {
     const json = (await etherscanFetch(
       { module: "contract", action: "getsourcecode", address },
@@ -86,33 +129,38 @@ export async function resolveImplementation(
       const info = json.result[0];
       if (info.Proxy === "1" && info.Implementation && info.Implementation !== ZERO_ADDRESS && info.Implementation !== "") {
         log.push(`proxy: Etherscan says impl=${info.Implementation}`);
-        return info.Implementation;
+        impl = info.Implementation;
       }
     }
   } catch (e) {
     log.push(`proxy: getsourcecode failed: ${e instanceof Error ? e.message : e}`);
   }
 
-  // Fallback: read EIP-1967 storage slot via RPC
-  try {
-    const client = getPublicClient(chainId);
-    const slot = await client.getStorageAt({
-      address: address as `0x${string}`,
-      slot: EIP1967_IMPL_SLOT,
-    });
-    if (slot && slot !== "0x" + "0".repeat(64)) {
-      const impl = "0x" + slot.slice(26);
-      if (impl.toLowerCase() !== ZERO_ADDRESS) {
-        log.push(`proxy: EIP-1967 slot impl=${impl}`);
-        return impl;
+  if (!impl) {
+    try {
+      const client = getPublicClient(chainId);
+      const slot = await client.getStorageAt({
+        address: address as `0x${string}`,
+        slot: EIP1967_IMPL_SLOT,
+      });
+      if (slot && slot !== "0x" + "0".repeat(64)) {
+        const resolved = "0x" + slot.slice(26);
+        if (resolved.toLowerCase() !== ZERO_ADDRESS) {
+          log.push(`proxy: EIP-1967 slot impl=${resolved}`);
+          impl = resolved;
+        }
       }
+    } catch (e) {
+      log.push(`proxy: EIP-1967 read failed: ${e instanceof Error ? e.message : e}`);
     }
-  } catch (e) {
-    log.push(`proxy: EIP-1967 read failed: ${e instanceof Error ? e.message : e}`);
   }
 
-  return null;
+  proxyCache[pk] = impl;
+  await persistProxyCache();
+  return impl;
 }
+
+// ── ABI fetching ────────────────────────────────────────────────────
 
 async function fetchAbiForAddress(
   address: string,
@@ -144,28 +192,38 @@ export async function fetchContractAbi(
   chainId: number,
   log: string[] = [],
 ): Promise<unknown[] | null> {
-  const cacheKey = `${chainId}:${address}`;
-  const hit = cached(ABI_CACHE, cacheKey);
-  if (hit !== undefined) {
-    log.push(`etherscan-abi: cache hit (${hit ? "has ABI" : "null"})`);
-    return hit;
+  const abiCache = await loadAbiCache();
+  const addrLower = address.toLowerCase();
+
+  const proxyCache = await loadProxyCache();
+  const pk = cacheKey(chainId, addrLower);
+  const knownImpl = pk in proxyCache ? proxyCache[pk] : undefined;
+
+  const implAddr = knownImpl ?? addrLower;
+  const ak = cacheKey(chainId, implAddr);
+  if (ak in abiCache) {
+    log.push(`etherscan-abi: cache hit for ${implAddr} (${abiCache[ak] ? "has ABI" : "null"})`);
+    return abiCache[ak];
   }
 
   try {
-    // Try direct ABI first
     let abi = await fetchAbiForAddress(address, chainId, log);
 
-    // If direct lookup failed or returned a proxy-only ABI, try to resolve implementation
     if (!abi) {
       log.push("etherscan-abi: direct lookup failed, checking for proxy");
       const impl = await resolveImplementation(address, chainId, log);
       if (impl) {
         log.push(`etherscan-abi: fetching implementation ABI from ${impl}`);
         abi = await fetchAbiForAddress(impl, chainId, log);
+        const implKey = cacheKey(chainId, impl);
+        abiCache[implKey] = abi;
       }
+    } else {
+      abiCache[ak] = abi;
     }
 
-    cacheSet(ABI_CACHE, cacheKey, abi);
+    if (!abi) abiCache[ak] = null;
+    await persistAbiCache();
     return abi;
   } catch (e) {
     log.push(`etherscan-abi: exception: ${e instanceof Error ? e.message : e}`);
@@ -173,10 +231,65 @@ export async function fetchContractAbi(
   }
 }
 
+/**
+ * Batch-resolve ABIs for multiple contract addresses.
+ * Returns a Map from original address (lowercase) to its ABI.
+ * Resolves proxies and deduplicates implementation lookups.
+ */
+export async function resolveAbis(
+  chainId: number,
+  addresses: string[],
+): Promise<Map<string, unknown[]>> {
+  const unique = [...new Set(addresses.map((a) => a.toLowerCase()))];
+  const result = new Map<string, unknown[]>();
+  const toFetch: string[] = [];
+
+  const abiCache = await loadAbiCache();
+  const proxyCache = await loadProxyCache();
+
+  for (const addr of unique) {
+    const pk = cacheKey(chainId, addr);
+    const proxyVal = proxyCache[pk];
+    const implAddr = pk in proxyCache && proxyVal ? proxyVal : addr;
+    const ak = cacheKey(chainId, implAddr);
+    const cachedAbi = abiCache[ak];
+    if (ak in abiCache && cachedAbi) {
+      result.set(addr, cachedAbi);
+    } else if (!(ak in abiCache)) {
+      toFetch.push(addr);
+    }
+  }
+
+  if (toFetch.length > 0) {
+    bgLog("[abi] batch fetching", toFetch.length, "ABIs");
+    const settled = await Promise.allSettled(
+      toFetch.map((addr) => fetchContractAbi(addr, chainId)),
+    );
+    for (let i = 0; i < toFetch.length; i++) {
+      const r = settled[i];
+      if (r.status === "fulfilled" && r.value) {
+        result.set(toFetch[i], r.value);
+      }
+    }
+  }
+
+  return result;
+}
+
+export async function clearAbiCache(): Promise<void> {
+  abiCacheMem = {};
+  proxyImplMem = {};
+  try {
+    await browser.storage.local.remove([ABI_STORAGE_KEY, PROXY_STORAGE_KEY]);
+  } catch {}
+}
+
+// ── Price fetching ──────────────────────────────────────────────────
+
 export async function fetchNativePrice(chainId: number): Promise<number | null> {
-  const cacheKey = `native:${chainId}`;
-  const hit = cached(PRICE_CACHE, cacheKey);
-  if (hit !== undefined) return hit;
+  const priceKey = `native:${chainId}`;
+  const hit = PRICE_CACHE.get(priceKey);
+  if (hit && Date.now() < hit.expiresAt) return hit.value;
 
   const log: string[] = [];
   try {
@@ -191,7 +304,7 @@ export async function fetchNativePrice(chainId: number): Promise<number | null> 
     const price = parseFloat(json.result.ethusd);
     if (Number.isNaN(price)) return null;
 
-    cacheSet(PRICE_CACHE, cacheKey, price);
+    PRICE_CACHE.set(priceKey, { value: price, expiresAt: Date.now() + PRICE_TTL });
     return price;
   } catch {
     return null;

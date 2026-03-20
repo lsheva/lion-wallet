@@ -1,8 +1,52 @@
+import { useState, useEffect } from "preact/hooks";
 import { route } from "preact-router";
 import { Button } from "../components/Button";
-import { Shield } from "lucide-preact";
+import { Banner } from "../components/Banner";
+import { Shield, Fingerprint } from "lucide-preact";
+import { sendMessage } from "@shared/messages";
 
 export function Welcome() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [keychainAvailable, setKeychainAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    sendMessage({ type: "CHECK_KEYCHAIN_AVAILABLE" }).then((res) => {
+      const data = res.ok ? (res.data as { available?: boolean; error?: string }) : undefined;
+      console.log("[Welcome] CHECK_KEYCHAIN_AVAILABLE:", JSON.stringify(res));
+      if (data?.available) {
+        setKeychainAvailable(true);
+      } else {
+        setKeychainAvailable(false);
+        if (data?.error) {
+          console.log("[Welcome] Keychain probe error:", data.error);
+          setError(`Keychain probe failed: ${data.error}`);
+        }
+      }
+    });
+  }, []);
+
+  const handleCreateKeychain = async () => {
+    setLoading(true);
+    setError("");
+    const res = await sendMessage({ type: "CREATE_WALLET" });
+    setLoading(false);
+    if (!res.ok) {
+      const errMsg = "error" in res ? res.error : "Unknown error";
+      console.log("[Welcome] CREATE_WALLET failed:", errMsg);
+      setError(errMsg);
+      return;
+    }
+    const data = res.data as { mnemonic: string };
+    sessionStorage.setItem("onboarding_mnemonic", data.mnemonic);
+    route("/seed-phrase");
+  };
+
+  const handleCreatePassword = () => {
+    sessionStorage.setItem("onboarding_vault_preferred", "true");
+    route("/set-password");
+  };
+
   return (
     <div class="flex flex-col items-center justify-center h-[600px] px-4">
       <div class="relative mb-6">
@@ -15,10 +59,34 @@ export function Welcome() {
       <h1 class="text-xl font-bold text-text-primary mb-1">Safari EVM Wallet</h1>
       <p class="text-sm text-text-secondary mb-10">Your keys. Your crypto.</p>
 
+      {error && (
+        <div class="w-full mb-4">
+          <Banner variant="danger">{error}</Banner>
+        </div>
+      )}
+
       <div class="w-full space-y-3">
-        <Button onClick={() => route("/set-password")} size="lg">
-          Create New Wallet
-        </Button>
+        {keychainAvailable ? (
+          <>
+            <Button onClick={handleCreateKeychain} size="lg" loading={loading}>
+              <span class="inline-flex items-center gap-1.5">
+                <Fingerprint size={18} />
+                Create with Touch ID
+              </span>
+            </Button>
+            <button
+              type="button"
+              onClick={handleCreatePassword}
+              class="w-full text-center text-xs text-text-tertiary hover:text-accent transition-colors cursor-pointer py-1"
+            >
+              Use password instead
+            </button>
+          </>
+        ) : (
+          <Button onClick={() => route("/set-password")} size="lg">
+            Create New Wallet
+          </Button>
+        )}
         <Button variant="secondary" onClick={() => route("/import")} size="lg">
           Import Existing
         </Button>

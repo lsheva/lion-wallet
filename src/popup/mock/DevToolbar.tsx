@@ -3,7 +3,6 @@ import { walletState, type WalletView } from "./state";
 
 const NAV_ITEMS: { label: string; path: string; view: WalletView }[] = [
   { label: "Welcome", path: "/", view: "onboarding" },
-  { label: "Locked", path: "/unlock", view: "locked" },
   { label: "Home", path: "/home", view: "home" },
   { label: "Approve", path: "/approve", view: "approval" },
   { label: "TX OK", path: "/tx-success", view: "approval" },

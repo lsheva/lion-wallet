@@ -1,10 +1,11 @@
 import { signal, computed } from "@preact/signals";
 import { sendMessage } from "@shared/messages";
 import { NETWORKS } from "@shared/constants";
-import type { SerializedAccount, NetworkConfig, TokenInfo } from "@shared/types";
+import type { SerializedAccount, NetworkConfig, TokenInfo, ActivityItem } from "@shared/types";
 import type { Address } from "viem";
 
 export type { TokenInfo as Token };
+export type { ActivityItem };
 
 export const accounts = signal<SerializedAccount[]>([]);
 export const activeAccountIndex = signal(0);
@@ -13,6 +14,7 @@ export const showNetworkSelector = signal(false);
 export const ethBalance = signal("0");
 export const tokens = signal<TokenInfo[]>([]);
 export const networks = signal<NetworkConfig[]>(NETWORKS);
+export const storageMode = signal<"keychain" | "vault">("vault");
 
 export const activeAccount = computed(() =>
   accounts.value[activeAccountIndex.value] ?? {
@@ -23,24 +25,20 @@ export const activeAccount = computed(() =>
   },
 );
 
-export const activeNetwork = computed(
-  () =>
-    networks.value.find((n) => n.id === activeNetworkId.value) ??
-    networks.value[0],
+const networkMap = computed(() =>
+  new Map(networks.value.map((n) => [n.chain.id, n])),
 );
 
-export const totalBalanceUsd = computed(() => {
-  const bal = parseFloat(ethBalance.value);
-  if (isNaN(bal) || bal === 0) return "$0.00";
-  return `${bal.toFixed(4)} ${activeNetwork.value.symbol}`;
-});
+export const activeNetwork = computed(
+  () => networkMap.value.get(activeNetworkId.value) ?? networks.value[0],
+);
 
 function buildNativeToken(): TokenInfo {
   const net = activeNetwork.peek();
   return {
-    symbol: net.symbol,
-    name: net.name,
-    decimals: 18,
+    symbol: net.chain.nativeCurrency.symbol,
+    name: net.chain.nativeCurrency.name,
+    decimals: net.chain.nativeCurrency.decimals,
     balance: ethBalance.peek(),
     color: net.color,
   };
@@ -53,11 +51,12 @@ export async function fetchState(): Promise<void> {
     accounts: SerializedAccount[];
     activeAccountIndex: number;
     activeNetworkId: number;
-    isUnlocked: boolean;
+    storageMode: "keychain" | "vault";
   };
   accounts.value = state.accounts;
   activeAccountIndex.value = state.activeAccountIndex;
   activeNetworkId.value = state.activeNetworkId;
+  storageMode.value = state.storageMode;
 }
 
 export async function fetchBalance(): Promise<void> {
@@ -75,6 +74,36 @@ export async function fetchBalance(): Promise<void> {
   }
 }
 
+export const activity = signal<ActivityItem[]>([]);
+export const activityLoading = signal(false);
+export const activitySource = signal<"etherscan" | "rpc" | "cache" | null>(null);
+export const activityHasMore = signal(false);
+
+export async function fetchActivity(options?: { loadMore?: boolean }): Promise<void> {
+  const account = activeAccount.peek();
+  if (!account.address || account.address === "0x0000000000000000000000000000000000000000")
+    return;
+  activityLoading.value = true;
+  try {
+    const res = await sendMessage({
+      type: "GET_ACTIVITY",
+      address: account.address as Address,
+      chainId: activeNetworkId.peek(),
+      ...(options?.loadMore ? { loadMore: true } : {}),
+    });
+    if (res.ok && res.data) {
+      const data = res.data as { items: ActivityItem[]; hasMore: boolean; source: "etherscan" | "rpc" | "cache" };
+      activity.value = data.items;
+      activitySource.value = data.source;
+      activityHasMore.value = data.hasMore;
+    }
+  } catch {
+    /* non-blocking — keep whatever was in the signal */
+  } finally {
+    activityLoading.value = false;
+  }
+}
+
 export async function refreshAll(): Promise<void> {
   await fetchState();
   await fetchBalance();
@@ -88,25 +117,13 @@ export const walletState = {
   accounts,
   tokens,
   networks,
-  totalBalanceUsd,
   ethBalance,
   showNetworkSelector,
-
-  async unlock(password: string): Promise<{ ok: boolean; error?: string }> {
-    const res = await sendMessage({ type: "UNLOCK", password });
-    if (res.ok) {
-      await fetchState();
-      await fetchBalance();
-    }
-    return res.ok ? { ok: true } : { ok: false, error: (res as { error?: string }).error };
-  },
-
-  async lock(): Promise<void> {
-    await sendMessage({ type: "LOCK" });
-    accounts.value = [];
-    ethBalance.value = "0";
-    tokens.value = [];
-  },
+  storageMode,
+  activity,
+  activityLoading,
+  activitySource,
+  activityHasMore,
 
   async switchNetwork(id: number): Promise<void> {
     activeNetworkId.value = id;
@@ -135,8 +152,11 @@ export const walletState = {
     );
   },
 
-  async addAccount(): Promise<void> {
-    const res = await sendMessage({ type: "ADD_ACCOUNT" });
+  async addAccount(password?: string): Promise<void> {
+    const res = await sendMessage({
+      type: "ADD_ACCOUNT",
+      ...(password ? { password } : {}),
+    });
     if (res.ok) {
       await fetchState();
     }

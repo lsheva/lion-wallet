@@ -20,7 +20,7 @@ export function SeedPhrase() {
 
   return (
     <div class="flex flex-col h-[600px]">
-      <Header title="Recovery Phrase" onBack="/set-password" />
+      <Header title="Recovery Phrase" onBack="/" />
 
       <div class="flex-1 px-4 pt-2 space-y-4 overflow-y-auto">
         <Banner variant="warning">
@@ -40,7 +40,7 @@ export function SeedPhrase() {
         </div>
 
         <div class="flex justify-center">
-          <button class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-accent transition-colors cursor-pointer">
+          <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-accent transition-colors cursor-pointer">
             <CopyButton text={words.join(" ")} size={14} />
             <span>Copy to clipboard</span>
           </button>

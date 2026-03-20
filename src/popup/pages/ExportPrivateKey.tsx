@@ -5,7 +5,7 @@ import { Button } from "../components/Button";
 import { Banner } from "../components/Banner";
 import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
-import { Eye, EyeOff } from "lucide-preact";
+import { Eye, EyeOff, Fingerprint } from "lucide-preact";
 import { walletState } from "../store";
 import { sendMessage } from "@shared/messages";
 
@@ -17,9 +17,11 @@ export function ExportPrivateKey() {
   const [loading, setLoading] = useState(false);
   const [privateKey, setPrivateKey] = useState("");
   const account = walletState.activeAccount.value;
+  const storageMode = walletState.storageMode.value;
+  const isVault = storageMode === "vault";
 
   const handleReveal = async () => {
-    if (password.length < 4) {
+    if (isVault && password.length < 4) {
       setError("Incorrect password");
       return;
     }
@@ -29,13 +31,13 @@ export function ExportPrivateKey() {
     const res = await sendMessage({
       type: "EXPORT_PRIVATE_KEY",
       accountIndex: walletState.activeAccountIndex.value,
-      password,
+      ...(isVault ? { password } : {}),
     });
 
     setLoading(false);
 
     if (!res.ok) {
-      setError((res as { error?: string }).error ?? "Incorrect password");
+      setError((res as { error?: string }).error ?? "Authentication failed");
       return;
     }
 
@@ -63,17 +65,27 @@ export function ExportPrivateKey() {
 
         {!revealed ? (
           <>
-            <Input
-              label="Enter password to continue"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onInput={(v) => { setPassword(v); setError(""); }}
-              error={error}
-              autoFocus
-            />
+            {isVault && (
+              <Input
+                label="Enter password to continue"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onInput={(v) => { setPassword(v); setError(""); }}
+                error={error || undefined}
+                autoFocus
+              />
+            )}
+            {!isVault && error && <Banner variant="danger">{error}</Banner>}
             <Button onClick={handleReveal} size="lg" loading={loading}>
-              Reveal Private Key
+              {isVault ? (
+                "Reveal Private Key"
+              ) : (
+                <span class="inline-flex items-center gap-1.5">
+                  <Fingerprint size={16} />
+                  Reveal Private Key
+                </span>
+              )}
             </Button>
           </>
         ) : (
@@ -83,6 +95,7 @@ export function ExportPrivateKey() {
                 <p class="text-xs text-text-secondary">Private Key</p>
                 <div class="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={() => setShowKey(!showKey)}
                     class="p-1 text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
                   >
@@ -92,7 +105,7 @@ export function ExportPrivateKey() {
                 </div>
               </div>
               <p class="font-mono text-xs text-text-primary break-all leading-relaxed select-all">
-                {showKey ? privateKey : "•".repeat(66)}
+                {showKey ? privateKey : "\u2022".repeat(66)}
               </p>
             </Card>
           </div>

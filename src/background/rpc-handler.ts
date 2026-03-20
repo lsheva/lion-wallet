@@ -1,5 +1,4 @@
 import { numberToHex, type Hex } from "viem";
-import * as wallet from "./wallet";
 import {
   getPublicClient,
   getActiveNetworkId,
@@ -7,7 +6,7 @@ import {
   getNetworkConfig,
 } from "./networks";
 import { createPendingApproval } from "./approval";
-import { isVaultInitialized } from "./vault";
+import { isVaultInitialized, loadAccountsMeta } from "./vault";
 import { POPUP_ORIGIN } from "../shared/constants";
 
 export interface RpcError {
@@ -47,36 +46,6 @@ export function setApprovalCreatedCallback(cb: () => void): void {
   onApprovalCreated = cb;
 }
 
-const UNLOCK_TIMEOUT_MS = 120_000;
-const unlockWaiters = new Set<{ resolve: () => void; reject: (e: RpcError) => void }>();
-
-export function notifyUnlocked(): void {
-  for (const w of unlockWaiters) w.resolve();
-  unlockWaiters.clear();
-}
-
-export function rejectUnlockWaiters(): void {
-  for (const w of unlockWaiters) w.reject({ code: 4001, message: "User rejected the request" });
-  unlockWaiters.clear();
-}
-
-function waitForUnlock(): Promise<RpcResult | null> {
-  return new Promise<RpcResult | null>((resolve) => {
-    const timer = setTimeout(() => {
-      unlockWaiters.delete(entry);
-      resolve(err(4001, "Unlock timed out"));
-    }, UNLOCK_TIMEOUT_MS);
-
-    const entry = {
-      resolve: () => { clearTimeout(timer); resolve(null); },
-      reject: (e: RpcError) => { clearTimeout(timer); resolve({ error: e }); },
-    };
-    unlockWaiters.add(entry);
-
-    if (onApprovalCreated) onApprovalCreated();
-  });
-}
-
 export async function handleRpc(
   method: string,
   params: unknown[] | undefined,
@@ -85,14 +54,11 @@ export async function handleRpc(
   try {
     switch (method) {
       case "eth_requestAccounts": {
-        if (!wallet.isUnlocked()) {
-          if (!(await isVaultInitialized())) {
-            return err(4100, "Wallet is not set up");
-          }
-          const lockErr = await waitForUnlock();
-          if (lockErr) return lockErr;
+        if (!(await isVaultInitialized())) {
+          return err(4100, "Wallet is not set up");
         }
-        const accounts = wallet.getAccounts();
+        const meta = await loadAccountsMeta();
+        const accounts = meta?.accounts ?? [];
         if (accounts.length === 0) {
           return err(4100, "No accounts available");
         }
@@ -101,10 +67,11 @@ export async function handleRpc(
       }
 
       case "eth_accounts": {
-        if (!wallet.isUnlocked() || !connectedOrigins.has(ctx.origin)) {
+        if (!connectedOrigins.has(ctx.origin)) {
           return ok([]);
         }
-        return ok(wallet.getAccounts().map((a) => a.address));
+        const meta = await loadAccountsMeta();
+        return ok((meta?.accounts ?? []).map((a) => a.address));
       }
 
       case "eth_chainId": {
@@ -143,15 +110,11 @@ export async function handleRpc(
       }
 
       case "wallet_requestPermissions": {
-        if (!wallet.isUnlocked()) {
-          if (!(await isVaultInitialized())) {
-            return err(4100, "Wallet is not set up");
-          }
-          const lockErr = await waitForUnlock();
-          if (lockErr) return lockErr;
+        if (!(await isVaultInitialized())) {
+          return err(4100, "Wallet is not set up");
         }
-        const accounts = wallet.getAccounts();
-        if (accounts.length === 0) {
+        const meta = await loadAccountsMeta();
+        if (!meta || meta.accounts.length === 0) {
           return err(4100, "No accounts available");
         }
         connectedOrigins.add(ctx.origin);
@@ -175,9 +138,6 @@ export async function handleRpc(
     }
 
     if (SIGNING_METHODS.has(method)) {
-      if (!wallet.isUnlocked()) {
-        return err(4100, "Wallet is locked");
-      }
       const isPopup = ctx.origin === POPUP_ORIGIN;
       if (!isPopup && !connectedOrigins.has(ctx.origin)) {
         return err(4100, "Unauthorized — connect first via eth_requestAccounts");
@@ -214,7 +174,7 @@ async function proxyToRpc(
   const chainId = await getActiveNetworkId();
   const client = getPublicClient(chainId);
   const transport = client.transport as { url?: string };
-  const rpcUrl = transport.url ?? getNetworkConfig(chainId)?.rpcUrl;
+  const rpcUrl = transport.url ?? getNetworkConfig(chainId)?.chain.rpcUrls.default.http[0];
 
   if (!rpcUrl) {
     return err(-32603, "No RPC URL configured for current chain");
