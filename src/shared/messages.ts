@@ -22,7 +22,9 @@ export type MessageRequest =
   | { type: "ESTIMATE_GAS"; chainId: number; tx: TransactionParams }
   | { type: "RESET_WALLET" }
   | { type: "GET_ETHERSCAN_KEY" }
-  | { type: "SET_ETHERSCAN_KEY"; key: string };
+  | { type: "SET_ETHERSCAN_KEY"; key: string }
+  | { type: "GET_RPC_PROVIDER_KEY" }
+  | { type: "SET_RPC_PROVIDER_KEY"; key: string };
 
 export type MessageResponse =
   | { ok: true; data?: unknown }

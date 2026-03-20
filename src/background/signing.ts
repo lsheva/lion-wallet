@@ -8,7 +8,7 @@ import {
   type Address,
 } from "viem";
 import type { GasPresets, GasSpeed, TransactionParams } from "../shared/types";
-import { getPublicClient, getNetworkConfig } from "./networks";
+import { getPublicClient, getRpcUrl } from "./networks";
 import * as wallet from "./wallet";
 
 function getAccount() {
@@ -26,14 +26,11 @@ function getAccount() {
 }
 
 function getWalletClient(chainId: number) {
-  const network = getNetworkConfig(chainId);
-  if (!network) throw new Error(`Unknown chain: ${chainId}`);
-
-  const viemChainImport = getPublicClient(chainId).chain;
+  const chain = getPublicClient(chainId).chain;
   return createWalletClient({
     account: getAccount(),
-    chain: viemChainImport,
-    transport: http(network.rpcUrl),
+    chain,
+    transport: http(getRpcUrl(chainId)),
   });
 }
 

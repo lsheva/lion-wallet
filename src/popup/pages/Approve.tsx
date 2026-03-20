@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "preact/hooks";
 import type { RefObject } from "preact";
 import { route } from "preact-router";
-import { ChevronDown, ChevronUp, Globe, Zap, Gauge, Rocket, FileCode, ArrowUpRight, ArrowDownLeft } from "lucide-preact";
+import { ChevronDown, ChevronUp, Globe, Zap, Gauge, Rocket, FileCode, ArrowUpRight, ArrowDownLeft, Info } from "lucide-preact";
 import { formatEther, formatGwei, type Hex } from "viem";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
@@ -27,6 +27,10 @@ interface ApprovalData {
   decoded?: DecodedCall | null;
   transfers?: TokenTransfer[] | null;
   nativeUsdPrice?: number | null;
+  decodedVia?: string | null;
+  simulatedVia?: string | null;
+  hasEtherscanKey?: boolean;
+  hasRpcProviderKey?: boolean;
 }
 
 export function Approve() {
@@ -235,18 +239,35 @@ interface TxContentProps {
   setShowData: (v: boolean) => void;
 }
 
+function ApiKeyHint({ text }: { text: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => route("/settings")}
+      class="flex items-center gap-1.5 text-[11px] text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+    >
+      <Info size={12} class="shrink-0" />
+      <span>{text}</span>
+      <span class="text-accent">Settings</span>
+    </button>
+  );
+}
+
 function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, showData, setShowData }: TxContentProps) {
   const detailsRef = useRef<HTMLDivElement>(null);
   const dataRef = useRef<HTMLDivElement>(null);
-  const argsRef = useRef<HTMLDivElement>(null);
+  const argsRef = useRef<HTMLButtonElement>(null);
   const [argsExpanded, setArgsExpanded] = useState(false);
-  const { approval, gasPresets, account, decoded, transfers } = data;
+  const { approval, gasPresets, account, decoded, transfers, decodedVia, simulatedVia, hasEtherscanKey, hasRpcProviderKey } = data;
   const _debug = (data as unknown as Record<string, unknown>)._debug;
   console.log("[popup] TxContent — decoded:", decoded, "transfers:", transfers, "_debug:", _debug);
   const txParams = approval.params[0] as TransactionParams;
   const value = formatValue(txParams.value);
   const hasValue = value !== "0";
   const currentGas = gasPresets?.[gasSpeed];
+  const hasCalldata = !!(txParams.data && txParams.data !== "0x" && txParams.data.length >= 10);
+  const showEtherscanHint = hasCalldata && !hasEtherscanKey && decodedVia !== "etherscan";
+  const showAlchemyHint = hasCalldata && !hasRpcProviderKey && simulatedVia === "fallback";
 
   return (
     <>
@@ -259,8 +280,16 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
         />
       )}
 
+      {showEtherscanHint && (
+        <ApiKeyHint text="Add Etherscan key for better tx decoding —" />
+      )}
+
       {transfers && transfers.length > 0 && (
         <TransfersCard transfers={transfers} toAddress={txParams.to} />
+      )}
+
+      {showAlchemyHint && (
+        <ApiKeyHint text="Add Alchemy key for transaction simulation —" />
       )}
 
       <Card>
@@ -517,8 +546,7 @@ function DecodedCallCard({
   decoded: DecodedCall;
   argsExpanded: boolean;
   setArgsExpanded: (v: boolean) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  argsRef: RefObject<any>;
+  argsRef: RefObject<HTMLButtonElement>;
 }) {
   return (
     <Card>
@@ -536,17 +564,15 @@ function DecodedCallCard({
         </div>
 
         {decoded.args.length > 0 && (
-          <div
+          <button
+            type="button"
             ref={argsRef}
-            role="button"
-            tabIndex={0}
-            class="bg-base rounded-[var(--radius-chip)] divide-y divide-divider cursor-pointer"
+            class="bg-base rounded-[var(--radius-chip)] divide-y divide-divider cursor-pointer w-full text-left"
             onClick={() => {
               const expanding = !argsExpanded;
               setArgsExpanded(expanding);
               if (expanding && argsRef.current) scrollEndIntoView(argsRef);
             }}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setArgsExpanded(!argsExpanded); } }}
           >
             {(argsExpanded ? decoded.args : decoded.args.slice(0, COLLAPSED_ARGS)).map((arg) => (
               <div key={arg.name} class="flex items-center justify-between px-3 py-2">
@@ -565,7 +591,7 @@ function DecodedCallCard({
                 )}
               </div>
             )}
-          </div>
+          </button>
         )}
       </div>
     </Card>
@@ -635,7 +661,7 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
   const [argsExpanded, setArgsExpanded] = useState(false);
   const detailsRef = useRef<HTMLDivElement>(null);
   const dataRef = useRef<HTMLDivElement>(null);
-  const argsRef = useRef<HTMLDivElement>(null);
+  const argsRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div class="flex flex-col h-[600px]">

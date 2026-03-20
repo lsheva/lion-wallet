@@ -129,25 +129,32 @@ async function decodeVia4byte(data: Hex, log: string[]): Promise<DecodedCall | n
   }
 }
 
+export type DecodeSource = "etherscan" | "4byte" | "selector";
+
+export interface DecodeResult {
+  decoded: DecodedCall | null;
+  via: DecodeSource | null;
+}
+
 export async function decodeTx(
   txParams: TransactionParams,
   chainId: number,
   log: string[] = [],
-): Promise<DecodedCall | null> {
+): Promise<DecodeResult> {
   if (!txParams.data || txParams.data === "0x" || txParams.data.length < 10) {
     log.push("decode: no calldata");
-    return null;
+    return { decoded: null, via: null };
   }
 
   const etherscanResult = await decodeViaEtherscan(txParams.to, txParams.data, chainId, log);
-  if (etherscanResult) return etherscanResult;
+  if (etherscanResult) return { decoded: etherscanResult, via: "etherscan" };
 
   const fourByteResult = await decodeVia4byte(txParams.data, log);
-  if (fourByteResult) return fourByteResult;
+  if (fourByteResult) return { decoded: fourByteResult, via: "4byte" };
 
   log.push(`decode: all methods failed, using raw selector ${txParams.data.slice(0, 10)}`);
   return {
-    functionName: txParams.data.slice(0, 10),
-    args: [],
+    decoded: { functionName: txParams.data.slice(0, 10), args: [] },
+    via: "selector",
   };
 }

@@ -5,26 +5,81 @@ import { Input } from "../components/Input";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Banner } from "../components/Banner";
-import { ExternalLink, Key } from "lucide-preact";
+import { ExternalLink, Zap, Search, ChevronDown, ChevronUp } from "lucide-preact";
 import { sendMessage } from "@shared/messages";
 
+const KEY_REGEX = /^[A-Za-z0-9_-]{20,40}$/;
+
+function HelpAccordion({
+  open,
+  onToggle,
+  steps,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  steps: Array<{ text: string; href?: string }>;
+}) {
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        class="flex items-center gap-1 text-xs text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+      >
+        <span>Need a key?</span>
+        {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </button>
+      {open && (
+        <ol class="mt-2 space-y-1.5 text-xs text-text-secondary list-decimal list-inside">
+          {steps.map((step, i) => (
+            <li key={i}>
+              {step.href ? (
+                <a
+                  href={step.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-accent hover:text-accent-hover inline-flex items-center gap-0.5"
+                >
+                  {step.text}
+                  <ExternalLink size={10} />
+                </a>
+              ) : (
+                step.text
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
 export function ApiKeySetup() {
-  const [apiKey, setApiKey] = useState("");
+  const [alchemyKey, setAlchemyKey] = useState("");
+  const [etherscanKey, setEtherscanKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [helpOpen, setHelpOpen] = useState<"alchemy" | "etherscan" | null>(null);
 
   const handleContinue = async () => {
-    const trimmed = apiKey.trim();
-    if (trimmed && !/^[A-Za-z0-9]{20,40}$/.test(trimmed)) {
-      setError("That doesn't look like a valid API key");
+    const alchemy = alchemyKey.trim();
+    const etherscan = etherscanKey.trim();
+
+    if (alchemy && !KEY_REGEX.test(alchemy)) {
+      setError("Alchemy key doesn't look valid");
+      return;
+    }
+    if (etherscan && !KEY_REGEX.test(etherscan)) {
+      setError("Etherscan key doesn't look valid");
       return;
     }
 
     setSaving(true);
     try {
-      if (trimmed) {
-        await sendMessage({ type: "SET_ETHERSCAN_KEY", key: trimmed });
-      }
+      const promises: Promise<unknown>[] = [];
+      if (alchemy) promises.push(sendMessage({ type: "SET_RPC_PROVIDER_KEY", key: alchemy }));
+      if (etherscan) promises.push(sendMessage({ type: "SET_ETHERSCAN_KEY", key: etherscan }));
+      await Promise.all(promises);
       route("/home");
     } catch {
       setError("Failed to save — try again");
@@ -36,47 +91,68 @@ export function ApiKeySetup() {
     <div class="flex flex-col h-[600px]">
       <Header title="Enhance Your Wallet" onBack={undefined} />
 
-      <div class="flex-1 px-4 pt-4 space-y-4 overflow-y-auto">
+      <div class="flex-1 px-4 pt-4 space-y-3 overflow-y-auto">
+        <p class="text-sm text-text-secondary">
+          Optional API keys for better speed and features.
+        </p>
+
         <Card>
-          <div class="flex items-start gap-3">
-            <Key size={20} class="text-accent shrink-0 mt-0.5" />
-            <p class="text-sm text-text-secondary leading-relaxed">
-              Add an Etherscan API key to unlock transaction decoding,
-              contract verification, and live USD prices when reviewing
-              transactions.
-            </p>
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <Zap size={16} class="text-accent shrink-0" />
+              <div>
+                <p class="text-sm font-semibold text-text-primary">RPC Provider</p>
+                <p class="text-xs text-text-tertiary">Faster, more reliable blockchain access</p>
+              </div>
+            </div>
+
+            <Input
+              placeholder="Paste Alchemy API key"
+              value={alchemyKey}
+              onInput={(v) => { setAlchemyKey(v); setError(""); }}
+              mono
+            />
+
+            <HelpAccordion
+              open={helpOpen === "alchemy"}
+              onToggle={() => setHelpOpen(helpOpen === "alchemy" ? null : "alchemy")}
+              steps={[
+                { text: "Open Alchemy Dashboard", href: "https://dashboard.alchemy.com/" },
+                { text: "Sign up for a free account" },
+                { text: "Create an app, then copy the API key" },
+              ]}
+            />
           </div>
         </Card>
 
-        <div class="space-y-3">
-          <p class="text-xs font-semibold text-text-secondary uppercase tracking-wider">How to get a key</p>
-          <ol class="space-y-2.5 text-sm text-text-primary list-decimal list-inside">
-            <li>
-              Go to{" "}
-              <a
-                href="https://etherscan.io/myapikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-accent hover:text-accent-hover inline-flex items-center gap-0.5"
-              >
-                etherscan.io/myapikey
-                <ExternalLink size={12} />
-              </a>{" "}
-              and create a free account
-            </li>
-            <li>Click <span class="font-semibold">Add</span> to generate a new API key</li>
-            <li>Paste your key below</li>
-          </ol>
-        </div>
+        <Card>
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <Search size={16} class="text-accent shrink-0" />
+              <div>
+                <p class="text-sm font-semibold text-text-primary">Block Explorer</p>
+                <p class="text-xs text-text-tertiary">Transaction decoding and USD prices</p>
+              </div>
+            </div>
 
-        <Input
-          label="API Key"
-          placeholder="Paste your Etherscan API key"
-          value={apiKey}
-          onInput={(v) => { setApiKey(v); setError(""); }}
-          mono
-          autoFocus
-        />
+            <Input
+              placeholder="Paste Etherscan API key"
+              value={etherscanKey}
+              onInput={(v) => { setEtherscanKey(v); setError(""); }}
+              mono
+            />
+
+            <HelpAccordion
+              open={helpOpen === "etherscan"}
+              onToggle={() => setHelpOpen(helpOpen === "etherscan" ? null : "etherscan")}
+              steps={[
+                { text: "Open Etherscan", href: "https://etherscan.io/myapikey" },
+                { text: "Create a free account" },
+                { text: "Click Add to generate a key" },
+              ]}
+            />
+          </div>
+        </Card>
 
         {error && <Banner variant="danger">{error}</Banner>}
       </div>

@@ -129,3 +129,16 @@ scripts/
 - **Network switching fragile**: `switchNetwork` had no error handling — if `sendMessage` threw, the UI state (signal update, modal close) was never reached. Moved signal updates before the `await` and wrapped the message in try/catch so the UI always reflects the switch
 - **Added chains**: Arbitrum Sepolia (421614, `https://sepolia-rollup.arbitrum.io/rpc`) and Hardhat (31337, `http://127.0.0.1:8545`) added to `constants.ts`, `networks.ts` viemChains map, and mock data — all EVM-only
 - Total pre-configured networks: 10 (Ethereum, Polygon, Arbitrum One, Optimism, Base, BSC, Avalanche, Sepolia, Arbitrum Sepolia, Hardhat)
+
+### ETH Node Configuration — Alchemy RPC Provider Key
+
+- **Global Alchemy RPC key**: optional API key stored in `browser.storage.local` as `rpcProviderKey`. When set, all supported chains route through Alchemy (`https://{slug}.g.alchemy.com/v2/{key}`). When not set, viem's built-in chain defaults are used (public RPCs)
+- **Supported chains**: Ethereum, Polygon, Arbitrum, Optimism, Base, Avalanche, Sepolia, Arbitrum Sepolia. BSC and Hardhat use their own defaults
+- **`networks.ts`**: added `ALCHEMY_CHAIN_SLUGS` mapping, in-memory key cache (`loadRpcProviderKey` / `setRpcProviderKeyInMemory`), `getRpcUrl()` helper. `getPublicClient` now uses `getRpcUrl()` — passing `undefined` makes viem use the chain's default transport. Client cache clears when key changes
+- **`signing.ts`**: `getWalletClient` updated to use `getRpcUrl()` instead of hardcoded `network.rpcUrl`
+- **`messages.ts`**: added `GET_RPC_PROVIDER_KEY` and `SET_RPC_PROVIDER_KEY` message types
+- **`index.ts`**: new message handlers for get/set, calls `loadRpcProviderKey()` on startup
+- **Onboarding (`ApiKeySetup.tsx`)**: expanded to two cards — "RPC Provider" (Alchemy) and "Block Explorer" (Etherscan). Each has a "Need a key?" accordion with setup steps and direct links to provider dashboards. Both optional, Continue saves whatever was entered
+- **Settings (`Settings.tsx`)**: "API Keys" card now shows both Alchemy RPC Key and Etherscan API Key as separate rows with edit/remove. Each editing state includes a "Get a key" link to the relevant dashboard
+- **Tx decoder metadata**: `decodeTx` now returns `{ decoded, via }` where `via` is `"etherscan" | "4byte" | "selector" | null`. `simulateTx` returns `{ transfers, via }` where `via` is `"trace" | "fallback"`
+- **Approval page hints**: `GET_PENDING_APPROVAL` response includes `decodedVia`, `simulatedVia`, `hasEtherscanKey`, `hasRpcProviderKey`. When an API key is missing and would have improved the result, a subtle inline hint appears on the tx approval page linking to Settings

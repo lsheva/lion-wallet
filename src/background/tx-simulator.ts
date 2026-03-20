@@ -227,15 +227,23 @@ async function fallbackErc20Parse(
   return transfers;
 }
 
+export type SimulationSource = "trace" | "fallback";
+
+export interface SimulationResult {
+  transfers: TokenTransfer[];
+  via: SimulationSource;
+}
+
 export async function simulateTx(
   txParams: TransactionParams,
   chainId: number,
   account: Address,
   log: string[] = [],
-): Promise<TokenTransfer[]> {
+): Promise<SimulationResult> {
   const traceResult = await simulateViaTrace(txParams, chainId, account, log);
-  if (traceResult) return traceResult;
+  if (traceResult) return { transfers: traceResult, via: "trace" };
 
   log.push("sim: trace failed, trying ERC-20 fallback");
-  return fallbackErc20Parse(txParams, chainId, account, log);
+  const fallback = await fallbackErc20Parse(txParams, chainId, account, log);
+  return { transfers: fallback, via: "fallback" };
 }

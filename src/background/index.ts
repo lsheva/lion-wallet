@@ -9,6 +9,9 @@ import {
   getActiveNetworkId,
   setActiveNetworkId,
   getPublicClient,
+  loadRpcProviderKey,
+  setRpcProviderKeyInMemory,
+  hasRpcProviderKey,
 } from "./networks";
 import { formatEther, numberToHex, type Address } from "viem";
 import { handleRpc, setApprovalCreatedCallback, notifyUnlocked, rejectUnlockWaiters } from "./rpc-handler";
@@ -303,9 +306,15 @@ async function handleMessage(
       let decoded = null;
       let transfers = null;
       let nativeUsdPrice = null;
+      let decodedVia: string | null = null;
+      let simulatedVia: string | null = null;
 
       const isTxMethod = pending.method === "eth_sendTransaction" || pending.method === "eth_signTransaction";
       const _debug: string[] = [];
+
+      const etherscanKeyResult = await browser.storage.local.get("etherscanApiKey");
+      const hasEtherscanKey = !!(etherscanKeyResult.etherscanApiKey as string);
+      const hasAlchemyKey = hasRpcProviderKey();
 
       if (isTxMethod) {
         const txParams = pending.params[0] as TransactionParams;
@@ -325,16 +334,18 @@ async function handleMessage(
           ]);
 
           if (decodeResult.status === "fulfilled") {
-            decoded = decodeResult.value;
-            _debug.push(`decode-result: ${decoded ? decoded.functionName : "null"}`);
+            decoded = decodeResult.value.decoded;
+            decodedVia = decodeResult.value.via;
+            _debug.push(`decode-result: ${decoded ? decoded.functionName : "null"} via=${decodedVia}`);
           } else {
             _debug.push(`decode-result: REJECTED ${decodeResult.reason}`);
           }
 
           let simTransfers: import("../shared/types").TokenTransfer[] = [];
           if (simResult.status === "fulfilled" && simResult.value) {
-            simTransfers = simResult.value;
-            _debug.push(`sim-result: ${simTransfers.length} transfers`);
+            simTransfers = simResult.value.transfers;
+            simulatedVia = simResult.value.via;
+            _debug.push(`sim-result: ${simTransfers.length} transfers via=${simulatedVia}`);
           } else if (simResult.status === "rejected") {
             _debug.push(`sim-result: REJECTED ${simResult.reason}`);
           } else {
@@ -385,6 +396,10 @@ async function handleMessage(
           decoded,
           transfers,
           nativeUsdPrice,
+          decodedVia,
+          simulatedVia,
+          hasEtherscanKey,
+          hasRpcProviderKey: hasAlchemyKey,
           _debug,
         },
       };
@@ -439,6 +454,22 @@ async function handleMessage(
       return { ok: true };
     }
 
+    case "GET_RPC_PROVIDER_KEY": {
+      const result = await browser.storage.local.get("rpcProviderKey");
+      return { ok: true, data: { key: (result.rpcProviderKey as string) ?? null } };
+    }
+
+    case "SET_RPC_PROVIDER_KEY": {
+      if (message.key) {
+        await browser.storage.local.set({ rpcProviderKey: message.key });
+        setRpcProviderKeyInMemory(message.key);
+      } else {
+        await browser.storage.local.remove("rpcProviderKey");
+        setRpcProviderKeyInMemory(null);
+      }
+      return { ok: true };
+    }
+
     default:
       return { ok: false, error: `Unknown message type` };
   }
@@ -455,4 +486,5 @@ browser.runtime.onMessage.addListener(
   },
 );
 
+loadRpcProviderKey().catch(() => {});
 console.log("[background] service worker loaded");

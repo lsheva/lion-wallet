@@ -1,6 +1,6 @@
 import { useState, useEffect } from "preact/hooks";
 import { route } from "preact-router";
-import { ChevronRight, Plus, Lock, Pencil, Check, Key, X } from "lucide-preact";
+import { ChevronRight, Plus, Lock, Pencil, Check, Key, Zap, X, ExternalLink } from "lucide-preact";
 import { Header } from "../components/Header";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -14,6 +14,7 @@ import { NetworkSelector } from "./NetworkSelector";
 function SettingsRow({ label, onClick }: { label: string; onClick?: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
     >
@@ -39,6 +40,7 @@ export function Settings() {
           <div class="divide-y divide-divider">
             {accounts.map((acc, i) => (
               <button
+                type="button"
                 key={acc.address}
                 onClick={() => walletState.switchAccount(i)}
                 class={`flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left
@@ -47,10 +49,11 @@ export function Settings() {
                 <Identicon address={acc.address} size={32} />
                 <div class="flex-1 min-w-0">
                   {editingIndex === i ? (
-                    <div class="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div class="flex items-center gap-1">
                       <input
                         class="text-sm font-semibold text-text-primary bg-transparent outline-none w-full py-0 shadow-[0_1px_0_0_var(--color-accent)]"
                         value={editName}
+                        onClick={(e) => e.stopPropagation()}
                         onInput={(e) => setEditName((e.target as HTMLInputElement).value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -59,9 +62,9 @@ export function Settings() {
                           }
                           if (e.key === "Escape") setEditingIndex(null);
                         }}
-                        autoFocus
                       />
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           walletState.renameAccount(i, editName.trim() || acc.name);
@@ -76,6 +79,7 @@ export function Settings() {
                     <div class="flex items-center gap-1.5">
                       <p class="text-sm font-semibold text-text-primary">{acc.name}</p>
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingIndex(i);
@@ -101,6 +105,7 @@ export function Settings() {
               </button>
             ))}
             <button
+              type="button"
               onClick={() => walletState.addAccount()}
               class="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-base/50 transition-colors cursor-pointer"
             >
@@ -113,7 +118,8 @@ export function Settings() {
         {/* Network */}
         <Card header="Network" padding={false}>
           <button
-            onClick={() => (showNetworkSelector.value = true)}
+            type="button"
+            onClick={() => { showNetworkSelector.value = true; }}
             class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer"
           >
             <div class="flex items-center gap-2">
@@ -125,7 +131,7 @@ export function Settings() {
         </Card>
 
         {/* API Keys */}
-        <EtherscanKeySection />
+        <ApiKeysSection />
 
         {/* Security */}
         <Card header="Security" padding={false}>
@@ -153,19 +159,26 @@ export function Settings() {
   );
 }
 
-function EtherscanKeySection() {
-  const [currentKey, setCurrentKey] = useState<string | null>(null);
+function ApiKeyRow({
+  icon: Icon,
+  label,
+  currentKey,
+  dashboardUrl,
+  dashboardLabel,
+  onSave,
+  onRemove,
+}: {
+  icon: typeof Key;
+  label: string;
+  currentKey: string | null;
+  dashboardUrl: string;
+  dashboardLabel: string;
+  onSave: (key: string) => Promise<void>;
+  onRemove: () => Promise<void>;
+}) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    sendMessage({ type: "GET_ETHERSCAN_KEY" }).then((res) => {
-      if (res.ok && res.data) {
-        setCurrentKey((res.data as { key: string | null }).key);
-      }
-    });
-  }, []);
 
   const maskedKey = currentKey
     ? `${currentKey.slice(0, 4)}${"•".repeat(8)}`
@@ -173,71 +186,131 @@ function EtherscanKeySection() {
 
   const handleSave = async () => {
     setSaving(true);
-    const trimmed = editValue.trim();
-    await sendMessage({ type: "SET_ETHERSCAN_KEY", key: trimmed });
-    setCurrentKey(trimmed || null);
+    await onSave(editValue.trim());
     setEditing(false);
     setSaving(false);
   };
 
   const handleRemove = async () => {
     setSaving(true);
-    await sendMessage({ type: "SET_ETHERSCAN_KEY", key: "" });
-    setCurrentKey(null);
+    await onRemove();
     setEditing(false);
     setEditValue("");
     setSaving(false);
   };
 
+  if (editing) {
+    return (
+      <div class="px-4 py-3 space-y-2">
+        <Input
+          label={label}
+          placeholder="Paste your API key"
+          value={editValue}
+          onInput={setEditValue}
+          mono
+          autoFocus
+        />
+        <a
+          href={dashboardUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-accent transition-colors"
+        >
+          {dashboardLabel}
+          <ExternalLink size={10} />
+        </a>
+        <div class="flex gap-2">
+          <Button size="sm" onClick={handleSave} loading={saving}>
+            Save
+          </Button>
+          {currentKey && (
+            <Button size="sm" variant="ghost" onClick={handleRemove} loading={saving}>
+              Remove
+            </Button>
+          )}
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            class="ml-auto text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setEditValue(currentKey ?? "");
+        setEditing(true);
+      }}
+      class="flex items-center justify-between w-full px-4 py-3 cursor-pointer text-left hover:bg-base/50 transition-colors"
+    >
+      <div class="flex items-center gap-2">
+        <Icon size={16} class="text-text-tertiary" />
+        <div>
+          <p class="text-sm text-text-primary">{label}</p>
+          <p class="text-xs font-mono text-text-tertiary">{maskedKey}</p>
+        </div>
+      </div>
+      <ChevronRight size={16} class="text-text-tertiary" />
+    </button>
+  );
+}
+
+function ApiKeysSection() {
+  const [alchemyKey, setAlchemyKey] = useState<string | null>(null);
+  const [etherscanKey, setEtherscanKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    sendMessage({ type: "GET_RPC_PROVIDER_KEY" }).then((res) => {
+      if (res.ok && res.data) {
+        setAlchemyKey((res.data as { key: string | null }).key);
+      }
+    });
+    sendMessage({ type: "GET_ETHERSCAN_KEY" }).then((res) => {
+      if (res.ok && res.data) {
+        setEtherscanKey((res.data as { key: string | null }).key);
+      }
+    });
+  }, []);
+
   return (
     <Card header="API Keys" padding={false}>
-      <div class="px-4 py-3">
-        {editing ? (
-          <div class="space-y-2">
-            <Input
-              label="Etherscan API Key"
-              placeholder="Paste your API key"
-              value={editValue}
-              onInput={setEditValue}
-              mono
-              autoFocus
-            />
-            <div class="flex gap-2">
-              <Button size="sm" onClick={handleSave} loading={saving}>
-                Save
-              </Button>
-              {currentKey && (
-                <Button size="sm" variant="ghost" onClick={handleRemove} loading={saving}>
-                  Remove
-                </Button>
-              )}
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                class="ml-auto text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => {
-              setEditValue(currentKey ?? "");
-              setEditing(true);
-            }}
-            class="flex items-center justify-between w-full cursor-pointer text-left"
-          >
-            <div class="flex items-center gap-2">
-              <Key size={16} class="text-text-tertiary" />
-              <div>
-                <p class="text-sm text-text-primary">Etherscan API Key</p>
-                <p class="text-xs font-mono text-text-tertiary">{maskedKey}</p>
-              </div>
-            </div>
-            <ChevronRight size={16} class="text-text-tertiary" />
-          </button>
-        )}
+      <div class="divide-y divide-divider">
+        <ApiKeyRow
+          icon={Zap}
+          label="Alchemy RPC Key"
+          currentKey={alchemyKey}
+          dashboardUrl="https://dashboard.alchemy.com/"
+          dashboardLabel="Get a key"
+          onSave={async (key) => {
+            await sendMessage({ type: "SET_RPC_PROVIDER_KEY", key });
+            setAlchemyKey(key || null);
+          }}
+          onRemove={async () => {
+            await sendMessage({ type: "SET_RPC_PROVIDER_KEY", key: "" });
+            setAlchemyKey(null);
+          }}
+        />
+        <ApiKeyRow
+          icon={Key}
+          label="Etherscan API Key"
+          currentKey={etherscanKey}
+          dashboardUrl="https://etherscan.io/myapikey"
+          dashboardLabel="Get a key"
+          onSave={async (key) => {
+            await sendMessage({ type: "SET_ETHERSCAN_KEY", key });
+            setEtherscanKey(key || null);
+          }}
+          onRemove={async () => {
+            await sendMessage({ type: "SET_ETHERSCAN_KEY", key: "" });
+            setEtherscanKey(null);
+          }}
+        />
       </div>
     </Card>
   );
