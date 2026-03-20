@@ -1,4 +1,5 @@
 import { toErrorMessage } from "@shared/format";
+import { getStorageAt } from "viem/actions";
 import browser from "webextension-polyfill";
 import { bgLog } from "./log";
 import { getPublicClient } from "./networks";
@@ -131,7 +132,7 @@ export async function resolveImplementation(
   if (!impl) {
     try {
       const client = getPublicClient(chainId);
-      const slot = await client.getStorageAt({
+      const slot = await getStorageAt(client, {
         address: address as `0x${string}`,
         slot: EIP1967_IMPL_SLOT,
       });

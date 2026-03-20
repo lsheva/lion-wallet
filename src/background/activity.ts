@@ -1,4 +1,5 @@
 import { type Abi, decodeEventLog, erc20Abi, type Hex } from "viem";
+import { getBlockNumber, getTransaction, readContract } from "viem/actions";
 import browser from "webextension-polyfill";
 import type {
   ActivityItem,
@@ -68,12 +69,12 @@ async function resolveTokenMeta(
     const client = getPublicClient(chainId);
     const calls = await Promise.allSettled(
       missing.flatMap((addr) => [
-        client.readContract({
+        readContract(client, {
           address: addr as `0x${string}`,
           abi: erc20Abi,
           functionName: "symbol",
         }),
-        client.readContract({
+        readContract(client, {
           address: addr as `0x${string}`,
           abi: erc20Abi,
           functionName: "decimals",
@@ -255,125 +256,166 @@ function parseErc20TransferArgs(args: unknown): { from: string; to: string; valu
   }
 }
 
+interface RawTransferRow {
+  token: string;
+  from: string;
+  to: string;
+  value: bigint;
+}
+
+function collectContractAddresses(
+  txItems: Array<Record<string, string>>,
+  eventsByHash: Map<string, RawEventLog[]>,
+): Set<string> {
+  const addrs = new Set<string>();
+  for (const tx of txItems) {
+    if (tx.to) addrs.add(tx.to.toLowerCase());
+  }
+  for (const logs of eventsByHash.values()) {
+    for (const log of logs) {
+      if (log.address) addrs.add(log.address.toLowerCase());
+    }
+  }
+  return addrs;
+}
+
+function decodeTxInput(
+  tx: Record<string, string>,
+  abiMap: Map<string, unknown[]>,
+): DecodedCall | null {
+  const txData = tx.input ?? tx.data;
+  if (!txData || txData === "0x" || txData.length < 10 || !tx.to) return null;
+  const abi = abiMap.get(tx.to.toLowerCase());
+  if (!abi) return null;
+  try {
+    return tryDecode(abi as unknown[], txData as Hex);
+  } catch {
+    return null;
+  }
+}
+
+function processLogEntry(
+  log: RawEventLog,
+  abiMap: Map<string, unknown[]>,
+): { events: DecodedEvent[]; transfers: RawTransferRow[]; gotTransfer: boolean } {
+  const events: DecodedEvent[] = [];
+  const transfers: RawTransferRow[] = [];
+  let gotTransfer = false;
+
+  if (!log.topics?.length) return { events, transfers, gotTransfer };
+  const logAddr = log.address.toLowerCase();
+  const logAbi = abiMap.get(logAddr);
+
+  if (logAbi) {
+    try {
+      const dec = decodeEventLog({
+        abi: logAbi as Abi,
+        data: log.data as `0x${string}`,
+        topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
+      });
+      const abiItem = (
+        logAbi as Array<{
+          type?: string;
+          name?: string;
+          inputs?: Array<{ name: string; type: string }>;
+        }>
+      ).filter((item) => item.type === "event" && item.name === dec.eventName);
+      const eventDef = abiItem[0];
+      const args: DecodedArg[] = dec.args
+        ? Object.entries(dec.args)
+            .filter(([key]) => Number.isNaN(Number(key)))
+            .map(([key, val], i) => ({
+              name: eventDef?.inputs?.[i]?.name ?? key,
+              type: eventDef?.inputs?.[i]?.type ?? "unknown",
+              value: stringify(val),
+            }))
+        : [];
+      events.push({ name: dec.eventName ?? "Unknown", args, contract: logAddr });
+
+      if (dec.eventName === "Transfer") {
+        const tfer = parseErc20TransferArgs(dec.args);
+        if (tfer) {
+          gotTransfer = true;
+          transfers.push({ token: logAddr, from: tfer.from, to: tfer.to, value: tfer.value });
+        }
+      }
+    } catch {
+      /* try erc-20 fallback below */
+    }
+  }
+
+  if (!gotTransfer && log.topics.length === 3) {
+    try {
+      const dec = decodeEventLog({
+        abi: erc20Abi,
+        data: log.data as `0x${string}`,
+        topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
+      });
+      if (dec.eventName === "Transfer") {
+        const tfer = parseErc20TransferArgs(dec.args);
+        if (tfer) {
+          gotTransfer = true;
+          transfers.push({ token: logAddr, from: tfer.from, to: tfer.to, value: tfer.value });
+        }
+      }
+    } catch {
+      /* not standard Transfer */
+    }
+  }
+
+  return { events, transfers, gotTransfer };
+}
+
+function attachTransfers(
+  items: ActivityItem[],
+  rawByTxIndex: RawTransferRow[][],
+  tokenMeta: Map<string, TokenMeta>,
+  userAddress: string,
+): void {
+  const addrLower = userAddress.toLowerCase();
+  for (let i = 0; i < items.length; i++) {
+    const raw = rawByTxIndex[i] ?? [];
+    items[i]!.transfers = raw.map((t) => {
+      const info = tokenMeta.get(t.token);
+      return {
+        token: t.token,
+        symbol: info?.symbol ?? "???",
+        amount: String(t.value),
+        decimals: info?.decimals ?? 18,
+        dir: t.from.toLowerCase() === addrLower ? "out" : "in",
+      };
+    });
+  }
+}
+
 async function enrichWithDecoding(
   txItems: Array<Record<string, string>>,
   eventsByHash: Map<string, RawEventLog[]>,
   chainId: number,
   userAddress: string,
 ): Promise<ActivityItem[]> {
-  const addrLower = userAddress.toLowerCase();
-
-  const contractAddrs = new Set<string>();
-  for (const tx of txItems) {
-    if (tx.to) contractAddrs.add(tx.to.toLowerCase());
-  }
-  for (const logs of eventsByHash.values()) {
-    for (const log of logs) {
-      if (log.address) contractAddrs.add(log.address.toLowerCase());
-    }
-  }
+  const contractAddrs = collectContractAddresses(txItems, eventsByHash);
 
   bgLog("[activity] resolving ABIs for", contractAddrs.size, "contracts");
   const abiMap = await resolveAbis(chainId, [...contractAddrs]);
   bgLog("[activity] resolved", abiMap.size, "ABIs");
 
   const transferTokens = new Set<string>();
-
   const items: ActivityItem[] = [];
-  const rawByTxIndex: Array<Array<{ token: string; from: string; to: string; value: bigint }>> = [];
+  const rawByTxIndex: RawTransferRow[][] = [];
 
   for (const tx of txItems) {
     const hash = (tx.hash ?? "").toLowerCase();
-    const rawRows: Array<{ token: string; from: string; to: string; value: bigint }> = [];
+    const decoded = decodeTxInput(tx, abiMap);
+    const allEvents: DecodedEvent[] = [];
+    const rawRows: RawTransferRow[] = [];
 
-    let decoded: DecodedCall | null = null;
-    const txData = tx.input ?? tx.data;
-    if (txData && txData !== "0x" && txData.length >= 10 && tx.to) {
-      const abi = abiMap.get(tx.to.toLowerCase());
-      if (abi) {
-        try {
-          decoded = tryDecode(abi as unknown[], txData as Hex);
-        } catch {
-          /* decode failed */
-        }
-      }
-    }
-
-    const events: DecodedEvent[] = [];
-    const txLogs = eventsByHash.get(hash) ?? [];
-
-    for (const log of txLogs) {
-      if (!log.topics?.length) continue;
-      const logAddr = log.address.toLowerCase();
-      const logAbi = abiMap.get(logAddr);
-      let gotTransferFromFullAbi = false;
-
-      if (logAbi) {
-        try {
-          const dec = decodeEventLog({
-            abi: logAbi as Abi,
-            data: log.data as `0x${string}`,
-            topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
-          });
-          const abiItem = (
-            logAbi as Array<{
-              type?: string;
-              name?: string;
-              inputs?: Array<{ name: string; type: string }>;
-            }>
-          ).filter((item) => item.type === "event" && item.name === dec.eventName);
-          const eventDef = abiItem[0];
-          const args: DecodedArg[] = dec.args
-            ? Object.entries(dec.args)
-                .filter(([key]) => Number.isNaN(Number(key)))
-                .map(([key, val], i) => ({
-                  name: eventDef?.inputs?.[i]?.name ?? key,
-                  type: eventDef?.inputs?.[i]?.type ?? "unknown",
-                  value: stringify(val),
-                }))
-            : [];
-          events.push({ name: dec.eventName ?? "Unknown", args, contract: logAddr });
-
-          if (dec.eventName === "Transfer") {
-            const tfer = parseErc20TransferArgs(dec.args);
-            if (tfer) {
-              gotTransferFromFullAbi = true;
-              transferTokens.add(logAddr);
-              rawRows.push({
-                token: logAddr,
-                from: tfer.from,
-                to: tfer.to,
-                value: tfer.value,
-              });
-            }
-          }
-        } catch {
-          /* try erc-20 */
-        }
-      }
-
-      if (!gotTransferFromFullAbi && log.topics.length === 3) {
-        try {
-          const dec = decodeEventLog({
-            abi: erc20Abi,
-            data: log.data as `0x${string}`,
-            topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
-          });
-          if (dec.eventName === "Transfer") {
-            const tfer = parseErc20TransferArgs(dec.args);
-            if (tfer) {
-              transferTokens.add(logAddr);
-              rawRows.push({
-                token: logAddr,
-                from: tfer.from,
-                to: tfer.to,
-                value: tfer.value,
-              });
-            }
-          }
-        } catch {
-          /* not standard Transfer */
-        }
+    for (const log of eventsByHash.get(hash) ?? []) {
+      const { events, transfers } = processLogEntry(log, abiMap);
+      allEvents.push(...events);
+      for (const t of transfers) {
+        transferTokens.add(t.token);
+        rawRows.push(t);
       }
     }
 
@@ -390,7 +432,7 @@ async function enrichWithDecoding(
       block: Number(tx.blockNumber) || 0,
       transfers: [],
       decoded,
-      events,
+      events: allEvents,
     });
   }
 
@@ -399,19 +441,7 @@ async function enrichWithDecoding(
       ? await resolveTokenMeta(chainId, [...transferTokens])
       : new Map<string, TokenMeta>();
 
-  for (let i = 0; i < items.length; i++) {
-    const raw = rawByTxIndex[i] ?? [];
-    items[i]!.transfers = raw.map((t) => {
-      const info = tokenMeta.get(t.token);
-      return {
-        token: t.token,
-        symbol: info?.symbol ?? "???",
-        amount: String(t.value),
-        decimals: info?.decimals ?? 18,
-        dir: t.from.toLowerCase() === addrLower ? "out" : "in",
-      };
-    });
-  }
+  attachTransfers(items, rawByTxIndex, tokenMeta, userAddress);
 
   const withTransfers = items.filter((i) => i.transfers.length > 0).length;
   const withDecoded = items.filter((i) => i.decoded).length;
@@ -587,7 +617,7 @@ async function fetchRpcData(
   chainId: number,
 ): Promise<{ hashes: string[]; transfersByHash: Record<string, TokenMovement[]> }> {
   const client = getPublicClient(chainId);
-  const latest = await client.getBlockNumber();
+  const latest = await getBlockNumber(client);
   const padded = `0x${address.slice(2).toLowerCase().padStart(64, "0")}` as `0x${string}`;
 
   let allLogs: RpcLog[] = [];
@@ -697,7 +727,7 @@ async function enrichHashes(
   if (hashes.length === 0) return [];
   const client = getPublicClient(chainId);
   const results = await Promise.allSettled(
-    hashes.map((h) => client.getTransaction({ hash: h as `0x${string}` })),
+    hashes.map((h) => getTransaction(client, { hash: h as `0x${string}` })),
   );
   const items: ActivityItem[] = [];
   for (const r of results) {
@@ -734,6 +764,114 @@ export interface FetchActivityOptions {
   loadMore?: boolean;
 }
 
+async function drainPendingHashes(
+  entry: CacheEntry,
+  cache: Record<string, CacheEntry>,
+  k: string,
+  chainId: number,
+): Promise<ActivityResult> {
+  bgLog("[activity] enriching", entry.pendingHashes.length, "pending hashes");
+  const batch = entry.pendingHashes.slice(0, ENRICH_BATCH);
+  const rest = entry.pendingHashes.slice(ENRICH_BATCH);
+  const pt = entry.pendingTransfers ?? {};
+  const enriched = await enrichHashes(batch, chainId, pt);
+  const cleanPt = { ...pt };
+  for (const h of batch) delete cleanPt[h];
+  const merged = dedup([...entry.items, ...enriched]);
+  cache[k] = { ...entry, items: merged, pendingHashes: rest, pendingTransfers: cleanPt };
+  await persist();
+  return { items: merged, hasMore: rest.length > 0, source: entry.source };
+}
+
+async function fetchOlderEtherscan(
+  address: string,
+  chainId: number,
+  entry: CacheEntry,
+  cache: Record<string, CacheEntry>,
+  k: string,
+): Promise<ActivityResult> {
+  if (entry.source !== "etherscan" || !entry.items.length) {
+    bgLog("[activity] loadMore: no etherscan cache");
+    return {
+      items: entry.items,
+      hasMore: entry.etherscanHasMore === true,
+      source: entry.source ?? "cache",
+    };
+  }
+
+  const oldest = entry.items.reduce(
+    (m, i) => (i.block > 0 && i.block < m ? i.block : m),
+    Number.MAX_SAFE_INTEGER,
+  );
+  if (oldest === Number.MAX_SAFE_INTEGER || oldest <= 1) {
+    cache[k] = { ...entry, etherscanHasMore: false };
+    await persist();
+    return { items: entry.items, hasMore: false, source: "etherscan" };
+  }
+
+  const phase1 = await fetchEtherscanTxlist(address, chainId, { endBlock: oldest - 1 });
+  if (!phase1 || phase1.txResults.length === 0) {
+    cache[k] = { ...entry, etherscanHasMore: false };
+    await persist();
+    bgLog("[activity] loadMore: no older txs");
+    return { items: entry.items, hasMore: false, source: "etherscan" };
+  }
+
+  const merged = dedup([...entry.items, ...phase1.items]);
+  const fullPage = phase1.txResults.length >= FETCH_PAGE_SIZE;
+  cache[k] = {
+    ...entry,
+    items: merged,
+    pendingHashes: [],
+    pendingTransfers: {},
+    source: "etherscan",
+    etherscanHasMore: fullPage,
+  };
+  await persist();
+  enrichEtherscanAsync(address, chainId, phase1).catch((e) => {
+    bgLog("[activity] enrichEtherscanAsync (loadMore) failed:", e);
+  });
+  bgLog("[activity] loadMore merged", merged.length, "items, hasMore:", fullPage);
+  return { items: merged, hasMore: fullPage, source: "etherscan" };
+}
+
+async function fetchViaRpc(
+  address: string,
+  chainId: number,
+  existingItems: ActivityItem[],
+  cache: Record<string, CacheEntry>,
+  k: string,
+): Promise<ActivityResult> {
+  bgLog("[activity] trying rpc fallback...");
+  const { hashes, transfersByHash } = await fetchRpcData(address, chainId);
+  bgLog(
+    "[activity] rpc found",
+    hashes.length,
+    "hashes,",
+    Object.keys(transfersByHash).length,
+    "with transfers",
+  );
+  const existingSet = new Set(existingItems.map((i) => i.hash));
+  const newHashes = hashes.filter((h) => !existingSet.has(h));
+  const toEnrich = newHashes.slice(0, ENRICH_BATCH);
+  const pendingHashes = newHashes.slice(ENRICH_BATCH);
+  const enriched = await enrichHashes(toEnrich, chainId, transfersByHash);
+  const pendingTransfers: Record<string, TokenMovement[]> = {};
+  for (const h of pendingHashes) {
+    if (transfersByHash[h]) pendingTransfers[h] = transfersByHash[h];
+  }
+  const merged = dedup([...existingItems, ...enriched]);
+  cache[k] = {
+    items: merged,
+    pendingHashes,
+    pendingTransfers,
+    source: "rpc",
+    etherscanHasMore: false,
+  };
+  await persist();
+  return { items: merged, hasMore: pendingHashes.length > 0, source: "rpc" };
+}
+
 export async function fetchActivity(
   address: string,
   chainId: number,
@@ -743,20 +881,10 @@ export async function fetchActivity(
   bgLog("[activity] fetchActivity", loadMore ? "loadMore" : "refresh", address, "chain", chainId);
   const cache = await loadCache();
   const k = actCacheKey(address, chainId);
-  let entry = cache[k];
+  const entry = cache[k];
 
   if (entry?.pendingHashes.length) {
-    bgLog("[activity] enriching", entry.pendingHashes.length, "pending hashes");
-    const batch = entry.pendingHashes.slice(0, ENRICH_BATCH);
-    const rest = entry.pendingHashes.slice(ENRICH_BATCH);
-    const pt = entry.pendingTransfers ?? {};
-    const enriched = await enrichHashes(batch, chainId, pt);
-    const cleanPt = { ...pt };
-    for (const h of batch) delete cleanPt[h];
-    const merged = dedup([...entry.items, ...enriched]);
-    cache[k] = { ...entry, items: merged, pendingHashes: rest, pendingTransfers: cleanPt };
-    await persist();
-    return { items: merged, hasMore: rest.length > 0, source: entry.source };
+    return drainPendingHashes(entry, cache, k, chainId);
   }
 
   if (!loadMore) {
@@ -769,51 +897,8 @@ export async function fetchActivity(
     lastFetchTs.set(k, Date.now());
   }
 
-  if (loadMore) {
-    entry = cache[k];
-    if (entry?.source !== "etherscan" || !entry.items.length) {
-      bgLog("[activity] loadMore: no etherscan cache");
-      return {
-        items: entry?.items ?? [],
-        hasMore: entry?.etherscanHasMore === true,
-        source: entry?.source ?? "cache",
-      };
-    }
-
-    const oldest = entry.items.reduce(
-      (m, i) => (i.block > 0 && i.block < m ? i.block : m),
-      Number.MAX_SAFE_INTEGER,
-    );
-    if (oldest === Number.MAX_SAFE_INTEGER || oldest <= 1) {
-      cache[k] = { ...entry, etherscanHasMore: false };
-      await persist();
-      return { items: entry.items, hasMore: false, source: "etherscan" };
-    }
-
-    const phase1More = await fetchEtherscanTxlist(address, chainId, { endBlock: oldest - 1 });
-    if (!phase1More || phase1More.txResults.length === 0) {
-      cache[k] = { ...entry, etherscanHasMore: false };
-      await persist();
-      bgLog("[activity] loadMore: no older txs");
-      return { items: entry.items, hasMore: false, source: "etherscan" };
-    }
-
-    const mergedMore = dedup([...entry.items, ...phase1More.items]);
-    const fullPage = phase1More.txResults.length >= FETCH_PAGE_SIZE;
-    cache[k] = {
-      ...entry,
-      items: mergedMore,
-      pendingHashes: [],
-      pendingTransfers: {},
-      source: "etherscan",
-      etherscanHasMore: fullPage,
-    };
-    await persist();
-    enrichEtherscanAsync(address, chainId, phase1More).catch((e) => {
-      bgLog("[activity] enrichEtherscanAsync (loadMore) failed:", e);
-    });
-    bgLog("[activity] loadMore merged", mergedMore.length, "items, hasMore:", fullPage);
-    return { items: mergedMore, hasMore: fullPage, source: "etherscan" };
+  if (loadMore && entry) {
+    return fetchOlderEtherscan(address, chainId, entry, cache, k);
   }
 
   try {
@@ -842,34 +927,7 @@ export async function fetchActivity(
   }
 
   try {
-    bgLog("[activity] trying rpc fallback...");
-    const { hashes, transfersByHash } = await fetchRpcData(address, chainId);
-    bgLog(
-      "[activity] rpc found",
-      hashes.length,
-      "hashes,",
-      Object.keys(transfersByHash).length,
-      "with transfers",
-    );
-    const existingSet = new Set((entry?.items ?? []).map((i) => i.hash));
-    const newHashes = hashes.filter((h) => !existingSet.has(h));
-    const toEnrich = newHashes.slice(0, ENRICH_BATCH);
-    const pendingHashes = newHashes.slice(ENRICH_BATCH);
-    const enriched = await enrichHashes(toEnrich, chainId, transfersByHash);
-    const pendingTransfers: Record<string, TokenMovement[]> = {};
-    for (const h of pendingHashes) {
-      if (transfersByHash[h]) pendingTransfers[h] = transfersByHash[h];
-    }
-    const merged = dedup([...(entry?.items ?? []), ...enriched]);
-    cache[k] = {
-      items: merged,
-      pendingHashes,
-      pendingTransfers,
-      source: "rpc",
-      etherscanHasMore: false,
-    };
-    await persist();
-    return { items: merged, hasMore: pendingHashes.length > 0, source: "rpc" };
+    return await fetchViaRpc(address, chainId, entry?.items ?? [], cache, k);
   } catch (e) {
     bgLog("[activity] rpc exception:", e);
   }

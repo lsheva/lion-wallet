@@ -30,23 +30,15 @@
   --color-warning-text: #c2410c;
   --color-danger-bg: #fef2f2;
 
-  /* Font families */
+  /* Font families — Safari-only extension, so SF system fonts are guaranteed */
   --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  --font-mono: "SF Mono", ui-monospace, monospace;
 
   /* Radii */
   --radius-card: 12px;
   --radius-btn: 10px;
   --radius-chip: 8px;
   --radius-full: 9999px;
-}
-
-@font-face {
-  font-family: "JetBrains Mono";
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 }
 
 @layer base {

@@ -1,14 +1,13 @@
 import {
   type Address,
-  createWalletClient,
   formatEther,
   formatGwei,
   type Hex,
-  http,
   parseGwei,
 } from "viem";
+import { estimateGas, getBlock, getTransactionCount, sendTransaction as viemSendTx } from "viem/actions";
 import type { GasPresets, GasSpeed, SerializedAccount, TransactionParams } from "../shared/types";
-import { getPublicClient, getRpcUrl } from "./networks";
+import { getPublicClient } from "./networks";
 import * as wallet from "./wallet";
 
 type Account = ReturnType<typeof wallet.getSigner> | ReturnType<typeof wallet.getSignerFromKey>;
@@ -26,15 +25,6 @@ export function getAccountForSigning(
   return wallet.getSigner(mnemonic, accountIndex);
 }
 
-function getWalletClient(account: Account, chainId: number) {
-  const chain = getPublicClient(chainId).chain;
-  return createWalletClient({
-    account,
-    chain,
-    transport: http(getRpcUrl(chainId)),
-  });
-}
-
 export async function estimateGasPresets(
   chainId: number,
   tx: TransactionParams,
@@ -43,13 +33,13 @@ export async function estimateGasPresets(
   const client = getPublicClient(chainId);
 
   const [gasLimit, block, priorityFee] = await Promise.all([
-    client.estimateGas({
+    estimateGas(client, {
       account: tx.from ?? fromAddress,
       to: tx.to,
       value: tx.value ? BigInt(tx.value) : undefined,
       data: tx.data,
     }),
-    client.getBlock({ blockTag: "latest" }),
+    getBlock(client, { blockTag: "latest" }),
     client.request({ method: "eth_maxPriorityFeePerGas" } as never).catch(() => "0x59682F00"),
   ]);
 
@@ -91,11 +81,12 @@ export async function sendTransaction(
   params: TransactionParams,
   gasSpeed: GasSpeed = "normal",
 ): Promise<Hex> {
-  const client = getWalletClient(account, chainId);
+  const client = getPublicClient(chainId);
   const presets = await estimateGasPresets(chainId, params, account.address);
   const gas = presets[gasSpeed];
 
-  return client.sendTransaction({
+  return viemSendTx(client, {
+    account,
     to: params.to,
     value: params.value ? BigInt(params.value) : undefined,
     data: params.data,
@@ -113,13 +104,13 @@ export async function signTransaction(
   params: TransactionParams,
   gasSpeed: GasSpeed = "normal",
 ): Promise<Hex> {
-  const publicClient = getPublicClient(chainId);
+  const client = getPublicClient(chainId);
   const presets = await estimateGasPresets(chainId, params, account.address);
   const gas = presets[gasSpeed];
 
   const nonce = params.nonce
     ? Number(params.nonce)
-    : await publicClient.getTransactionCount({ address: account.address });
+    : await getTransactionCount(client, { address: account.address });
 
   return account.signTransaction({
     to: params.to,

@@ -1,4 +1,5 @@
 import { type Address, formatEther, type Hex, numberToHex } from "viem";
+import { getBalance } from "viem/actions";
 import type { MessageResponse } from "../../shared/messages";
 import type { SerializedAccount, WalletState } from "../../shared/types";
 import { broadcastEvent } from "../broadcast";
@@ -209,7 +210,7 @@ export async function handleGetBalance(
   chainId: number,
 ): Promise<MessageResponse> {
   const client = getPublicClient(chainId);
-  const balance = await client.getBalance({ address });
+  const balance = await getBalance(client, { address });
   const cfg = getNetworkConfig(chainId);
   const isTestnet = cfg?.chain.testnet === true;
   const nativeUsdPrice = isTestnet ? 0 : await fetchNativePrice(chainId);

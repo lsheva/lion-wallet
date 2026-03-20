@@ -1,4 +1,5 @@
 import { type Address, decodeFunctionData, formatUnits } from "viem";
+import { readContract } from "viem/actions";
 import type { TokenTransfer, TransactionParams } from "../shared/types";
 import { getPublicClient } from "./networks";
 
@@ -158,9 +159,9 @@ async function fetchTokenMeta(address: Address, chainId: number): Promise<TokenM
 
   try {
     const [symbolResult, nameResult, decimalsResult] = await Promise.allSettled([
-      client.readContract({ address, abi: erc20Abi, functionName: "symbol" }),
-      client.readContract({ address, abi: erc20Abi, functionName: "name" }),
-      client.readContract({ address, abi: erc20Abi, functionName: "decimals" }),
+      readContract(client, { address, abi: erc20Abi, functionName: "symbol" }),
+      readContract(client, { address, abi: erc20Abi, functionName: "name" }),
+      readContract(client, { address, abi: erc20Abi, functionName: "decimals" }),
     ]);
 
     const meta: TokenMeta = {

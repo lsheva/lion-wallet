@@ -1,32 +1,4 @@
-import { createPublicClient, http, type PublicClient } from "viem";
-import {
-  arbitrum,
-  arbitrumSepolia,
-  astar,
-  avalanche,
-  avalancheFuji,
-  base,
-  baseSepolia,
-  blast,
-  blastSepolia,
-  celo,
-  fantom,
-  gnosis,
-  linea,
-  lineaSepolia,
-  mainnet,
-  mantle,
-  moonbeam,
-  optimism,
-  optimismSepolia,
-  polygon,
-  polygonAmoy,
-  polygonZkEvm,
-  scroll,
-  scrollSepolia,
-  sepolia,
-  zkSync,
-} from "viem/chains";
+import { createClient, type Client, http } from "viem";
 import browser from "webextension-polyfill";
 import { DEFAULT_NETWORK_ID, NETWORK_BY_ID, NETWORKS } from "../shared/constants";
 import type { NetworkConfig } from "../shared/types";
@@ -35,32 +7,32 @@ const STORAGE_KEY = "activeNetworkId";
 const RPC_PROVIDER_STORAGE_KEY = "rpcProviderKey";
 
 const ALCHEMY_CHAIN_SLUGS: Record<number, string> = {
-  [mainnet.id]: "eth-mainnet",
-  [polygon.id]: "polygon-mainnet",
-  [arbitrum.id]: "arb-mainnet",
-  [optimism.id]: "opt-mainnet",
-  [base.id]: "base-mainnet",
-  [avalanche.id]: "avax-mainnet",
-  [blast.id]: "blast-mainnet",
-  [linea.id]: "linea-mainnet",
-  [scroll.id]: "scroll-mainnet",
-  [zkSync.id]: "zksync-mainnet",
-  [mantle.id]: "mantle-mainnet",
-  [celo.id]: "celo-mainnet",
-  [gnosis.id]: "gnosis-mainnet",
-  [polygonZkEvm.id]: "polygonzkevm-mainnet",
-  [fantom.id]: "fantom-mainnet",
-  [moonbeam.id]: "moonbeam-mainnet",
-  [astar.id]: "astar-mainnet",
-  [sepolia.id]: "eth-sepolia",
-  [arbitrumSepolia.id]: "arb-sepolia",
-  [baseSepolia.id]: "base-sepolia",
-  [optimismSepolia.id]: "opt-sepolia",
-  [polygonAmoy.id]: "polygon-amoy",
-  [avalancheFuji.id]: "avax-fuji",
-  [blastSepolia.id]: "blast-sepolia",
-  [lineaSepolia.id]: "linea-sepolia",
-  [scrollSepolia.id]: "scroll-sepolia",
+  [1]: "eth-mainnet",
+  [137]: "polygon-mainnet",
+  [42161]: "arb-mainnet",
+  [10]: "opt-mainnet",
+  [8453]: "base-mainnet",
+  [43114]: "avax-mainnet",
+  [81457]: "blast-mainnet",
+  [59144]: "linea-mainnet",
+  [534352]: "scroll-mainnet",
+  [324]: "zksync-mainnet",
+  [5000]: "mantle-mainnet",
+  [42220]: "celo-mainnet",
+  [100]: "gnosis-mainnet",
+  [1101]: "polygonzkevm-mainnet",
+  [250]: "fantom-mainnet",
+  [1284]: "moonbeam-mainnet",
+  [592]: "astar-mainnet",
+  [11155111]: "eth-sepolia",
+  [421614]: "arb-sepolia",
+  [84532]: "base-sepolia",
+  [11155420]: "opt-sepolia",
+  [80002]: "polygon-amoy",
+  [43113]: "avax-fuji",
+  [168587773]: "blast-sepolia",
+  [59141]: "linea-sepolia",
+  [534351]: "scroll-sepolia",
 };
 
 let rpcProviderKey: string | null = null;
@@ -87,7 +59,7 @@ export function getRpcUrl(chainId: number): string | undefined {
   return undefined;
 }
 
-const clientCache = new Map<number, PublicClient>();
+const clientCache = new Map<number, Client>();
 
 export function getNetworkConfig(chainId: number): NetworkConfig | undefined {
   return NETWORK_BY_ID.get(chainId);
@@ -109,17 +81,16 @@ export async function setActiveNetworkId(chainId: number): Promise<void> {
   await browser.storage.local.set({ [STORAGE_KEY]: chainId });
 }
 
-export function getPublicClient(chainId: number) {
+export function getPublicClient(chainId: number): Client {
   const cached = clientCache.get(chainId);
   if (cached) return cached;
 
   const network = NETWORK_BY_ID.get(chainId);
   if (!network) throw new Error(`Unknown chain ID: ${chainId}`);
 
-  const client = createPublicClient({
+  const client = createClient({
     chain: network.chain,
     transport: http(getRpcUrl(chainId), { batch: true }),
-    batch: { multicall: true },
   });
 
   clientCache.set(chainId, client);
