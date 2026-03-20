@@ -142,3 +142,12 @@ scripts/
 - **Settings (`Settings.tsx`)**: "API Keys" card now shows both Alchemy RPC Key and Etherscan API Key as separate rows with edit/remove. Each editing state includes a "Get a key" link to the relevant dashboard
 - **Tx decoder metadata**: `decodeTx` now returns `{ decoded, via }` where `via` is `"etherscan" | "4byte" | "selector" | null`. `simulateTx` returns `{ transfers, via }` where `via` is `"trace" | "fallback"`
 - **Approval page hints**: `GET_PENDING_APPROVAL` response includes `decodedVia`, `simulatedVia`, `hasEtherscanKey`, `hasRpcProviderKey`. When an API key is missing and would have improved the result, a subtle inline hint appears on the tx approval page linking to Settings
+
+### Toolchain — Migrate to tsgo (Go-based TypeScript compiler)
+
+- **Replaced `tsc` with `tsgo`** for type checking via `@typescript/native-preview` (v7.0.0-dev.20260319.1) — the native Go port of the TypeScript compiler by Microsoft
+- **`package.json`**: `build` script changed from `tsc -b` to `tsgo --noEmit`; added dedicated `typecheck` script (`tsgo --noEmit`)
+- **`tsconfig.json`**: removed deprecated `baseUrl` option; updated `paths` values to use relative `./` prefixes (required by tsgo/TS7)
+- **Performance**: type checking ~4.3x faster (0.9s vs 4.0s on this codebase)
+- **`typescript` (5.9.3) retained** as dev dependency for IDE/editor language service support
+- Deleted stale `tsconfig.tsbuildinfo`; added `*.tsbuildinfo` to `.gitignore`

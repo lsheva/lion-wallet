@@ -12,10 +12,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/popup/*"],
-      "@shared/*": ["src/shared/*"]
+      "@/*": ["./src/popup/*"],
+      "@shared/*": ["./src/shared/*"]
     }
   },
   "include": ["src"]

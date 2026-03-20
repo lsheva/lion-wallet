@@ -49,7 +49,7 @@ async function simulateViaTrace(
       ],
     });
 
-    const simResult = result as {
+    const simBlocks = result as Array<{
       calls?: Array<{
         status?: string;
         logs?: Array<{
@@ -58,15 +58,15 @@ async function simulateViaTrace(
           data: string;
         }>;
       }>;
-    };
+    }>;
 
-    if (!simResult?.calls?.[0]) {
+    if (!simBlocks?.[0]?.calls?.[0]) {
       log.push("sim: eth_simulateV1 returned no calls");
       return null;
     }
 
     const transfers: TokenTransfer[] = [];
-    const callResult = simResult.calls[0];
+    const callResult = simBlocks[0].calls[0];
     log.push(`sim: eth_simulateV1 OK, status=${callResult.status}, logs=${callResult.logs?.length ?? 0}`);
 
     if (callResult.logs) {
