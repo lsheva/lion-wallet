@@ -1,8 +1,9 @@
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { route } from "preact-router";
-import { ChevronRight, Plus, Lock, Pencil, Check } from "lucide-preact";
+import { ChevronRight, Plus, Lock, Pencil, Check, Key, X } from "lucide-preact";
 import { Header } from "../components/Header";
 import { Card } from "../components/Card";
+import { Input } from "../components/Input";
 import { Identicon } from "../components/Identicon";
 import { CopyButton } from "../components/CopyButton";
 import { Button } from "../components/Button";
@@ -123,6 +124,9 @@ export function Settings() {
           </button>
         </Card>
 
+        {/* API Keys */}
+        <EtherscanKeySection />
+
         {/* Security */}
         <Card header="Security" padding={false}>
           <div class="divide-y divide-divider">
@@ -146,5 +150,95 @@ export function Settings() {
 
       {showNetworkSelector.value && <NetworkSelector />}
     </div>
+  );
+}
+
+function EtherscanKeySection() {
+  const [currentKey, setCurrentKey] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    sendMessage({ type: "GET_ETHERSCAN_KEY" }).then((res) => {
+      if (res.ok && res.data) {
+        setCurrentKey((res.data as { key: string | null }).key);
+      }
+    });
+  }, []);
+
+  const maskedKey = currentKey
+    ? `${currentKey.slice(0, 4)}${"•".repeat(8)}`
+    : "Not set";
+
+  const handleSave = async () => {
+    setSaving(true);
+    const trimmed = editValue.trim();
+    await sendMessage({ type: "SET_ETHERSCAN_KEY", key: trimmed });
+    setCurrentKey(trimmed || null);
+    setEditing(false);
+    setSaving(false);
+  };
+
+  const handleRemove = async () => {
+    setSaving(true);
+    await sendMessage({ type: "SET_ETHERSCAN_KEY", key: "" });
+    setCurrentKey(null);
+    setEditing(false);
+    setEditValue("");
+    setSaving(false);
+  };
+
+  return (
+    <Card header="API Keys" padding={false}>
+      <div class="px-4 py-3">
+        {editing ? (
+          <div class="space-y-2">
+            <Input
+              label="Etherscan API Key"
+              placeholder="Paste your API key"
+              value={editValue}
+              onInput={setEditValue}
+              mono
+              autoFocus
+            />
+            <div class="flex gap-2">
+              <Button size="sm" onClick={handleSave} loading={saving}>
+                Save
+              </Button>
+              {currentKey && (
+                <Button size="sm" variant="ghost" onClick={handleRemove} loading={saving}>
+                  Remove
+                </Button>
+              )}
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                class="ml-auto text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              setEditValue(currentKey ?? "");
+              setEditing(true);
+            }}
+            class="flex items-center justify-between w-full cursor-pointer text-left"
+          >
+            <div class="flex items-center gap-2">
+              <Key size={16} class="text-text-tertiary" />
+              <div>
+                <p class="text-sm text-text-primary">Etherscan API Key</p>
+                <p class="text-xs font-mono text-text-tertiary">{maskedKey}</p>
+              </div>
+            </div>
+            <ChevronRight size={16} class="text-text-tertiary" />
+          </button>
+        )}
+      </div>
+    </Card>
   );
 }

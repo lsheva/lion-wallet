@@ -20,7 +20,9 @@ export type MessageRequest =
   | { type: "APPROVE_REQUEST"; id: string; gasSpeed?: GasSpeed }
   | { type: "REJECT_REQUEST"; id: string }
   | { type: "ESTIMATE_GAS"; chainId: number; tx: TransactionParams }
-  | { type: "RESET_WALLET" };
+  | { type: "RESET_WALLET" }
+  | { type: "GET_ETHERSCAN_KEY" }
+  | { type: "SET_ETHERSCAN_KEY"; key: string };
 
 export type MessageResponse =
   | { ok: true; data?: unknown }

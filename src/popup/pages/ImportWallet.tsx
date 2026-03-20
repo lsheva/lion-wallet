@@ -74,7 +74,7 @@ export function ImportWallet() {
       }
 
       await refreshAll();
-      route("/home");
+      route("/api-key-setup");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Import failed — try again");
       setLoading(false);

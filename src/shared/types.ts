@@ -90,3 +90,25 @@ export interface ApprovalResult {
   signature?: Hex;
   error?: string;
 }
+
+export interface DecodedArg {
+  name: string;
+  type: string;
+  value: string;
+}
+
+export interface DecodedCall {
+  contractName?: string;
+  functionName: string;
+  args: DecodedArg[];
+}
+
+export interface TokenTransfer {
+  direction: "out" | "in";
+  symbol: string;
+  name: string;
+  amount: string;
+  usdValue?: string;
+  color: string;
+  tokenAddress?: string;
+}

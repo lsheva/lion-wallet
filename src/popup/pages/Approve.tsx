@@ -12,7 +12,7 @@ import { Identicon } from "../components/Identicon";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { pendingApprovalData, routeToNextApprovalOrClose, closePopup } from "../App";
 import { sendMessage } from "@shared/messages";
-import type { GasSpeed, GasPresets, PendingApproval, TransactionParams, SerializedAccount } from "@shared/types";
+import type { GasSpeed, GasPresets, PendingApproval, TransactionParams, SerializedAccount, DecodedCall, TokenTransfer } from "@shared/types";
 import { POPUP_ORIGIN } from "@shared/constants";
 import { MOCK_TX_REQUEST, MOCK_SIGN_REQUEST } from "../mock/data";
 import { walletState } from "../store";
@@ -24,6 +24,9 @@ interface ApprovalData {
   gasPresets: GasPresets | null;
   account: SerializedAccount;
   queueSize?: number;
+  decoded?: DecodedCall | null;
+  transfers?: TokenTransfer[] | null;
+  nativeUsdPrice?: number | null;
 }
 
 export function Approve() {
@@ -235,7 +238,11 @@ interface TxContentProps {
 function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, showData, setShowData }: TxContentProps) {
   const detailsRef = useRef<HTMLDivElement>(null);
   const dataRef = useRef<HTMLDivElement>(null);
-  const { approval, gasPresets, account } = data;
+  const argsRef = useRef<HTMLDivElement>(null);
+  const [argsExpanded, setArgsExpanded] = useState(false);
+  const { approval, gasPresets, account, decoded, transfers } = data;
+  const _debug = (data as unknown as Record<string, unknown>)._debug;
+  console.log("[popup] TxContent — decoded:", decoded, "transfers:", transfers, "_debug:", _debug);
   const txParams = approval.params[0] as TransactionParams;
   const value = formatValue(txParams.value);
   const hasValue = value !== "0";
@@ -243,6 +250,19 @@ function TxContent({ data, gasSpeed, setGasSpeed, showDetails, setShowDetails, s
 
   return (
     <>
+      {decoded && (
+        <DecodedCallCard
+          decoded={decoded}
+          argsExpanded={argsExpanded}
+          setArgsExpanded={setArgsExpanded}
+          argsRef={argsRef}
+        />
+      )}
+
+      {transfers && transfers.length > 0 && (
+        <TransfersCard transfers={transfers} toAddress={txParams.to} />
+      )}
+
       <Card>
         <div class="space-y-2.5">
           {hasValue && (
@@ -478,17 +498,7 @@ function SignContent({ data }: { data: ApprovalData }) {
   );
 }
 
-/* ── Dev mode preview ── */
-
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
-
-function DevApprove() {
-  const [mode, setMode] = useState<"tx" | "sign">("tx");
-
-  return mode === "tx" ? <DevTx onSwitch={() => setMode("sign")} /> : <DevSign onSwitch={() => setMode("tx")} />;
-}
+/* ── Shared sub-components ── */
 
 const COLLAPSED_ARGS = 3;
 
@@ -498,9 +508,128 @@ function formatArgValue(value: string, type: string): string {
   return value;
 }
 
+function DecodedCallCard({
+  decoded,
+  argsExpanded,
+  setArgsExpanded,
+  argsRef,
+}: {
+  decoded: DecodedCall;
+  argsExpanded: boolean;
+  setArgsExpanded: (v: boolean) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  argsRef: RefObject<any>;
+}) {
+  return (
+    <Card>
+      <div class="space-y-2.5">
+        <div class="flex items-center gap-2">
+          <FileCode size={16} class="text-accent shrink-0" />
+          <div class="min-w-0">
+            {decoded.contractName && (
+              <p class="text-xs text-text-tertiary">{decoded.contractName}</p>
+            )}
+            <p class="font-mono text-sm font-semibold text-accent truncate">
+              {decoded.functionName}()
+            </p>
+          </div>
+        </div>
+
+        {decoded.args.length > 0 && (
+          <div
+            ref={argsRef}
+            role="button"
+            tabIndex={0}
+            class="bg-base rounded-[var(--radius-chip)] divide-y divide-divider cursor-pointer"
+            onClick={() => {
+              const expanding = !argsExpanded;
+              setArgsExpanded(expanding);
+              if (expanding && argsRef.current) scrollEndIntoView(argsRef);
+            }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setArgsExpanded(!argsExpanded); } }}
+          >
+            {(argsExpanded ? decoded.args : decoded.args.slice(0, COLLAPSED_ARGS)).map((arg) => (
+              <div key={arg.name} class="flex items-center justify-between px-3 py-2">
+                <span class="text-xs text-text-secondary shrink-0">{arg.name}</span>
+                <span class="font-mono text-xs text-text-primary text-right">
+                  {formatArgValue(arg.value, arg.type)}
+                </span>
+              </div>
+            ))}
+            {decoded.args.length > COLLAPSED_ARGS && (
+              <div class="flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] text-accent">
+                {argsExpanded ? (
+                  <><ChevronUp size={12} /> Show less</>
+                ) : (
+                  <><ChevronDown size={12} /> {decoded.args.length - COLLAPSED_ARGS} more</>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function TransfersCard({ transfers, toAddress }: { transfers: TokenTransfer[]; toAddress: string }) {
+  return (
+    <Card>
+      <div class="space-y-1">
+        <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2">Token Transfers</p>
+        <div class="divide-y divide-divider">
+          {transfers.map((t, i) => (
+            <div key={`${t.direction}-${t.symbol}-${i}`} class="flex items-center gap-2.5 py-2">
+              <div class="relative">
+                <div
+                  class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                  style={{ backgroundColor: t.color }}
+                >
+                  {t.symbol.slice(0, 1)}
+                </div>
+                <div class={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center ${t.direction === "out" ? "bg-danger" : "bg-success"}`}>
+                  {t.direction === "out"
+                    ? <ArrowUpRight size={9} class="text-white" />
+                    : <ArrowDownLeft size={9} class="text-white" />}
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-text-primary">
+                  {t.direction === "out" ? "Send" : "Receive"} {t.symbol}
+                </p>
+              </div>
+              <div class="text-right shrink-0">
+                <p class={`font-mono text-sm font-medium ${t.direction === "out" ? "text-danger" : "text-success"}`}>
+                  {t.direction === "out" ? "-" : "+"}{t.amount}
+                </p>
+                <p class="text-xs text-text-secondary">{t.usdValue ?? "--"}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div class="flex items-center justify-between pt-1.5">
+          <span class="text-xs text-text-secondary">Interacting with</span>
+          <span class="font-mono text-xs text-text-primary">{truncateAddress(toAddress)}</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function truncateAddress(addr: string): string {
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+/* ── Dev mode preview ── */
+
+function DevApprove() {
+  const [mode, setMode] = useState<"tx" | "sign">("tx");
+
+  return mode === "tx" ? <DevTx onSwitch={() => setMode("sign")} /> : <DevSign onSwitch={() => setMode("tx")} />;
+}
+
 function DevTx({ onSwitch }: { onSwitch: () => void }) {
   const tx = MOCK_TX_REQUEST;
-  const decoded = tx.decoded;
   const [showDetails, setShowDetails] = useState(false);
   const [showData, setShowData] = useState(false);
   const [argsExpanded, setArgsExpanded] = useState(false);
@@ -523,93 +652,16 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
       </div>
 
       <div class="flex-1 overflow-y-auto px-4 pt-4 space-y-3">
-        {decoded && (
-          <Card>
-            <div class="space-y-2.5">
-              <div class="flex items-center gap-2">
-                <FileCode size={16} class="text-accent shrink-0" />
-                <div class="min-w-0">
-                  {decoded.contractName && (
-                    <p class="text-xs text-text-tertiary">{decoded.contractName}</p>
-                  )}
-                  <p class="font-mono text-sm font-semibold text-accent truncate">
-                    {decoded.functionName}()
-                  </p>
-                </div>
-              </div>
-
-              <div
-                ref={argsRef}
-                class="bg-base rounded-[var(--radius-chip)] divide-y divide-divider cursor-pointer"
-                onClick={() => { const expanding = !argsExpanded; setArgsExpanded(expanding); if (expanding) scrollEndIntoView(argsRef); }}
-              >
-                {(argsExpanded ? decoded.args : decoded.args.slice(0, COLLAPSED_ARGS)).map((arg) => (
-                  <div key={arg.name} class="flex items-center justify-between px-3 py-2">
-                    <span class="text-xs text-text-secondary shrink-0">{arg.name}</span>
-                    <span class="font-mono text-xs text-text-primary text-right">
-                      {formatArgValue(arg.value, arg.type)}
-                    </span>
-                  </div>
-                ))}
-                {decoded.args.length > COLLAPSED_ARGS && (
-                  <div class="flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] text-accent">
-                    {argsExpanded ? (
-                      <><ChevronUp size={12} /> Show less</>
-                    ) : (
-                      <><ChevronDown size={12} /> {decoded.args.length - COLLAPSED_ARGS} more</>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
+        {tx.decoded && (
+          <DecodedCallCard
+            decoded={tx.decoded}
+            argsExpanded={argsExpanded}
+            setArgsExpanded={setArgsExpanded}
+            argsRef={argsRef}
+          />
         )}
 
-        <Card>
-          <div class="space-y-1">
-            <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2">Token Transfers</p>
-            <div class="divide-y divide-divider">
-              {tx.transfers.map((t) => (
-                <div key={`${t.direction}-${t.symbol}`} class="flex items-center gap-2.5 py-2">
-                  <div class="relative">
-                    <div
-                      class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                      style={{ backgroundColor: t.color }}
-                    >
-                      {t.symbol.slice(0, 1)}
-                    </div>
-                    <div class={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center ${t.direction === "out" ? "bg-danger" : "bg-success"}`}>
-                      {t.direction === "out"
-                        ? <ArrowUpRight size={9} class="text-white" />
-                        : <ArrowDownLeft size={9} class="text-white" />}
-                    </div>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-text-primary">
-                      {t.direction === "out" ? "Send" : "Receive"} {t.symbol}
-                    </p>
-                  </div>
-                  <div class="text-right shrink-0">
-                    <p class={`font-mono text-sm font-medium ${t.direction === "out" ? "text-danger" : "text-success"}`}>
-                      {t.direction === "out" ? "-" : "+"}{t.amount}
-                    </p>
-                    <p class="text-xs text-text-secondary">{t.usdValue}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {tx.transfers.length > 1 && (
-              <div class="flex items-center justify-between pt-2 border-t border-divider">
-                <span class="text-xs text-text-secondary">Total value</span>
-                <span class="font-mono text-sm font-semibold text-text-primary">{tx.totalUsd}</span>
-              </div>
-            )}
-            <div class="flex items-center justify-between pt-1.5">
-              <span class="text-xs text-text-secondary">Interacting with</span>
-              <span class="font-mono text-xs text-text-primary">{truncateAddress(tx.params.to)}</span>
-            </div>
-          </div>
-        </Card>
+        <TransfersCard transfers={tx.transfers} toAddress={tx.params.to} />
 
         <Card>
           <p class="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-2.5">Gas Fee</p>

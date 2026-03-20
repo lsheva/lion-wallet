@@ -12,6 +12,7 @@ import { Home } from "./pages/Home";
 import { Send } from "./pages/Send";
 import { Receive } from "./pages/Receive";
 import { Approve } from "./pages/Approve";
+import { ApiKeySetup } from "./pages/ApiKeySetup";
 import { Settings } from "./pages/Settings";
 import { TxResult } from "./pages/TxResult";
 import { SignResult } from "./pages/SignResult";
@@ -92,6 +93,7 @@ export function App() {
           <Route path="/seed-phrase" component={SeedPhrase} />
           <Route path="/confirm-seed" component={ConfirmSeed} />
           <Route path="/import" component={ImportWallet} />
+          <Route path="/api-key-setup" component={ApiKeySetup} />
           <Route path="/unlock" component={Unlock} />
           <Route path="/home" component={Home} />
           <Route path="/send" component={Send} />

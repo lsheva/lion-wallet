@@ -1,3 +1,7 @@
+import type { DecodedCall, TokenTransfer } from "@shared/types";
+
+export type { DecodedCall, TokenTransfer };
+
 export const MOCK_ACCOUNTS = [
   {
     name: "Account 1",
@@ -59,21 +63,6 @@ export interface DecodedArg {
   name: string;
   type: string;
   value: string;
-}
-
-export interface DecodedCall {
-  contractName?: string;
-  functionName: string;
-  args: DecodedArg[];
-}
-
-export interface TokenTransfer {
-  direction: "out" | "in";
-  symbol: string;
-  name: string;
-  amount: string;
-  usdValue: string;
-  color: string;
 }
 
 export const MOCK_TX_REQUEST = {

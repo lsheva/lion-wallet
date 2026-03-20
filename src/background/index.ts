@@ -27,6 +27,10 @@ import {
   signTypedDataV4,
   estimateGasPresets,
 } from "./signing";
+import { decodeTx } from "./tx-decoder";
+import { simulateTx } from "./tx-simulator";
+import { fetchPrices } from "./prices";
+import { getNetworkConfig } from "./networks";
 
 let autoLockTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -294,17 +298,83 @@ async function handleMessage(
         return { ok: true, data: null };
       }
 
+      const activeAccount = wallet.getAccounts()[wallet.getActiveAccountIndex()];
       let gasPresets = null;
-      if (pending.method === "eth_sendTransaction" || pending.method === "eth_signTransaction") {
+      let decoded = null;
+      let transfers = null;
+      let nativeUsdPrice = null;
+
+      const isTxMethod = pending.method === "eth_sendTransaction" || pending.method === "eth_signTransaction";
+      const _debug: string[] = [];
+
+      if (isTxMethod) {
+        const txParams = pending.params[0] as TransactionParams;
+        _debug.push(`method=${pending.method} to=${txParams.to} data=${txParams.data?.slice(0, 20) ?? "none"} value=${txParams.value ?? "none"} chainId=${pending.chainId}`);
+
         try {
-          const txParams = pending.params[0] as TransactionParams;
           gasPresets = await estimateGasPresets(pending.chainId, txParams);
+          _debug.push("gas: OK");
         } catch (e) {
-          console.warn("[background] gas estimation failed:", e);
+          _debug.push(`gas: FAIL ${e instanceof Error ? e.message : e}`);
         }
+
+        try {
+          const [decodeResult, simResult] = await Promise.allSettled([
+            decodeTx(txParams, pending.chainId, _debug),
+            simulateTx(txParams, pending.chainId, activeAccount.address, _debug),
+          ]);
+
+          if (decodeResult.status === "fulfilled") {
+            decoded = decodeResult.value;
+            _debug.push(`decode-result: ${decoded ? decoded.functionName : "null"}`);
+          } else {
+            _debug.push(`decode-result: REJECTED ${decodeResult.reason}`);
+          }
+
+          let simTransfers: import("../shared/types").TokenTransfer[] = [];
+          if (simResult.status === "fulfilled" && simResult.value) {
+            simTransfers = simResult.value;
+            _debug.push(`sim-result: ${simTransfers.length} transfers`);
+          } else if (simResult.status === "rejected") {
+            _debug.push(`sim-result: REJECTED ${simResult.reason}`);
+          } else {
+            _debug.push(`sim-result: empty`);
+          }
+
+          const network = getNetworkConfig(pending.chainId);
+          const nativeSymbol = network?.symbol ?? "ETH";
+
+          const tokenAddresses = simTransfers
+            .map((t) => t.tokenAddress)
+            .filter((a): a is string => !!a);
+
+          const priceMap = await fetchPrices(nativeSymbol, pending.chainId, tokenAddresses);
+
+          nativeUsdPrice = priceMap.get("native") ?? null;
+          _debug.push(`prices: native=${nativeUsdPrice} tokens=${tokenAddresses.length}`);
+
+          for (const t of simTransfers) {
+            if (t.usdValue) continue;
+            let price: number | undefined;
+            if (!t.tokenAddress) {
+              price = nativeUsdPrice ?? undefined;
+            } else {
+              price = priceMap.get(t.tokenAddress.toLowerCase());
+            }
+            if (price != null) {
+              const val = parseFloat(t.amount) * price;
+              t.usdValue = `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            }
+          }
+
+          transfers = simTransfers.length > 0 ? simTransfers : null;
+        } catch (e) {
+          _debug.push(`decode/sim CATCH: ${e instanceof Error ? e.message : e}`);
+        }
+      } else {
+        _debug.push(`not a tx method: ${pending.method}`);
       }
 
-      const activeAccount = wallet.getAccounts()[wallet.getActiveAccountIndex()];
       return {
         ok: true,
         data: {
@@ -312,6 +382,10 @@ async function handleMessage(
           gasPresets,
           account: activeAccount,
           queueSize: getPendingCount(),
+          decoded,
+          transfers,
+          nativeUsdPrice,
+          _debug,
         },
       };
     }
@@ -351,10 +425,25 @@ async function handleMessage(
       }
     }
 
+    case "GET_ETHERSCAN_KEY": {
+      const result = await browser.storage.local.get("etherscanApiKey");
+      return { ok: true, data: { key: (result.etherscanApiKey as string) ?? null } };
+    }
+
+    case "SET_ETHERSCAN_KEY": {
+      if (message.key) {
+        await browser.storage.local.set({ etherscanApiKey: message.key });
+      } else {
+        await browser.storage.local.remove("etherscanApiKey");
+      }
+      return { ok: true };
+    }
+
     default:
       return { ok: false, error: `Unknown message type` };
   }
 }
+
 
 browser.runtime.onMessage.addListener(
   (message: unknown, _sender: browser.Runtime.MessageSender) => {

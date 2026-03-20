@@ -71,7 +71,7 @@ export function ConfirmSeed() {
     sessionStorage.removeItem("onboarding_mnemonic");
     sessionStorage.removeItem("onboarding_password");
     await refreshAll();
-    route("/home");
+    route("/api-key-setup");
   };
 
   return (
