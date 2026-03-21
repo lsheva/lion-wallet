@@ -29,21 +29,15 @@ function minimal(chain: Chain, alchemy?: string) {
 
 // ── Shared: chain metadata only ──
 
-const ids: string[] = [];
 const chains: string[] = [];
 
 for (const { chain, alchemy } of list) {
-  const key = viemName.get(chain.id) ?? `chain${chain.id}`;
-  ids.push(`  ${key}: ${chain.id},`);
+  const _key = viemName.get(chain.id) ?? `chain${chain.id}`;
   chains.push(`  ${JSON.stringify(minimal(chain, alchemy))},`);
 }
 
 const shared = `// @generated — do not edit. Regenerate with \`pnpm gen:chains\`
 import type { ChainMeta } from "./types";
-
-export const CHAIN = {
-${ids.join("\n")}
-} as const;
 
 export const CHAINS: ChainMeta[] = [
 ${chains.join("\n")}
