@@ -29,7 +29,6 @@
     "@noble/hashes": "^2.0.1",
     "@preact/signals": "^2.8.2",
     "@web3icons/core": "^4.0.51",
-    "animal-avatar-generator": "^1.2.0",
     "lucide-preact": "^0.577.0",
     "preact": "^10.29.0",
     "preact-router": "^4.1.2",

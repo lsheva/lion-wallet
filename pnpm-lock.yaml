@@ -17,9 +17,6 @@ importers:
       '@web3icons/core':
         specifier: ^4.0.51
         version: 4.0.51(typescript@5.9.3)
-      animal-avatar-generator:
-        specifier: ^1.2.0
-        version: 1.2.0
       lucide-preact:
         specifier: ^0.577.0
         version: 0.577.0(preact@10.29.0)
@@ -864,9 +861,6 @@ packages:
         optional: true
       zod:
         optional: true
-
-  animal-avatar-generator@1.2.0:
-    resolution: {integrity: sha512-C9fExOFmO5jz2KcaDLSn8IhyRayy63M7E/hf3pTIe2GvbVWFqTIZFMSTH41VGRJD+zNWQLmQwcDaA42slEz3lA==}
 
   babel-plugin-transform-hook-names@1.0.2:
     resolution: {integrity: sha512-5gafyjyyBTTdX/tQQ0hRgu4AhNHG/hqWi0ZZmg2xvs2FgRkJXzDNKBZCyoYqgFkovfDrgM8OoKg8karoUvWeCw==}
@@ -1939,8 +1933,6 @@ snapshots:
   abitype@1.2.3(typescript@5.9.3):
     optionalDependencies:
       typescript: 5.9.3
-
-  animal-avatar-generator@1.2.0: {}
 
   babel-plugin-transform-hook-names@1.0.2(@babel/core@7.29.0):
     dependencies:
