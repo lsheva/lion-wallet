@@ -18,7 +18,12 @@ export default [
   { chain: c.celo, color: "#FCFF52", icon: "celo", alchemy: "celo-mainnet" },
   { chain: c.gnosis, color: "#04795B", icon: "gnosis", alchemy: "gnosis-mainnet" },
   { chain: c.fantom, color: "#1969FF", icon: "fantom", alchemy: "fantom-mainnet" },
-  { chain: c.polygonZkEvm, color: "#7B3FE4", icon: "polygon-zkevm", alchemy: "polygonzkevm-mainnet" },
+  {
+    chain: c.polygonZkEvm,
+    color: "#7B3FE4",
+    icon: "polygon-zkevm",
+    alchemy: "polygonzkevm-mainnet",
+  },
   { chain: c.moonbeam, color: "#53CBC8", icon: "moonbeam", alchemy: "moonbeam-mainnet" },
   { chain: c.moonriver, color: "#F2B705", icon: "moonriver" },
   { chain: c.aurora, color: "#70D44B", icon: "aurora" },

@@ -5,6 +5,13 @@ import { analyzeRolldown, analyzeVite, formatReport, formatSummaryLine } from ".
 
 rmSync("dist", { recursive: true, force: true });
 
+if (!existsSync("src/shared/chains.generated.ts")) {
+  await import("./gen-chains.ts");
+}
+if (!existsSync("src/icons/icon.generated.svg")) {
+  await import("./optimize-svg.ts");
+}
+
 const popupResult = (await viteBuild()) as Rollup.RollupOutput;
 
 const shared: Rollup.BuildOptions = {
@@ -61,8 +68,7 @@ const [bgResult, contentResult, inpageResult] = await Promise.all([
 cpSync("src/manifest.json", "dist/manifest.json");
 
 if (!existsSync("src/icons/generated")) {
-  console.error("Error: src/icons/generated missing. Run `pnpm icons` first.");
-  process.exit(1);
+  await import("./icons.ts");
 }
 cpSync("src/icons/generated", "dist/icons", { recursive: true });
 

@@ -1,7 +1,7 @@
 import type { Abi, Hex } from "viem";
+import { getBlockNumber, getTransaction } from "viem/actions";
 import { decodeEventLog } from "viem/utils";
 import { erc20Abi } from "../shared/abis";
-import { getBlockNumber, getTransaction } from "viem/actions";
 
 import type {
   ActivityItem,

@@ -26,9 +26,11 @@ import {
   handleGetAccounts,
   handleGetBalance,
   handleGetState,
+  handleGetTokenBalances,
   handleImportPrivateKey,
   handleImportWallet,
   handleResetWallet,
+  handleSendToken,
   handleSwitchAccount,
   handleSwitchNetwork,
 } from "./handlers/wallet";
@@ -98,6 +100,10 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleGetStorageMode();
     case "CHECK_KEYCHAIN_AVAILABLE":
       return handleCheckKeychainAvailable();
+    case "GET_TOKEN_BALANCES":
+      return handleGetTokenBalances(message.tokens);
+    case "SEND_TOKEN":
+      return handleSendToken(message.tokenAddress, message.to, message.amount, message.decimals);
     case "GET_ACTIVITY":
       return handleGetActivity(message.address, message.chainId, message.loadMore === true);
     case "CLEAR_ACTIVITY_CACHE":

@@ -14,8 +14,6 @@ for (const { chain } of list) {
   if (match) viemName.set(chain.id, match[0]);
 }
 
-const DEFAULT_COLOR = "#8E8E93";
-
 function minimal(chain: Chain, alchemy?: string) {
   const o: Record<string, unknown> = {
     id: chain.id,
@@ -92,4 +90,6 @@ ${colorEntries.join("\n")}
 writeFileSync("src/popup/chain-ui.generated.ts", popup);
 
 console.log(`Generated ${list.length} chains → src/shared/chains.generated.ts`);
-console.log(`Generated ${iconEntries.length} icons, ${colorEntries.length} colors → src/popup/chain-ui.generated.ts`);
+console.log(
+  `Generated ${iconEntries.length} icons, ${colorEntries.length} colors → src/popup/chain-ui.generated.ts`,
+);

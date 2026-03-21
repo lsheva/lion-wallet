@@ -4,15 +4,12 @@ import { sendMessage } from "@shared/messages";
 import { ChevronDown, Clipboard } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { route } from "preact-router";
-import type { Address, Hex } from "viem";
-import {
-  encodeFunctionData,
-  isAddress,
-  numberToHex,
-  parseEther,
-  parseUnits,
-} from "viem/utils";
-import { erc20Abi } from "../../shared/abis";
+import type { Address } from "viem";
+import { numberToHex, parseEther } from "viem/utils";
+
+const addressRegex = /^0x[a-fA-F0-9]{40}$/;
+const isAddress = (value: string): boolean => addressRegex.test(value);
+
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -23,27 +20,6 @@ import { Input } from "../components/Input";
 import { type Token, walletState } from "../store";
 
 const isNative = (token: Token) => !token.address;
-
-function buildTxParams(
-  token: Token,
-  recipient: Address,
-  amount: string,
-): { to: Address; value?: Hex; data?: Hex } {
-  if (isNative(token)) {
-    return {
-      to: recipient,
-      value: numberToHex(parseEther(amount)),
-    };
-  }
-  return {
-    to: token.address as Address,
-    data: encodeFunctionData({
-      abi: erc20Abi,
-      functionName: "transfer",
-      args: [recipient, parseUnits(amount, token.decimals)],
-    }),
-  };
-}
 
 export function Send() {
   const tokens = walletState.tokens.value;
@@ -80,22 +56,12 @@ export function Send() {
           setBalance(res.data.balance);
         }
       } else {
-        const account = walletState.activeAccount.value;
-        const data = encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [account.address as Address],
-        });
         const res = await sendMessage({
-          type: "RPC_REQUEST",
-          id: crypto.randomUUID(),
-          method: "eth_call",
-          params: [{ to: selectedToken.address, data }, "latest"],
-          origin: POPUP_ORIGIN,
+          type: "GET_TOKEN_BALANCES",
+          tokens: [selectedToken.address as Address],
         });
         if (res.ok && res.data) {
-          const hex = res.data.result as string;
-          const raw = BigInt(hex);
+          const raw = BigInt(res.data.balances[selectedToken.address as string] ?? "0");
           const formatted = (Number(raw) / 10 ** selectedToken.decimals).toString();
           setBalance(formatted);
         }
@@ -149,17 +115,25 @@ export function Send() {
 
     setSubmitting(true);
     try {
-      const txParams = buildTxParams(selectedToken, to as Address, amount.replace(/,/g, ""));
-      const account = walletState.activeAccount.value;
-
-      await sendMessage({
-        type: "RPC_REQUEST",
-        id: crypto.randomUUID(),
-        method: "eth_sendTransaction",
-        params: [{ ...txParams, from: account.address }],
-        origin: POPUP_ORIGIN,
-      });
-
+      const cleanAmount = amount.replace(/,/g, "");
+      if (isNative(selectedToken)) {
+        const account = walletState.activeAccount.value;
+        await sendMessage({
+          type: "RPC_REQUEST",
+          id: crypto.randomUUID(),
+          method: "eth_sendTransaction",
+          params: [{ from: account.address, to, value: numberToHex(parseEther(cleanAmount)) }],
+          origin: POPUP_ORIGIN,
+        });
+      } else {
+        await sendMessage({
+          type: "SEND_TOKEN",
+          tokenAddress: selectedToken.address as Address,
+          to: to as Address,
+          amount: cleanAmount,
+          decimals: selectedToken.decimals,
+        });
+      }
       route("/approve", true);
     } catch (e) {
       setError(toErrorMessage(e));

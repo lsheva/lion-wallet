@@ -1,53 +1,49 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 228.3 kB │ gzip: 74.5 kB
+  output: 209.0 kB │ gzip: 68.0 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  166.3 kB  46.1%
+  (project)  163.9 kB  50.9%
     └ src/shared/chains.generated.ts  21.4 kB
     └ src/popup/pages/Settings.tsx  13.4 kB
-    └ src/popup/pages/Send.tsx  8.7 kB
-  @web3icons/core  49.8 kB  13.8%
+    └ src/popup/pages/Send.tsx  8.4 kB
+  @web3icons/core  49.8 kB  15.5%
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/mantle.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/sei-network.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/metis-andromeda.svg.js  2.0 kB
-  viem  33.5 kB  9.3%
-    └ node_modules/viem/_esm/utils/abi/encodeAbiParameters.js  5.8 kB
-    └ node_modules/viem/_esm/utils/abi/getAbiItem.js  3.7 kB
-    └ node_modules/viem/_esm/errors/abi.js  2.5 kB
-  animal-avatar-generator  30.1 kB  8.4%
+  animal-avatar-generator  30.1 kB  9.4%
     └ node_modules/animal-avatar-generator/dist/shapes/muzzles.js  12.0 kB
     └ node_modules/animal-avatar-generator/dist/shapes/ears.js  8.5 kB
     └ node_modules/animal-avatar-generator/dist/shapes/eyes.js  2.6 kB
-  uqr  19.4 kB  5.4%
+  uqr  19.4 kB  6.0%
     └ node_modules/uqr/dist/index.mjs  19.4 kB
-  preact  19.0 kB  5.3%
+  preact  19.0 kB  5.9%
     └ node_modules/preact/dist/preact.module.js  14.6 kB
     └ node_modules/preact/hooks/dist/hooks.module.js  3.7 kB
-  lucide-preact  15.2 kB  4.2%
-  @noble/hashes  8.5 kB  2.3%
-    └ node_modules/@noble/hashes/esm/sha3.js  5.2 kB
-    └ node_modules/@noble/hashes/esm/utils.js  2.4 kB
-  @preact/signals-core  6.9 kB  1.9%
+  lucide-preact  15.2 kB  4.7%
+  viem  8.1 kB  2.5%
+    └ node_modules/viem/_esm/errors/base.js  2.3 kB
+    └ node_modules/viem/_esm/utils/unit/parseUnits.js  1.2 kB
+    └ node_modules/viem/_esm/utils/data/pad.js  1.1 kB
+  @preact/signals-core  6.9 kB  2.2%
     └ node_modules/@preact/signals-core/dist/signals-core.module.js  6.9 kB
-  @preact/signals  4.7 kB  1.3%
+  @preact/signals  4.7 kB  1.5%
     └ node_modules/@preact/signals/dist/signals.module.js  4.7 kB
-  preact-router  4.7 kB  1.3%
+  preact-router  4.7 kB  1.5%
     └ node_modules/preact-router/dist/preact-router.mjs  4.7 kB
-  abitype  2.4 kB  0.7%
 ══════════════════════════════════════════════════════════════════════════════════════════════
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 278.4 kB │ gzip: 89.3 kB
+  output: 279.4 kB │ gzip: 89.6 kB
 ──────────────────────────────────────────────────────────────────────────────────
-  viem  245.1 kB  48.2%
+  viem  245.1 kB  48.0%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.8 kB
-  (project)  103.5 kB  20.3%
+  (project)  105.6 kB  20.7%
     └ src/shared/chains.generated.ts  22.5 kB
     └ src/background/activity.ts  20.0 kB
-    └ src/background/handlers/approval.ts  7.1 kB
+    └ src/background/handlers/wallet.ts  7.4 kB
   @noble/curves  57.6 kB  11.3%
     └ node_modules/@noble/curves/esm/abstract/weierstrass.js  26.1 kB
     └ node_modules/@noble/curves/esm/secp256k1.js  7.4 kB

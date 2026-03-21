@@ -28,12 +28,7 @@ function renderQR(canvas: HTMLCanvasElement, data: string) {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       if (grid[y * size + x]) {
-        ctx.fillRect(
-          (x + QR_MARGIN) * scale,
-          (y + QR_MARGIN) * scale,
-          scale,
-          scale,
-        );
+        ctx.fillRect((x + QR_MARGIN) * scale, (y + QR_MARGIN) * scale, scale, scale);
       }
     }
   }

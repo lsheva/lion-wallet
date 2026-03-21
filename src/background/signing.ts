@@ -1,11 +1,11 @@
 import type { Address, Hex } from "viem";
-import { formatEther, formatGwei, parseGwei } from "viem/utils";
 import {
   estimateGas,
   getBlock,
   getTransactionCount,
   sendTransaction as viemSendTx,
 } from "viem/actions";
+import { formatEther, formatGwei, parseGwei } from "viem/utils";
 import type { GasPresets, GasSpeed, SerializedAccount, TransactionParams } from "../shared/types";
 import { getPublicClient } from "./networks";
 import * as wallet from "./wallet";

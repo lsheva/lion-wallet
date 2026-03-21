@@ -35,6 +35,8 @@ export type MessageRequest =
   | { type: "SET_RPC_PROVIDER_KEY"; key: string }
   | { type: "GET_STORAGE_MODE" }
   | { type: "CHECK_KEYCHAIN_AVAILABLE" }
+  | { type: "GET_TOKEN_BALANCES"; tokens: Address[] }
+  | { type: "SEND_TOKEN"; tokenAddress: Address; to: Address; amount: string; decimals: number }
   | { type: "GET_ACTIVITY"; address: Address; chainId: number; loadMore?: boolean }
   | { type: "CLEAR_ACTIVITY_CACHE" };
 
@@ -66,6 +68,8 @@ export interface MessageDataMap {
   SET_RPC_PROVIDER_KEY: undefined;
   GET_STORAGE_MODE: { storageMode: "keychain" | "vault" };
   CHECK_KEYCHAIN_AVAILABLE: { available: boolean; error?: string };
+  GET_TOKEN_BALANCES: { balances: Record<string, string> };
+  SEND_TOKEN: undefined;
   GET_ACTIVITY: {
     items: ActivityItem[];
     hasMore: boolean;

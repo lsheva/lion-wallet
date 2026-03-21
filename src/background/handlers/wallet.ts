@@ -1,6 +1,7 @@
 import type { Address, Hex } from "viem";
-import { formatEther, numberToHex } from "viem/utils";
-import { getBalance } from "viem/actions";
+import { getBalance, readContract } from "viem/actions";
+import { encodeFunctionData, formatEther, numberToHex, parseUnits } from "viem/utils";
+import { erc20Abi } from "../../shared/abis";
 import type { MessageResponse } from "../../shared/messages";
 import type { SerializedAccount, WalletState } from "../../shared/types";
 import { broadcastEvent } from "../broadcast";
@@ -268,4 +269,54 @@ export async function handleResetWallet(): Promise<MessageResponse> {
   broadcastEvent("accountsChanged", []);
   broadcastEvent("disconnect", { code: 4900, message: "Wallet reset" });
   return { ok: true };
+}
+
+export async function handleGetTokenBalances(tokens: Address[]): Promise<MessageResponse> {
+  const chainId = await getActiveNetworkId();
+  const client = getPublicClient(chainId);
+  const meta = await loadAccountsMeta();
+  const account = meta?.accounts[meta.activeAccountIndex];
+  if (!account) return { ok: false, error: "Wallet not initialized" };
+
+  const results = await Promise.all(
+    tokens.map((token) =>
+      readContract(client, {
+        address: token,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [account.address],
+      }).catch(() => 0n),
+    ),
+  );
+
+  const balances: Record<string, string> = {};
+  for (const [i, token] of tokens.entries()) {
+    balances[token] = String(results[i]);
+  }
+  return { ok: true, data: { balances } };
+}
+
+export async function handleSendToken(
+  tokenAddress: Address,
+  to: Address,
+  amount: string,
+  decimals: number,
+): Promise<MessageResponse> {
+  const meta = await loadAccountsMeta();
+  const account = meta?.accounts[meta.activeAccountIndex];
+  if (!account) return { ok: false, error: "Wallet not initialized" };
+
+  const data = encodeFunctionData({
+    abi: erc20Abi,
+    functionName: "transfer",
+    args: [to, parseUnits(amount, decimals)],
+  });
+
+  const { handleRpc } = await import("../rpc-handler");
+  const result = await handleRpc(
+    "eth_sendTransaction",
+    [{ from: account.address, to: tokenAddress, data }],
+    { origin: "lion-wallet://popup" },
+  );
+  return { ok: true, data: result };
 }

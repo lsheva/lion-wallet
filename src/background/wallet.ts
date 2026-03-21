@@ -1,6 +1,6 @@
 import type { Address, Hex } from "viem";
-import { toHex } from "viem/utils";
 import { english, generateMnemonic, mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
+import { toHex } from "viem/utils";
 import type { SerializedAccount } from "../shared/types";
 
 export function createMnemonic(): string {
