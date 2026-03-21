@@ -1,5 +1,6 @@
 import { toErrorMessage } from "@shared/format";
-import { type Hex, numberToHex } from "viem";
+import type { Hex } from "viem";
+import { numberToHex } from "viem/utils";
 import { POPUP_ORIGIN } from "../shared/constants";
 import { createPendingApproval } from "./approval";
 import {

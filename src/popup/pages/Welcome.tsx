@@ -2,7 +2,7 @@ import { sendMessage } from "@shared/messages";
 import { Fingerprint } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { route } from "preact-router";
-import lionIcon from "../../icons/icon.svg";
+import lionIcon from "../../icons/icon.generated.svg";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 

@@ -1,5 +1,6 @@
 import { toErrorMessage } from "@shared/format";
-import { type Abi, decodeAbiParameters, decodeFunctionData, type Hex } from "viem";
+import type { Abi, Hex } from "viem";
+import { decodeAbiParameters, decodeFunctionData } from "viem/utils";
 import type { DecodedArg, DecodedCall, TransactionParams } from "../shared/types";
 import { fetchContractAbi, resolveImplementation } from "./etherscan";
 

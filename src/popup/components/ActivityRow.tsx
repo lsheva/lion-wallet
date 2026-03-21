@@ -1,7 +1,7 @@
 import { truncateAddress } from "@shared/format";
 import type { ActivityItem, DecodedEvent } from "@shared/types";
 import { ArrowDownLeft, ArrowUpRight, FileCode } from "lucide-preact";
-import { formatEther, formatUnits } from "viem";
+import { formatEther, formatUnits } from "viem/utils";
 import { FormattedTokenValue } from "./FormattedTokenValue";
 
 interface ActivityRowProps {

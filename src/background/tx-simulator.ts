@@ -1,4 +1,5 @@
-import { type Address, decodeFunctionData, formatUnits } from "viem";
+import type { Address } from "viem";
+import { decodeFunctionData, formatUnits } from "viem/utils";
 import type { TokenTransfer, TransactionParams } from "../shared/types";
 import { getPublicClient } from "./networks";
 import { fetchTokenMeta } from "./token-meta";

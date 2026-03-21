@@ -1,4 +1,5 @@
-import { type Address, formatEther, formatGwei, type Hex, parseGwei } from "viem";
+import type { Address, Hex } from "viem";
+import { formatEther, formatGwei, parseGwei } from "viem/utils";
 import {
   estimateGas,
   getBlock,

@@ -4,16 +4,15 @@ import { sendMessage } from "@shared/messages";
 import { ChevronDown, Clipboard } from "lucide-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { route } from "preact-router";
+import type { Address, Hex } from "viem";
 import {
-  type Address,
   encodeFunctionData,
-  erc20Abi,
-  type Hex,
   isAddress,
   numberToHex,
   parseEther,
   parseUnits,
-} from "viem";
+} from "viem/utils";
+import { erc20Abi } from "../../shared/abis";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";

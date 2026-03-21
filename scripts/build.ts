@@ -1,27 +1,59 @@
-import { cpSync, existsSync, rmSync } from "node:fs";
-import { build } from "rolldown";
-import { build as viteBuild } from "vite";
+import { cpSync, existsSync, rmSync, writeFileSync } from "node:fs";
+import { build, type RolldownOutput } from "rolldown";
+import { type Rollup, build as viteBuild } from "vite";
+import { analyzeRolldown, analyzeVite, formatReport, formatSummaryLine } from "./bundle-sizes.ts";
 
 rmSync("dist", { recursive: true, force: true });
 
-await viteBuild();
+const popupResult = (await viteBuild()) as Rollup.RollupOutput;
 
-const shared = { platform: "browser" as const };
-await Promise.all([
+const shared: Rollup.BuildOptions = {
+  platform: "browser",
+  experimental: { lazyBarrel: true, nativeMagicString: true },
+  optimization: {
+    inlineConst: {
+      mode: "all",
+      pass: 1000,
+    },
+  },
+  treeshake: {
+    propertyReadSideEffects: false,
+  },
+};
+
+const sharedOutput: Rollup.OutputOptions = {
+  minify: true,
+  codeSplitting: false,
+  comments: false,
+  minifyInternalExports: true,
+};
+const [bgResult, contentResult, inpageResult] = await Promise.all([
   build({
     ...shared,
     input: "src/background/index.ts",
-    output: { file: "dist/background.js", format: "esm", minify: true, codeSplitting: false },
+    output: {
+      ...sharedOutput,
+      file: "dist/background.js",
+      format: "esm",
+    },
   }),
   build({
     ...shared,
     input: "src/content/index.ts",
-    output: { file: "dist/content-script.js", format: "iife", minify: true, codeSplitting: false },
+    output: {
+      ...sharedOutput,
+      file: "dist/content-script.js",
+      format: "iife",
+    },
   }),
   build({
     ...shared,
     input: "src/inpage/provider.ts",
-    output: { file: "dist/inpage.js", format: "iife", minify: true, codeSplitting: false },
+    output: {
+      ...sharedOutput,
+      file: "dist/inpage.js",
+      format: "iife",
+    },
     moduleTypes: { ".svg": "text" },
   }),
 ]);
@@ -34,4 +66,15 @@ if (!existsSync("src/icons/generated")) {
 }
 cpSync("src/icons/generated", "dist/icons", { recursive: true });
 
+const reports = await Promise.all([
+  analyzeVite("Popup", popupResult),
+  analyzeRolldown("Background", bgResult as RolldownOutput),
+  analyzeRolldown("Content Script", contentResult as RolldownOutput),
+  analyzeRolldown("Inpage", inpageResult as RolldownOutput),
+]);
+
+const detailed = reports.map(formatReport).join("\n\n");
+const summary = reports.map(formatSummaryLine).join("\n");
+writeFileSync("bundle-sizes.txt", `${detailed}\n`);
+console.log(`\n${summary}\n`);
 console.log("Build complete.");

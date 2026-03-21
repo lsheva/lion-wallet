@@ -1,4 +1,4 @@
-import lionIconSvg from "../icons/icon.svg";
+import lionIconSvg from "../icons/icon.generated.svg";
 import { CHANNEL, MESSAGE_TIMEOUT_MS } from "../shared/protocol";
 
 let requestId = 0;

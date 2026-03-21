@@ -2,7 +2,7 @@ import type { ApprovalData, GasSpeed, TransactionParams } from "@shared/types";
 import { ChevronDown, ChevronUp, Info } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
 import { route } from "preact-router";
-import { formatGwei } from "viem";
+import { formatGwei } from "viem/utils";
 import { Card } from "../Card";
 import { CopyButton } from "../CopyButton";
 import { FormattedTokenValue } from "../FormattedTokenValue";

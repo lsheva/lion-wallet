@@ -1,4 +1,4 @@
-import { erc20Abi } from "viem";
+import { erc20Abi } from "../shared/abis";
 import { readContract } from "viem/actions";
 import { getPublicClient } from "./networks";
 import { StorageCache } from "./storage-cache";

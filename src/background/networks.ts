@@ -1,4 +1,5 @@
-import { type Chain, type Client, createClient, http } from "viem";
+import type { Chain, Client } from "viem";
+import { createClient, http } from "viem";
 
 import { CHAIN_BY_ID, CHAINS, DEFAULT_NETWORK_ID } from "../shared/constants";
 import type { ChainMeta } from "../shared/types";

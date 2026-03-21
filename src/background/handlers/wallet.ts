@@ -1,4 +1,5 @@
-import { type Address, formatEther, type Hex, numberToHex } from "viem";
+import type { Address, Hex } from "viem";
+import { formatEther, numberToHex } from "viem/utils";
 import { getBalance } from "viem/actions";
 import type { MessageResponse } from "../../shared/messages";
 import type { SerializedAccount, WalletState } from "../../shared/types";

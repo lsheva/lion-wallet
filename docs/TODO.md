@@ -161,3 +161,5 @@ True hardware-enclave signing for Ethereum. The P-256 private key lives inside t
 [] - handle cross-chain smart account deployment (counterfactual addresses, factory on each chain)
 [] - add paymaster integration for optional gas sponsorship
 [] - UI: distinguish Smart Account vs EOA in account list, show security level indicator
+
+[] - batch token sending (for privatekey and smartcontract wallets)

@@ -1,5 +1,6 @@
 import { toErrorMessage } from "@shared/format";
-import { type Address, formatEther, type Hex } from "viem";
+import type { Address, Hex } from "viem";
+import { formatEther } from "viem/utils";
 import type { MessageResponse } from "../../shared/messages";
 import type { GasSpeed, TransactionParams } from "../../shared/types";
 import {

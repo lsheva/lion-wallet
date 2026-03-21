@@ -1,4 +1,5 @@
-import { type Address, type Hex, toHex } from "viem";
+import type { Address, Hex } from "viem";
+import { toHex } from "viem/utils";
 import { english, generateMnemonic, mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 import type { SerializedAccount } from "../shared/types";
 

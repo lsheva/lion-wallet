@@ -1,4 +1,6 @@
-import { type Abi, decodeEventLog, erc20Abi, type Hex } from "viem";
+import type { Abi, Hex } from "viem";
+import { decodeEventLog } from "viem/utils";
+import { erc20Abi } from "../shared/abis";
 import { getBlockNumber, getTransaction } from "viem/actions";
 
 import type {
