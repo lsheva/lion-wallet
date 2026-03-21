@@ -10,7 +10,7 @@ import Security
 import LocalAuthentication
 import os.log
 
-private let keychainService = "dev.wallet.SafariEVMWallet"
+private let keychainService = "dev.wallet.LionWallet"
 
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 

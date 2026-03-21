@@ -1,6 +1,6 @@
 # Contributing to Lion Wallet
 
-Thanks for your interest in contributing. Lion Wallet is a small, focused project — contributions that align with its [philosophy](./PHILOSOPHY.md) are welcome.
+Thanks for your interest in contributing. Lion Wallet is a small, focused project — contributions that align with its [philosophy](./docs/PHILOSOPHY.md) are welcome.
 
 ## Getting Started
 
@@ -39,7 +39,7 @@ xcode/             Safari Web Extension Xcode project
 - **Linter:** Biome — run `pnpm lint` to check, `pnpm lint:fix` to auto-fix
 - **Type checking:** `pnpm typecheck` (uses tsgo)
 - **Package manager:** pnpm only
-- See [STYLE_GUIDE.md](./STYLE_GUIDE.md) for project-specific conventions
+- See [STYLE_GUIDE.md](./docs/STYLE_GUIDE.md) for project-specific conventions
 
 ## Before Submitting a PR
 

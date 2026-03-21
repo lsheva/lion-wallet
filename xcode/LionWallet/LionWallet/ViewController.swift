@@ -9,7 +9,7 @@ import Cocoa
 import SafariServices
 import WebKit
 
-let extensionBundleIdentifier = "dev.wallet.SafariEVMWallet.Extension"
+let extensionBundleIdentifier = "dev.wallet.LionWallet.Extension"
 
 class ViewController: NSViewController, WKNavigationDelegate, WKScriptMessageHandler {
 

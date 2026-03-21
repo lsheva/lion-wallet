@@ -3,7 +3,7 @@ import type { Address, Hex } from "viem";
 
 import { bgLog } from "./log";
 
-const APP_ID = "dev.wallet.SafariEVMWallet";
+const APP_ID = "dev.wallet.LionWallet";
 
 interface NativeResponse {
   ok: boolean;

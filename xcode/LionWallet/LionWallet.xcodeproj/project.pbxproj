@@ -15,7 +15,7 @@
 		6030F2C9864F4E6382F55A47 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ACE951944024CFCA2B79B17 /* ViewController.swift */; };
 		0C53E71570424A8BA6EE2422 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 25A9BA7A009749D8A4D42FAF /* Main.storyboard */; };
 		ABFCE2F2DF854A5FA5331223 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF879052E4904436B88DA1C7 /* Assets.xcassets */; };
-		8AA8E51BF6C14E8BBFDCEA0A /* SafariEVMWallet Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 09869D9BEEE34AC8AE3DC3A1 /* SafariEVMWallet Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8AA8E51BF6C14E8BBFDCEA0A /* LionWallet Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 09869D9BEEE34AC8AE3DC3A1 /* LionWallet Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3C6F981C539B4AD58AF45CCC /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 438715B0504948269AF63304 /* SafariWebExtensionHandler.swift */; };
 		2FA96D1F084D483DA7BC46E3 /* popup in Resources */ = {isa = PBXBuildFile; fileRef = 0581378043D949C89B282622 /* popup */; };
 		933F099EB3D445B1B8926220 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 8FFFA39376C749E09E35ACDF /* background.js */; };
@@ -32,7 +32,7 @@
 			containerPortal = CD45C85C65134D6EBC933EE6 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 3D9DFCA07BB0403B9FEECE36;
-			remoteInfo = "SafariEVMWallet Extension";
+			remoteInfo = "LionWallet Extension";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -43,7 +43,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				8AA8E51BF6C14E8BBFDCEA0A /* SafariEVMWallet Extension.appex in Embed Foundation Extensions */,
+				8AA8E51BF6C14E8BBFDCEA0A /* LionWallet Extension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -51,7 +51,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		801D2BB8305C4D14BCFF1E8C /* SafariEVMWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SafariEVMWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		801D2BB8305C4D14BCFF1E8C /* LionWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LionWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B66B3198B5A24605A98028A5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		92B42EEB10C04380BD3CEDD3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
 		BFC301D5C043404DAD360DA3 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
@@ -61,7 +61,7 @@
 		2D0AACB30AC94E2CB49EAEC2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		AF879052E4904436B88DA1C7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		14DA4E4E911340F095BE7302 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		09869D9BEEE34AC8AE3DC3A1 /* SafariEVMWallet Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "SafariEVMWallet Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		09869D9BEEE34AC8AE3DC3A1 /* LionWallet Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "LionWallet Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		438715B0504948269AF63304 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
 		B43D35CDB87249FA8830CB99 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0581378043D949C89B282622 /* popup */ = {isa = PBXFileReference; lastKnownFileType = folder; name = popup; path = ../../../dist/popup; sourceTree = "<group>"; };
@@ -70,8 +70,8 @@
 		88360D99FC8B4C4A9A18D294 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../dist/manifest.json; sourceTree = "<group>"; };
 		54DB8C40143648DCA17E37C7 /* content-script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "content-script.js"; path = "../../../dist/content-script.js"; sourceTree = "<group>"; };
 		0DDC905B98534B76BAABD3EE /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../dist/icons; sourceTree = "<group>"; };
-		1B84B545D8C542C397BACF03 /* SafariEVMWallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SafariEVMWallet.entitlements; sourceTree = "<group>"; };
-		2BC4B4D764984E69B32217A8 /* SafariEVMWallet Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "SafariEVMWallet Extension.entitlements"; sourceTree = "<group>"; };
+		1B84B545D8C542C397BACF03 /* LionWallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LionWallet.entitlements; sourceTree = "<group>"; };
+		2BC4B4D764984E69B32217A8 /* LionWallet Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "LionWallet Extension.entitlements"; sourceTree = "<group>"; };
 		025D3EF1D35748638D455B63 /* ToolbarItemIcon.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = ToolbarItemIcon.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -96,8 +96,8 @@
 		02606E972F6D49F48CD84125 = {
 			isa = PBXGroup;
 			children = (
-				8102CEC53653456DBAB874E9 /* SafariEVMWallet */,
-				3FCC68F9DE48484CA0526121 /* SafariEVMWallet Extension */,
+				8102CEC53653456DBAB874E9 /* LionWallet */,
+				3FCC68F9DE48484CA0526121 /* LionWallet Extension */,
 				D640CC581B174136BCCB9DEA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -105,16 +105,16 @@
 		D640CC581B174136BCCB9DEA /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				801D2BB8305C4D14BCFF1E8C /* SafariEVMWallet.app */,
-				09869D9BEEE34AC8AE3DC3A1 /* SafariEVMWallet Extension.appex */,
+				801D2BB8305C4D14BCFF1E8C /* LionWallet.app */,
+				09869D9BEEE34AC8AE3DC3A1 /* LionWallet Extension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		8102CEC53653456DBAB874E9 /* SafariEVMWallet */ = {
+		8102CEC53653456DBAB874E9 /* LionWallet */ = {
 			isa = PBXGroup;
 			children = (
-				1B84B545D8C542C397BACF03 /* SafariEVMWallet.entitlements */,
+				1B84B545D8C542C397BACF03 /* LionWallet.entitlements */,
 				B66B3198B5A24605A98028A5 /* AppDelegate.swift */,
 				5ACE951944024CFCA2B79B17 /* ViewController.swift */,
 				25A9BA7A009749D8A4D42FAF /* Main.storyboard */,
@@ -122,7 +122,7 @@
 				14DA4E4E911340F095BE7302 /* Info.plist */,
 				CEF4AD5C5B5F4E1C9B187535 /* Resources */,
 			);
-			path = SafariEVMWallet;
+			path = LionWallet;
 			sourceTree = "<group>";
 		};
 		CEF4AD5C5B5F4E1C9B187535 /* Resources */ = {
@@ -136,16 +136,16 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		3FCC68F9DE48484CA0526121 /* SafariEVMWallet Extension */ = {
+		3FCC68F9DE48484CA0526121 /* LionWallet Extension */ = {
 			isa = PBXGroup;
 			children = (
-				2BC4B4D764984E69B32217A8 /* SafariEVMWallet Extension.entitlements */,
+				2BC4B4D764984E69B32217A8 /* LionWallet Extension.entitlements */,
 				5A5AE0527D404E0C962427DE /* Resources */,
 				438715B0504948269AF63304 /* SafariWebExtensionHandler.swift */,
 				B43D35CDB87249FA8830CB99 /* Info.plist */,
 				025D3EF1D35748638D455B63 /* ToolbarItemIcon.xcassets */,
 			);
-			path = "SafariEVMWallet Extension";
+			path = "LionWallet Extension";
 			sourceTree = "<group>";
 		};
 		5A5AE0527D404E0C962427DE /* Resources */ = {
@@ -159,15 +159,15 @@
 				0DDC905B98534B76BAABD3EE /* icons */,
 			);
 			name = Resources;
-			path = "SafariEVMWallet Extension";
+			path = "LionWallet Extension";
 			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0A0BC9E4135041C696A4CEE5 /* SafariEVMWallet */ = {
+		0A0BC9E4135041C696A4CEE5 /* LionWallet */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13556759FDF84404B1E4F01E /* Build configuration list for PBXNativeTarget "SafariEVMWallet" */;
+			buildConfigurationList = 13556759FDF84404B1E4F01E /* Build configuration list for PBXNativeTarget "LionWallet" */;
 			buildPhases = (
 				A63E1AF324FD41249D884637 /* Sources */,
 				EF624974F7654CE896BD0567 /* Frameworks */,
@@ -179,16 +179,16 @@
 			dependencies = (
 				63AF1675C41B426C88756A7D /* PBXTargetDependency */,
 			);
-			name = SafariEVMWallet;
+			name = LionWallet;
 			packageProductDependencies = (
 			);
-			productName = SafariEVMWallet;
-			productReference = 801D2BB8305C4D14BCFF1E8C /* SafariEVMWallet.app */;
+			productName = LionWallet;
+			productReference = 801D2BB8305C4D14BCFF1E8C /* LionWallet.app */;
 			productType = "com.apple.product-type.application";
 		};
-		3D9DFCA07BB0403B9FEECE36 /* SafariEVMWallet Extension */ = {
+		3D9DFCA07BB0403B9FEECE36 /* LionWallet Extension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C4C6FF6C6A3145819AD032D4 /* Build configuration list for PBXNativeTarget "SafariEVMWallet Extension" */;
+			buildConfigurationList = C4C6FF6C6A3145819AD032D4 /* Build configuration list for PBXNativeTarget "LionWallet Extension" */;
 			buildPhases = (
 				35668C79D9374ED6AA4C6458 /* Sources */,
 				B4A566A7F94942D0934CA960 /* Frameworks */,
@@ -198,11 +198,11 @@
 			);
 			dependencies = (
 			);
-			name = "SafariEVMWallet Extension";
+			name = "LionWallet Extension";
 			packageProductDependencies = (
 			);
-			productName = "SafariEVMWallet Extension";
-			productReference = 09869D9BEEE34AC8AE3DC3A1 /* SafariEVMWallet Extension.appex */;
+			productName = "LionWallet Extension";
+			productReference = 09869D9BEEE34AC8AE3DC3A1 /* LionWallet Extension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -223,7 +223,7 @@
 					};
 				};
 			};
-			buildConfigurationList = CC1071A2AC3E4CD5A1FDFEFD /* Build configuration list for PBXProject "SafariEVMWallet" */;
+			buildConfigurationList = CC1071A2AC3E4CD5A1FDFEFD /* Build configuration list for PBXProject "LionWallet" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -237,8 +237,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0A0BC9E4135041C696A4CEE5 /* SafariEVMWallet */,
-				3D9DFCA07BB0403B9FEECE36 /* SafariEVMWallet Extension */,
+				0A0BC9E4135041C696A4CEE5 /* LionWallet */,
+				3D9DFCA07BB0403B9FEECE36 /* LionWallet Extension */,
 			);
 		};
 /* End PBXProject section */
@@ -296,7 +296,7 @@
 /* Begin PBXTargetDependency section */
 		63AF1675C41B426C88756A7D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 3D9DFCA07BB0403B9FEECE36 /* SafariEVMWallet Extension */;
+			target = 3D9DFCA07BB0403B9FEECE36 /* LionWallet Extension */;
 			targetProxy = A3FCCA44275C46C0AFCB9E1B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -442,7 +442,7 @@
 		0B5C191F10D4496B9A711C46 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "SafariEVMWallet Extension/SafariEVMWallet Extension.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "LionWallet Extension/LionWallet Extension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6W99J3W7BS;
@@ -450,7 +450,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "SafariEVMWallet Extension/Info.plist";
+				INFOPLIST_FILE = "LionWallet Extension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
 				INFOPLIST_KEY_CFBundleName = "Lion Wallet";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Lion Wallet. All rights reserved.";
@@ -465,7 +465,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.wallet.SafariEVMWallet.Extension;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.wallet.LionWallet.Extension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -479,7 +479,7 @@
 		25DC56F7A0BF4BDB92F93477 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "SafariEVMWallet Extension/SafariEVMWallet Extension.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "LionWallet Extension/LionWallet Extension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6W99J3W7BS;
@@ -487,7 +487,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "SafariEVMWallet Extension/Info.plist";
+				INFOPLIST_FILE = "LionWallet Extension/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
 				INFOPLIST_KEY_CFBundleName = "Lion Wallet";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Lion Wallet. All rights reserved.";
@@ -502,7 +502,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.wallet.SafariEVMWallet.Extension;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.wallet.LionWallet.Extension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -518,7 +518,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = SafariEVMWallet/SafariEVMWallet.entitlements;
+				CODE_SIGN_ENTITLEMENTS = LionWallet/LionWallet.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -537,7 +537,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SafariEVMWallet/Info.plist;
+				INFOPLIST_FILE = LionWallet/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
 				INFOPLIST_KEY_CFBundleName = "Lion Wallet";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
@@ -555,7 +555,7 @@
 					"-framework",
 					WebKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.wallet.SafariEVMWallet;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.wallet.LionWallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -572,7 +572,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = SafariEVMWallet/SafariEVMWallet.entitlements;
+				CODE_SIGN_ENTITLEMENTS = LionWallet/LionWallet.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -591,7 +591,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SafariEVMWallet/Info.plist;
+				INFOPLIST_FILE = LionWallet/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Lion Wallet";
 				INFOPLIST_KEY_CFBundleName = "Lion Wallet";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
@@ -609,7 +609,7 @@
 					"-framework",
 					WebKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.wallet.SafariEVMWallet;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.wallet.LionWallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -624,7 +624,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CC1071A2AC3E4CD5A1FDFEFD /* Build configuration list for PBXProject "SafariEVMWallet" */ = {
+		CC1071A2AC3E4CD5A1FDFEFD /* Build configuration list for PBXProject "LionWallet" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A575148FF55E412DA306EEC6 /* Debug */,
@@ -633,7 +633,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C4C6FF6C6A3145819AD032D4 /* Build configuration list for PBXNativeTarget "SafariEVMWallet Extension" */ = {
+		C4C6FF6C6A3145819AD032D4 /* Build configuration list for PBXNativeTarget "LionWallet Extension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0B5C191F10D4496B9A711C46 /* Debug */,
@@ -642,7 +642,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		13556759FDF84404B1E4F01E /* Build configuration list for PBXNativeTarget "SafariEVMWallet" */ = {
+		13556759FDF84404B1E4F01E /* Build configuration list for PBXNativeTarget "LionWallet" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5B3342456EBC4091A043FF9D /* Debug */,

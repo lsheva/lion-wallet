@@ -1,6 +1,6 @@
 # Lion Wallet — color palette
 
-Derived from [BRANDING.md](../BRANDING.md) and hues in [`lion.svg`](./lion.svg): savanna warmth, amber gold accent, deep mane neutrals.
+Derived from [BRANDING.md](../docs/BRANDING.md) and hues in [`lion.svg`](./lion.svg): savanna warmth, amber gold accent, deep mane neutrals.
 
 ## Core brand
 

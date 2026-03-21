@@ -1,6 +1,10 @@
-# Lion Wallet
+<p align="center">
+  <img src="brand/lion.svg" width="128" height="128" alt="Lion Wallet">
+</p>
 
-**Your keys. Full clarity.**
+<h1 align="center">Lion Wallet</h1>
+
+<p align="center"><strong>Your keys. Full clarity.</strong></p>
 
 EVM-compatible cross-platform crypto wallet extension with first-class Safari support. Open source, zero tracking, lightweight by conviction.
 
@@ -62,4 +66,4 @@ Keys are never held in memory beyond a single operation scope.
 
 ## License
 
-GPL-3.0 — see [LICENSE](./LICENSE). Full design rationale in [PHILOSOPHY.md](./PHILOSOPHY.md).
+GPL-3.0 — see [LICENSE](./LICENSE). Full design rationale in [PHILOSOPHY.md](./docs/PHILOSOPHY.md).
