@@ -3,6 +3,58 @@
 [] - if there is a failed call and new call is submitted, ask the user if they want to retry or replace the existing call. Make sure to only do this if the new call is for the same account and network. If during submitting the new call the old one propagated on chain first, then show a notification that old call successful, and the new one should be retried (with higher nonce)
 [] - allow cancelling a call that is yet to be mined, show confirmation if cancellation is successful or not.
 
+## Connection approval prompt
+
+When a dApp calls `eth_requestAccounts` for the first time, show an approval popup instead of auto-connecting. Currently any site can silently obtain the active account address.
+
+### Behavior
+
+- First `eth_requestAccounts` from an origin → open approval popup showing site origin, favicon, and requested permissions
+- User approves → origin is added to connected set, accounts returned
+- User rejects → `4001 User Rejected Request` error returned to dApp
+- Approved origins persisted in `browser.storage.local` and survive browser restart
+- Settings → Connected Sites: list all approved origins with ability to revoke
+- Revoking disconnects immediately and emits `accountsChanged([])` to the dApp
+
+### Steps
+
+[] - add connected origins storage (persistent, not just in-memory Set)
+[] - intercept `eth_requestAccounts` — check storage, show approval popup if origin unknown
+[] - build connection approval UI: origin, favicon, approve/reject buttons
+[] - emit `accountsChanged` / `disconnect` events on revoke
+[] - add Settings → Connected Sites page with revoke per-origin
+[] - handle re-connection after revoke (re-prompts approval)
+
+## Optional lock screen
+
+Auto-lock the wallet after a configurable inactivity period. When locked, the popup shows a lock screen requiring authentication (Touch ID or password) before any interaction. Disabled by default — users opt in via Settings.
+
+### Behavior
+
+- **Off by default** — wallet stays unlocked indefinitely (current behavior)
+- **When enabled**, user picks a TTL: 1 min, 5 min, 15 min, 30 min, 1 hour, or custom
+- Inactivity = no popup interaction (mouse, keyboard, touch). Background activity (pending txs, RPC) doesn't count
+- On lock: popup renders a lock screen overlay. No account data visible, no actions available
+- Unlock via Touch ID (Keychain mode) or password entry (Vault mode)
+- Lock state stored in `browser.storage.session` — survives popup close but not browser restart
+- Last-activity timestamp tracked in session storage, checked on popup open
+
+### UI
+
+- Lock screen: centered lion icon, "Wallet locked" text, unlock button (Touch ID) or password field
+- Settings → Security: "Auto-lock" toggle with TTL dropdown
+- Manual lock button in Settings for immediate locking
+
+### Steps
+
+[] - add lock settings to storage (enabled: boolean, ttlMs: number)
+[] - add Settings → Security UI: auto-lock toggle + TTL picker
+[] - track last-activity timestamp in session storage (update on user interaction events)
+[] - add lock check on popup mount: compare now vs lastActivity, lock if expired
+[] - build lock screen component with Touch ID / password unlock
+[] - add manual "Lock now" button to Settings
+[] - ensure locked state blocks all message sending from popup (except unlock)
+
 ## Cross-platform Rust native signing
 
 Move private key management and signing out of JS into a Rust native host. The private key never enters JS memory — JS hashes/encodes the transaction, sends the 32-byte digest to Rust, Rust signs with secp256k1 and returns (r, s, v).

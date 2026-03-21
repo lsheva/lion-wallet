@@ -64,14 +64,19 @@ jobs:
             build \
             -derivedDataPath build
 
-      - name: Package app
+      - name: Package artifacts
         run: |
+          TAG=${{ steps.version.outputs.tag }}
           APP_PATH=$(find build -name "LionWallet.app" -type d | head -1)
-          ditto -c -k --keepParent "$APP_PATH" LionWallet-${{ steps.version.outputs.tag }}-macOS.zip
+          DMG=LionWallet-${TAG}-macOS.dmg
+          hdiutil create -volname "Lion Wallet" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG"
+          ditto -c -k --keepParent "$APP_PATH" LionWallet-${TAG}-macOS.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          files: LionWallet-*.zip
+          files: |
+            LionWallet-*-macOS.dmg
+            LionWallet-*-macOS.zip
           generate_release_notes: true

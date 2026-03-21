@@ -47,6 +47,27 @@ pnpm run:safari    # build + launch in Safari
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for full setup, project structure, and code style guidelines.
 
+## Installing the Unsigned Extension
+
+Safari requires a native container app to load web extensions. Since Lion Wallet isn't on the App Store yet, you need to allow unsigned extensions manually.
+
+### From a release build
+
+1. Download `LionWallet-vX.X.X-macOS.dmg` (or `.zip`) from the [latest release](https://github.com/lsheva/lion-wallet/releases/latest)
+2. Open the `.dmg` and drag `LionWallet.app` to `/Applications` (or unzip the `.zip`)
+3. Open the app once — it registers the extension with Safari
+4. Enable the extension: **Safari → Settings → Extensions → Lion Wallet** → check the box
+5. Allow unsigned extensions: **Safari → Settings → Advanced → Show features for web developers** → then **Developer → Allow unsigned extensions** (re-enable each Safari launch)
+
+### From source
+
+1. Clone the repo and run `pnpm install`
+2. Run `pnpm run:safari` — builds the extension and launches the container app
+3. Enable the extension in Safari Settings → Extensions
+4. Allow unsigned extensions in Developer menu (same as above)
+
+> **Note:** The "Allow unsigned extensions" setting resets every time Safari restarts. This is an Apple restriction for non-App Store extensions during development.
+
 ## Security Model
 
 **Keychain mode (macOS):** Mnemonic and private keys are stored in the macOS Keychain, scoped to the app, protected by Touch ID / system password on every retrieval. No additional encryption layer — the OS provides the vault.
