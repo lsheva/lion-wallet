@@ -17,7 +17,7 @@
     "lint:fix": "biome check --write src/ scripts/",
     "format": "biome format --write src/ scripts/",
     "preview": "vite preview",
-    "push": "git remote add publish git@github.com:lsheva/lion-wallet.git && git push publish HEAD && git remote remove publish"
+    "push": "git remote remove publish 2>/dev/null; git remote add publish git@github-personal:lsheva/lion-wallet.git && git push publish HEAD; git remote remove publish"
   },
   "dependencies": {
     "@noble/hashes": "^2.0.1",
