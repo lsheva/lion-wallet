@@ -29,10 +29,17 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v4
+        id: node-modules
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
 
       - name: Bump version, commit, and tag
         if: github.event_name == 'workflow_dispatch'
