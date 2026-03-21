@@ -1,7 +1,8 @@
 import { sendMessage } from "@shared/messages";
-import { Fingerprint, Shield } from "lucide-preact";
+import { Fingerprint } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { route } from "preact-router";
+import lionIcon from "../../icons/icon.svg";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 
@@ -12,13 +13,11 @@ export function Welcome() {
 
   useEffect(() => {
     sendMessage({ type: "CHECK_KEYCHAIN_AVAILABLE" }).then((res) => {
-      console.log("[Welcome] CHECK_KEYCHAIN_AVAILABLE:", JSON.stringify(res));
       if (res.ok && res.data?.available) {
         setKeychainAvailable(true);
       } else {
         setKeychainAvailable(false);
         if (res.ok && res.data?.error) {
-          console.log("[Welcome] Keychain probe error:", res.data.error);
           setError(`Keychain probe failed: ${res.data.error}`);
         }
       }
@@ -31,7 +30,6 @@ export function Welcome() {
     const res = await sendMessage({ type: "CREATE_WALLET" });
     setLoading(false);
     if (!res.ok) {
-      console.log("[Welcome] CREATE_WALLET failed:", res.error);
       setError(res.error);
       return;
     }
@@ -48,9 +46,7 @@ export function Welcome() {
     <div class="flex flex-col items-center justify-center h-[600px] px-4">
       <div class="relative mb-6">
         <div class="absolute inset-0 bg-accent/20 rounded-full blur-2xl scale-150" />
-        <div class="relative w-20 h-20 bg-accent rounded-2xl flex items-center justify-center shadow-lg">
-          <Shield size={40} class="text-white" />
-        </div>
+        <img src={lionIcon} alt="Lion Wallet" class="relative w-20 h-20 rounded-2xl shadow-lg" />
       </div>
 
       <h1 class="text-xl font-bold text-text-primary mb-1">Lion Wallet</h1>

@@ -24,6 +24,8 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   return (
     <div class="absolute inset-0 z-40 flex items-end">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay dismisses modal on click */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard dismiss handled via Escape listener */}
       <div
         class="absolute inset-0 bg-black/30 backdrop-blur-[2px] animate-fade-in"
         onClick={onClose}

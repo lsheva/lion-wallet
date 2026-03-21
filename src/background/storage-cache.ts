@@ -1,4 +1,3 @@
-
 import { bgLog } from "./log";
 
 /**

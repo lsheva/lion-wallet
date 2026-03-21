@@ -24,10 +24,8 @@ const XCODE_APP_ICON_SIZES = [16, 32, 128, 256, 512];
 const TOOLBAR_PT = 48;
 
 const MANIFEST_OUT = "src/icons/generated";
-const XCODE_APP_ICON_DIR =
-  "xcode/LionWallet/LionWallet/Assets.xcassets/AppIcon.appiconset";
-const XCODE_LARGE_ICON_DIR =
-  "xcode/LionWallet/LionWallet/Assets.xcassets/LargeIcon.imageset";
+const XCODE_APP_ICON_DIR = "xcode/LionWallet/LionWallet/Assets.xcassets/AppIcon.appiconset";
+const XCODE_LARGE_ICON_DIR = "xcode/LionWallet/LionWallet/Assets.xcassets/LargeIcon.imageset";
 const XCODE_TOOLBAR_IMAGESET =
   "xcode/LionWallet/LionWallet Extension/ToolbarItemIcon.xcassets/ToolbarItemIcon.imageset";
 const XCODE_RESOURCES_ICON = "xcode/LionWallet/LionWallet/Resources/Icon.png";

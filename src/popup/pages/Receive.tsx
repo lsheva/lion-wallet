@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import QRCode from "qrcode";
-import { Banner } from "../components/Banner";
 import { AddressDisplay } from "../components/AddressDisplay";
+import { Banner } from "../components/Banner";
 import { Header } from "../components/Header";
 import { NetworkBadge } from "../components/NetworkBadge";
 import { walletState } from "../store";

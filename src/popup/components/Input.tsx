@@ -1,5 +1,5 @@
 import { Eye, EyeOff } from "lucide-preact";
-import type { ComponentChildren } from "preact";
+import type { ComponentChildren, RefCallback } from "preact";
 import { useState } from "preact/hooks";
 
 interface InputProps {
@@ -16,6 +16,8 @@ interface InputProps {
   autoFocus?: boolean;
   class?: string;
 }
+
+let idCounter = 0;
 
 export function Input({
   label,
@@ -34,6 +36,11 @@ export function Input({
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+  const [inputId] = useState(() => `input-${++idCounter}`);
+
+  const focusRef: RefCallback<HTMLElement> = (el) => {
+    if (autoFocus && el) el.focus();
+  };
 
   const inputClass = `
     w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5
@@ -49,25 +56,31 @@ export function Input({
 
   return (
     <div class={`space-y-1.5 ${cls}`}>
-      {label && <label class="block text-sm font-medium text-text-secondary">{label}</label>}
+      {label && (
+        <label htmlFor={inputId} class="block text-sm font-medium text-text-secondary">
+          {label}
+        </label>
+      )}
       <div class="relative">
         {multiline ? (
           <textarea
+            id={inputId}
+            ref={focusRef}
             class={`${inputClass} resize-none`}
             placeholder={placeholder}
             value={value}
             rows={rows}
             onInput={(e) => onInput?.((e.target as HTMLTextAreaElement).value)}
-            autoFocus={autoFocus}
           />
         ) : (
           <input
+            id={inputId}
+            ref={focusRef}
             class={inputClass}
             type={inputType}
             placeholder={placeholder}
             value={value}
             onInput={(e) => onInput?.((e.target as HTMLInputElement).value)}
-            autoFocus={autoFocus}
           />
         )}
         {isPassword && (

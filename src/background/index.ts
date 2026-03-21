@@ -1,40 +1,40 @@
 import type { Runtime } from "webextension-polyfill/namespaces/runtime";
 import type { MessageRequest, MessageResponse } from "../shared/messages";
-import { setApprovalCreatedCallback } from "./rpc-handler";
 import { broadcastPendingCount, updateBadge } from "./broadcast";
-import { bgLog } from "./log";
-import { loadRpcProviderKey } from "./networks";
 import {
-  handleRpcRequest,
-  handleGetPendingApproval,
   handleApproveRequest,
-  handleRejectRequest,
   handleEstimateGas,
+  handleGetPendingApproval,
+  handleRejectRequest,
+  handleRpcRequest,
 } from "./handlers/approval";
 import {
-  handleGetEtherscanKey,
-  handleSetEtherscanKey,
-  handleGetRpcProviderKey,
-  handleSetRpcProviderKey,
-  handleGetStorageMode,
   handleCheckKeychainAvailable,
-  handleGetActivity,
   handleClearActivityCache,
+  handleGetActivity,
+  handleGetEtherscanKey,
+  handleGetRpcProviderKey,
+  handleGetStorageMode,
+  handleSetEtherscanKey,
+  handleSetRpcProviderKey,
 } from "./handlers/settings";
 import {
-  handleCreateWallet,
-  handleImportWallet,
-  handleImportPrivateKey,
-  handleGetState,
-  handleGetAccounts,
   handleAddAccount,
-  handleGetBalance,
-  handleSwitchNetwork,
-  handleSwitchAccount,
-  handleExportPrivateKey,
+  handleCreateWallet,
   handleExportMnemonic,
+  handleExportPrivateKey,
+  handleGetAccounts,
+  handleGetBalance,
+  handleGetState,
+  handleImportPrivateKey,
+  handleImportWallet,
   handleResetWallet,
+  handleSwitchAccount,
+  handleSwitchNetwork,
 } from "./handlers/wallet";
+import { bgLog } from "./log";
+import { loadRpcProviderKey } from "./networks";
+import { setApprovalCreatedCallback } from "./rpc-handler";
 
 updateBadge();
 browser.runtime.onInstalled.addListener(() => updateBadge());
@@ -107,15 +107,13 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
   }
 }
 
-browser.runtime.onMessage.addListener(
-  (message: unknown, _sender: Runtime.MessageSender) => {
-    const msg = message as MessageRequest;
-    return handleMessage(msg).catch((err: Error) => ({
-      ok: false as const,
-      error: err.message,
-    }));
-  },
-);
+browser.runtime.onMessage.addListener((message: unknown, _sender: Runtime.MessageSender) => {
+  const msg = message as MessageRequest;
+  return handleMessage(msg).catch((err: Error) => ({
+    ok: false as const,
+    error: err.message,
+  }));
+});
 
 loadRpcProviderKey().catch((e) => {
   bgLog("[background] loadRpcProviderKey failed:", e);

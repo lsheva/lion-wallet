@@ -29,9 +29,7 @@ export function ConfirmSeed() {
     const shuffledCounts: Record<string, number> = {};
     for (const s of shuffled) shuffledCounts[s] = (shuffledCounts[s] || 0) + 1;
 
-    const remaining = shuffled.filter(
-      (w) => (selectedCounts[w] || 0) < (shuffledCounts[w] || 0),
-    );
+    const remaining = shuffled.filter((w) => (selectedCounts[w] || 0) < (shuffledCounts[w] || 0));
 
     if (new Set(remaining).size === remaining.length) return remaining;
 

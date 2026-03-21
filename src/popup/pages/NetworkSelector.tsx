@@ -146,7 +146,7 @@ export function NetworkSelector() {
             mono
           />
           <div class="space-y-1.5">
-            <label class="block text-sm font-medium text-text-secondary">Chain ID</label>
+            <span class="block text-sm font-medium text-text-secondary">Chain ID</span>
             <div class="flex items-center h-10 px-3 bg-surface rounded-[var(--radius-card)] ring-1 ring-transparent">
               {detecting ? (
                 <span class="flex items-center gap-2 text-sm text-text-tertiary">

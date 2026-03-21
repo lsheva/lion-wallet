@@ -1,4 +1,4 @@
-import { createClient, type Client, http } from "viem";
+import { type Client, createClient, http } from "viem";
 
 import { DEFAULT_NETWORK_ID, NETWORK_BY_ID, NETWORKS } from "../shared/constants";
 import type { NetworkConfig } from "../shared/types";
@@ -7,32 +7,32 @@ const STORAGE_KEY = "activeNetworkId";
 const RPC_PROVIDER_STORAGE_KEY = "rpcProviderKey";
 
 const ALCHEMY_CHAIN_SLUGS: Record<number, string> = {
-  [1]: "eth-mainnet",
-  [137]: "polygon-mainnet",
-  [42161]: "arb-mainnet",
-  [10]: "opt-mainnet",
-  [8453]: "base-mainnet",
-  [43114]: "avax-mainnet",
-  [81457]: "blast-mainnet",
-  [59144]: "linea-mainnet",
-  [534352]: "scroll-mainnet",
-  [324]: "zksync-mainnet",
-  [5000]: "mantle-mainnet",
-  [42220]: "celo-mainnet",
-  [100]: "gnosis-mainnet",
-  [1101]: "polygonzkevm-mainnet",
-  [250]: "fantom-mainnet",
-  [1284]: "moonbeam-mainnet",
-  [592]: "astar-mainnet",
-  [11155111]: "eth-sepolia",
-  [421614]: "arb-sepolia",
-  [84532]: "base-sepolia",
-  [11155420]: "opt-sepolia",
-  [80002]: "polygon-amoy",
-  [43113]: "avax-fuji",
-  [168587773]: "blast-sepolia",
-  [59141]: "linea-sepolia",
-  [534351]: "scroll-sepolia",
+  1: "eth-mainnet",
+  137: "polygon-mainnet",
+  42161: "arb-mainnet",
+  10: "opt-mainnet",
+  8453: "base-mainnet",
+  43114: "avax-mainnet",
+  81457: "blast-mainnet",
+  59144: "linea-mainnet",
+  534352: "scroll-mainnet",
+  324: "zksync-mainnet",
+  5000: "mantle-mainnet",
+  42220: "celo-mainnet",
+  100: "gnosis-mainnet",
+  1101: "polygonzkevm-mainnet",
+  250: "fantom-mainnet",
+  1284: "moonbeam-mainnet",
+  592: "astar-mainnet",
+  11155111: "eth-sepolia",
+  421614: "arb-sepolia",
+  84532: "base-sepolia",
+  11155420: "opt-sepolia",
+  80002: "polygon-amoy",
+  43113: "avax-fuji",
+  168587773: "blast-sepolia",
+  59141: "linea-sepolia",
+  534351: "scroll-sepolia",
 };
 
 let rpcProviderKey: string | null = null;

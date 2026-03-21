@@ -3,6 +3,8 @@ import type { GasSpeed } from "@shared/types";
 import { ChevronDown, ChevronUp, Globe } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
 import { route } from "preact-router";
+import { MOCK_SIGN_REQUEST, MOCK_TX_REQUEST } from "../../mock/data";
+import { walletState } from "../../store";
 import { AddressDisplay } from "../AddressDisplay";
 import { BottomActions } from "../BottomActions";
 import { Button } from "../Button";
@@ -10,11 +12,9 @@ import { Card } from "../Card";
 import { ChainIcon } from "../ChainIcon";
 import { CopyButton } from "../CopyButton";
 import { Identicon } from "../Identicon";
-import { MOCK_SIGN_REQUEST, MOCK_TX_REQUEST } from "../../mock/data";
-import { walletState } from "../../store";
 import { DecodedCallCard } from "./DecodedCallCard";
+import { formatGasCost, GAS_ICONS, GAS_LABELS, scrollEndIntoView } from "./helpers";
 import { TransfersCard } from "./TransfersCard";
-import { GAS_ICONS, GAS_LABELS, formatGasCost, scrollEndIntoView } from "./helpers";
 
 export function DevApprove() {
   const [mode, setMode] = useState<"tx" | "sign">("tx");

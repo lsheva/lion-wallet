@@ -121,7 +121,12 @@ class EIP1193Provider extends EventEmitter {
         break;
       }
       case "connect": {
-        if (!data || typeof data !== "object" || typeof (data as Record<string, unknown>).chainId !== "string") return;
+        if (
+          !data ||
+          typeof data !== "object" ||
+          typeof (data as Record<string, unknown>).chainId !== "string"
+        )
+          return;
         const { chainId } = data as { chainId: string };
         this._chainId = chainId;
         this._connected = true;

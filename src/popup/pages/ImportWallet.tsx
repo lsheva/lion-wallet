@@ -80,7 +80,6 @@ export function ImportWallet() {
             });
 
       if (!res.ok) {
-        console.log("[ImportWallet] error:", res.error);
         setError(res.error);
         setLoading(false);
         return;

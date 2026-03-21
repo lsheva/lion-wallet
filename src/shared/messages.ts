@@ -50,20 +50,20 @@ export interface MessageDataMap {
   GET_ACCOUNTS: { accounts: SerializedAccount[] };
   ADD_ACCOUNT: { account: SerializedAccount };
   GET_BALANCE: { balance: string; nativeUsdPrice: number | null };
-  SWITCH_NETWORK: void;
-  SWITCH_ACCOUNT: void;
+  SWITCH_NETWORK: undefined;
+  SWITCH_ACCOUNT: undefined;
   EXPORT_PRIVATE_KEY: { privateKey: Hex };
   EXPORT_MNEMONIC: { mnemonic: string };
   RPC_REQUEST: { result: unknown };
   GET_PENDING_APPROVAL: ApprovalData | null;
   APPROVE_REQUEST: { result: string };
-  REJECT_REQUEST: void;
+  REJECT_REQUEST: undefined;
   ESTIMATE_GAS: GasPresets;
-  RESET_WALLET: void;
+  RESET_WALLET: undefined;
   GET_ETHERSCAN_KEY: { key: string | null };
-  SET_ETHERSCAN_KEY: void;
+  SET_ETHERSCAN_KEY: undefined;
   GET_RPC_PROVIDER_KEY: { key: string | null };
-  SET_RPC_PROVIDER_KEY: void;
+  SET_RPC_PROVIDER_KEY: undefined;
   GET_STORAGE_MODE: { storageMode: "keychain" | "vault" };
   CHECK_KEYCHAIN_AVAILABLE: { available: boolean; error?: string };
   GET_ACTIVITY: {
@@ -71,14 +71,13 @@ export interface MessageDataMap {
     hasMore: boolean;
     source: "etherscan" | "rpc" | "cache";
   };
-  CLEAR_ACTIVITY_CACHE: void;
+  CLEAR_ACTIVITY_CACHE: undefined;
 }
 
 /** Typed success/error response keyed by message type. */
-export type TypedResponse<T extends MessageRequest["type"]> =
-  MessageDataMap[T] extends void
-    ? { ok: true; data?: undefined } | { ok: false; error: string }
-    : { ok: true; data: MessageDataMap[T] } | { ok: false; error: string };
+export type TypedResponse<T extends MessageRequest["type"]> = MessageDataMap[T] extends void
+  ? { ok: true; data?: undefined } | { ok: false; error: string }
+  : { ok: true; data: MessageDataMap[T] } | { ok: false; error: string };
 
 export { MESSAGE_TIMEOUT_MS } from "./protocol";
 

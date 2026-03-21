@@ -204,12 +204,7 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
     try {
       const [decodeResult, simResult] = await Promise.allSettled([
         decodeTx(txParams, pending.chainId, _debug),
-        simulateTx(
-          txParams,
-          pending.chainId,
-          activeAccount?.address ?? ("0x" as Address),
-          _debug,
-        ),
+        simulateTx(txParams, pending.chainId, activeAccount?.address ?? ("0x" as Address), _debug),
       ]);
 
       if (decodeResult.status === "fulfilled") {

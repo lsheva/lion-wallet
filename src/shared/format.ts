@@ -35,8 +35,8 @@ export function getTokenValueDisplay(value: string | number): TokenValueDisplay 
 function displayScaled(sign: string, n: number, suffix: string): TokenValueDisplay {
   const tail = suffix;
   const inner = decimalPieces(n);
-  if (inner.length === 1 && inner[0]!.kind === "text") {
-    return { pieces: [{ kind: "text", text: sign + inner[0]!.text + tail }] };
+  if (inner.length === 1 && inner[0]?.kind === "text") {
+    return { pieces: [{ kind: "text", text: sign + inner[0]?.text + tail }] };
   }
   const pieces: TokenValuePiece[] = [];
   if (sign) pieces.push({ kind: "text", text: sign });

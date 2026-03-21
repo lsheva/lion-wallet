@@ -1,6 +1,6 @@
 import type { ApprovalData } from "@shared/types";
-import { Card } from "../Card";
 import { AddressDisplay } from "../AddressDisplay";
+import { Card } from "../Card";
 import { Identicon } from "../Identicon";
 import { decodeMessage, getMethodLabel } from "./helpers";
 

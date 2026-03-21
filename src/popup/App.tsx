@@ -47,7 +47,6 @@ try {
     if (m.type === "PENDING_COUNT" && typeof m.count === "number") {
       pendingQueueSize.value = m.count;
     } else if (m.type === "BG_LOG" && m.args) {
-      console.log("[bg]", ...m.args);
     } else if (m.type === "ACTIVITY_UPDATED" && m.items) {
       activity.value = m.items;
       if (m.source) activitySource.value = m.source as "etherscan" | "rpc" | "cache";

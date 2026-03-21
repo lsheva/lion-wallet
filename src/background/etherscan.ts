@@ -24,7 +24,10 @@ const PRICE_TTL = 5 * 60 * 1000;
 import { StorageCache } from "./storage-cache";
 
 const abiCache = new StorageCache<Record<string, unknown[] | null>>("abiCache", "etherscan-abi");
-const proxyCache = new StorageCache<Record<string, string | null>>("proxyImplCache", "etherscan-proxy");
+const proxyCache = new StorageCache<Record<string, string | null>>(
+  "proxyImplCache",
+  "etherscan-proxy",
+);
 
 function cacheKey(chainId: number, addr: string): string {
   return `${chainId}:${addr.toLowerCase()}`;
@@ -261,10 +264,9 @@ export async function resolveAbis(
     const settled = await Promise.allSettled(
       toFetch.map((addr) => fetchContractAbi(addr, chainId)),
     );
-    for (let i = 0; i < toFetch.length; i++) {
-      const r = settled[i]!;
+    for (const [i, r] of settled.entries()) {
       if (r.status === "fulfilled" && r.value) {
-        result.set(toFetch[i]!, r.value);
+        result.set(toFetch[i] as string, r.value);
       }
     }
   }

@@ -17,10 +17,7 @@ function cacheKey(chainId: number, addr: string): string {
   return `${chainId}:${addr.toLowerCase()}`;
 }
 
-export async function fetchTokenMeta(
-  chainId: number,
-  address: string,
-): Promise<TokenMeta> {
+export async function fetchTokenMeta(chainId: number, address: string): Promise<TokenMeta> {
   const cache = await store.load();
   const key = cacheKey(chainId, address);
   if (cache[key]) return cache[key];
@@ -75,17 +72,17 @@ export async function fetchTokenMetaBatch(
       }),
     );
 
-    for (let i = 0; i < missing.length; i++) {
-      const sym = calls[i * 2]!;
-      const dec = calls[i * 2 + 1]!;
+    for (const [i, addr] of missing.entries()) {
+      const sym = calls[i * 2];
+      const dec = calls[i * 2 + 1];
       const meta: TokenMeta = {
-        symbol: sym.status === "fulfilled" ? String(sym.value) : DEFAULTS.symbol,
+        symbol: sym?.status === "fulfilled" ? String(sym.value) : DEFAULTS.symbol,
         name: DEFAULTS.name,
-        decimals: dec.status === "fulfilled" ? Number(dec.value) : DEFAULTS.decimals,
+        decimals: dec?.status === "fulfilled" ? Number(dec.value) : DEFAULTS.decimals,
       };
-      const k = cacheKey(chainId, missing[i]!);
+      const k = cacheKey(chainId, addr);
       cache[k] = meta;
-      result.set(missing[i]!.toLowerCase(), meta);
+      result.set(addr.toLowerCase(), meta);
     }
     await store.persist();
   }

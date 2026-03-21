@@ -1,4 +1,3 @@
-
 import { CHANNEL } from "../shared/messages";
 
 const script = document.createElement("script");

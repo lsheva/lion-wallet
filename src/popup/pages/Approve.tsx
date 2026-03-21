@@ -6,16 +6,15 @@ import { Fingerprint, Globe } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { route } from "preact-router";
 import { closePopup, pendingApprovalData, routeToNextApprovalOrClose } from "../App";
+import { DevApprove } from "../components/approve/DevApprove";
+import { SignContent } from "../components/approve/SignContent";
+import { TxContent } from "../components/approve/TxContent";
 import { BottomActions } from "../components/BottomActions";
 import { Button } from "../components/Button";
 import { ChainIcon } from "../components/ChainIcon";
 import { CopyButton } from "../components/CopyButton";
 import { Input } from "../components/Input";
 import { Spinner } from "../components/Spinner";
-import { DevApprove } from "../components/approve/DevApprove";
-import { SignContent } from "../components/approve/SignContent";
-import { TxContent } from "../components/approve/TxContent";
-import { walletState } from "../store";
 
 const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
 

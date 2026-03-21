@@ -52,7 +52,7 @@ export function Send() {
 
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedToken, setSelectedToken] = useState<Token>(tokens[0]!);
+  const [selectedToken, setSelectedToken] = useState<Token>(tokens[0] as Token);
   const [showTokenPicker, setShowTokenPicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

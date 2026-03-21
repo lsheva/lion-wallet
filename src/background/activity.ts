@@ -11,10 +11,9 @@ import type {
 import { ETHERSCAN_BASE_URL, getEtherscanApiKey, resolveAbis } from "./etherscan";
 import { bgLog } from "./log";
 import { getPublicClient } from "./networks";
-import { type TokenMeta, clearTokenMetaCache, fetchTokenMetaBatch } from "./token-meta";
-import { stringify, tryDecode } from "./tx-decoder";
-
 import { StorageCache } from "./storage-cache";
+import { clearTokenMetaCache, fetchTokenMetaBatch, type TokenMeta } from "./token-meta";
+import { stringify, tryDecode } from "./tx-decoder";
 
 const STORAGE_KEY = "activityCache";
 /** Etherscan/RPC page size per request */
@@ -301,9 +300,9 @@ function attachTransfers(
   userAddress: string,
 ): void {
   const addrLower = userAddress.toLowerCase();
-  for (let i = 0; i < items.length; i++) {
+  for (const [i, item] of items.entries()) {
     const raw = rawByTxIndex[i] ?? [];
-    items[i]!.transfers = raw.map((t) => {
+    item.transfers = raw.map((t) => {
       const info = tokenMeta.get(t.token);
       return {
         token: t.token,
@@ -639,7 +638,7 @@ async function fetchRpcData(
       dir: t.from.toLowerCase() === addrLower ? "out" : "in",
     };
     if (!transfersByHash[t.hash]) transfersByHash[t.hash] = [];
-    transfersByHash[t.hash]!.push(mv);
+    transfersByHash[t.hash]?.push(mv);
   }
 
   return { hashes: hashes.slice(0, FETCH_PAGE_SIZE), transfersByHash };

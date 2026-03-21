@@ -7,8 +7,8 @@ import { Card } from "../Card";
 import { CopyButton } from "../CopyButton";
 import { FormattedTokenValue } from "../FormattedTokenValue";
 import { DecodedCallCard } from "./DecodedCallCard";
+import { formatGasCost, GAS_ICONS, GAS_LABELS, scrollEndIntoView } from "./helpers";
 import { TransfersCard } from "./TransfersCard";
-import { GAS_ICONS, GAS_LABELS, formatGasCost, scrollEndIntoView } from "./helpers";
 
 function ApiKeyHint({ text }: { text: string }) {
   return (
