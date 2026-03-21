@@ -1,6 +1,6 @@
 import { truncateAddress } from "@shared/format";
 import type { GasSpeed } from "@shared/types";
-import { ChevronDown, ChevronUp, Gauge, Globe, Rocket, Zap } from "lucide-preact";
+import { ChevronDown, ChevronUp, Globe } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
 import { route } from "preact-router";
 import { AddressDisplay } from "../AddressDisplay";
@@ -14,10 +14,7 @@ import { MOCK_SIGN_REQUEST, MOCK_TX_REQUEST } from "../../mock/data";
 import { walletState } from "../../store";
 import { DecodedCallCard } from "./DecodedCallCard";
 import { TransfersCard } from "./TransfersCard";
-import { formatGasCost, scrollEndIntoView } from "./helpers";
-
-const GAS_ICONS = { slow: Gauge, normal: Zap, fast: Rocket } as const;
-const GAS_LABELS = { slow: "Slow", normal: "Normal", fast: "Fast" } as const;
+import { GAS_ICONS, GAS_LABELS, formatGasCost, scrollEndIntoView } from "./helpers";
 
 export function DevApprove() {
   const [mode, setMode] = useState<"tx" | "sign">("tx");

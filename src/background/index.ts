@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+import type { Runtime } from "webextension-polyfill/namespaces/runtime";
 import type { MessageRequest, MessageResponse } from "../shared/messages";
 import { setApprovalCreatedCallback } from "./rpc-handler";
 import { broadcastPendingCount, updateBadge } from "./broadcast";
@@ -108,7 +108,7 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
 }
 
 browser.runtime.onMessage.addListener(
-  (message: unknown, _sender: browser.Runtime.MessageSender) => {
+  (message: unknown, _sender: Runtime.MessageSender) => {
     const msg = message as MessageRequest;
     return handleMessage(msg).catch((err: Error) => ({
       ok: false as const,

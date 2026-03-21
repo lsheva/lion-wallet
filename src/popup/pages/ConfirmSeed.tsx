@@ -22,26 +22,25 @@ export function ConfirmSeed() {
     return null;
   }
 
-  const remaining = shuffled.filter((w) => {
-    const selectedCounts = selected.reduce<Record<string, number>>((acc, s) => {
-      acc[s] = (acc[s] || 0) + 1;
-      return acc;
-    }, {});
-    const shuffledCounts = shuffled.reduce<Record<string, number>>((acc, s) => {
-      acc[s] = (acc[s] || 0) + 1;
-      return acc;
-    }, {});
-    return (selectedCounts[w] || 0) < (shuffledCounts[w] || 0);
-  });
+  const uniqueRemaining = useMemo(() => {
+    const selectedCounts: Record<string, number> = {};
+    for (const s of selected) selectedCounts[s] = (selectedCounts[s] || 0) + 1;
 
-  const uniqueRemaining =
-    [...new Set(remaining)].length === remaining.length
-      ? remaining
-      : remaining.filter((w, i, arr) => {
-          const priorSelected = selected.filter((s) => s === w).length;
-          const priorInRemaining = arr.slice(0, i).filter((s) => s === w).length;
-          return priorSelected + priorInRemaining < shuffled.filter((s) => s === w).length;
-        });
+    const shuffledCounts: Record<string, number> = {};
+    for (const s of shuffled) shuffledCounts[s] = (shuffledCounts[s] || 0) + 1;
+
+    const remaining = shuffled.filter(
+      (w) => (selectedCounts[w] || 0) < (shuffledCounts[w] || 0),
+    );
+
+    if (new Set(remaining).size === remaining.length) return remaining;
+
+    return remaining.filter((w, i, arr) => {
+      const priorSelected = selectedCounts[w] || 0;
+      const priorInRemaining = arr.slice(0, i).filter((s) => s === w).length;
+      return priorSelected + priorInRemaining < (shuffledCounts[w] || 0);
+    });
+  }, [selected, shuffled]);
 
   const handleSelect = (word: string) => {
     setError(false);

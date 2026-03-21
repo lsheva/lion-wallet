@@ -125,12 +125,6 @@ export const NETWORKS: Network[] = [
   { chain: mockChain(31337, "Hardhat", "ETH", "http://127.0.0.1:8545", true), color: "#FFF100" },
 ];
 
-export interface DecodedArg {
-  name: string;
-  type: string;
-  value: string;
-}
-
 export const MOCK_TX_REQUEST = {
   origin: "app.uniswap.org",
   favicon: "https://app.uniswap.org/favicon.ico",

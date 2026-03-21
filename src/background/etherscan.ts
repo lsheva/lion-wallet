@@ -1,10 +1,10 @@
 import { toErrorMessage } from "@shared/format";
 import { getStorageAt } from "viem/actions";
-import browser from "webextension-polyfill";
+
 import { bgLog } from "./log";
 import { getPublicClient } from "./networks";
 
-async function getEtherscanApiKey(): Promise<string | null> {
+export async function getEtherscanApiKey(): Promise<string | null> {
   const result = await browser.storage.local.get("etherscanApiKey");
   return (result.etherscanApiKey as string) ?? null;
 }
@@ -48,7 +48,7 @@ async function persistProxyCache() {
 
 // ── Etherscan HTTP helper ───────────────────────────────────────────
 
-const BASE_URL = "https://api.etherscan.io/v2/api";
+export const ETHERSCAN_BASE_URL = "https://api.etherscan.io/v2/api";
 
 async function etherscanFetch(
   params: Record<string, string>,
@@ -59,7 +59,7 @@ async function etherscanFetch(
   log.push(`etherscan-api: key=${apiKey ? "yes" : "no"} action=${params.action}`);
   if (!apiKey) return null;
 
-  const url = new URL(BASE_URL);
+  const url = new URL(ETHERSCAN_BASE_URL);
   url.searchParams.set("chainid", String(chainId));
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
@@ -190,10 +190,8 @@ export async function fetchContractAbi(
   chainId: number,
   log: string[] = [],
 ): Promise<unknown[] | null> {
-  const abiCache = await loadAbiCache();
+  const [abiCache, proxyCache] = await Promise.all([loadAbiCache(), loadProxyCache()]);
   const addrLower = address.toLowerCase();
-
-  const proxyCache = await loadProxyCache();
   const pk = cacheKey(chainId, addrLower);
   const knownImpl = pk in proxyCache ? proxyCache[pk] : undefined;
 

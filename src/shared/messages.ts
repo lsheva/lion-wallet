@@ -1,5 +1,6 @@
 import type { Address, Hex } from "viem";
-import browser from "webextension-polyfill";
+
+import { MESSAGE_TIMEOUT_MS } from "./protocol";
 import type {
   ActivityItem,
   ApprovalData,
@@ -79,7 +80,7 @@ export type TypedResponse<T extends MessageRequest["type"]> =
     ? { ok: true; data?: undefined } | { ok: false; error: string }
     : { ok: true; data: MessageDataMap[T] } | { ok: false; error: string };
 
-const MESSAGE_TIMEOUT_MS = 60_000;
+export { MESSAGE_TIMEOUT_MS } from "./protocol";
 
 export async function sendMessage<M extends MessageRequest>(
   message: M,
@@ -96,29 +97,4 @@ export async function sendMessage<M extends MessageRequest>(
   return response as TypedResponse<M["type"]>;
 }
 
-export const CHANNEL = "LION_WALLET";
-
-export interface ProviderRpcRequest {
-  type: typeof CHANNEL;
-  direction: "request";
-  id: string;
-  method: string;
-  params?: unknown[];
-}
-
-export interface ProviderRpcResponse {
-  type: typeof CHANNEL;
-  direction: "response";
-  id: string;
-  result?: unknown;
-  error?: { code: number; message: string; data?: unknown };
-}
-
-export interface ProviderEvent {
-  type: typeof CHANNEL;
-  direction: "event";
-  event: string;
-  data: unknown;
-}
-
-export type ProviderMessage = ProviderRpcRequest | ProviderRpcResponse | ProviderEvent;
+export { CHANNEL } from "./protocol";

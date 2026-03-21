@@ -1,7 +1,7 @@
 import { type Address, decodeFunctionData, formatUnits } from "viem";
-import { readContract } from "viem/actions";
 import type { TokenTransfer, TransactionParams } from "../shared/types";
 import { getPublicClient } from "./networks";
+import { fetchTokenMeta } from "./token-meta";
 
 function deterministicColor(address: string): string {
   let hash = 0;
@@ -86,7 +86,7 @@ async function simulateViaTrace(
         const amount = BigInt(logEntry.data || "0x0");
         const tokenAddr = logEntry.address.toLowerCase();
 
-        const meta = await fetchTokenMeta(tokenAddr as Address, chainId);
+        const meta = await fetchTokenMeta(chainId, tokenAddr);
 
         transfers.push({
           direction: from === accountLower ? "out" : "in",
@@ -119,63 +119,7 @@ async function simulateViaTrace(
   }
 }
 
-interface TokenMeta {
-  symbol: string;
-  name: string;
-  decimals: number;
-}
-
-const tokenMetaCache = new Map<string, TokenMeta>();
-
-async function fetchTokenMeta(address: Address, chainId: number): Promise<TokenMeta> {
-  const key = `${chainId}:${address}`;
-  const hit = tokenMetaCache.get(key);
-  if (hit) return hit;
-
-  const client = getPublicClient(chainId);
-  const erc20Abi = [
-    {
-      type: "function",
-      name: "symbol",
-      inputs: [],
-      outputs: [{ type: "string" }],
-      stateMutability: "view",
-    },
-    {
-      type: "function",
-      name: "name",
-      inputs: [],
-      outputs: [{ type: "string" }],
-      stateMutability: "view",
-    },
-    {
-      type: "function",
-      name: "decimals",
-      inputs: [],
-      outputs: [{ type: "uint8" }],
-      stateMutability: "view",
-    },
-  ] as const;
-
-  try {
-    const [symbolResult, nameResult, decimalsResult] = await Promise.allSettled([
-      readContract(client, { address, abi: erc20Abi, functionName: "symbol" }),
-      readContract(client, { address, abi: erc20Abi, functionName: "name" }),
-      readContract(client, { address, abi: erc20Abi, functionName: "decimals" }),
-    ]);
-
-    const meta: TokenMeta = {
-      symbol: symbolResult.status === "fulfilled" ? (symbolResult.value as string) : "???",
-      name: nameResult.status === "fulfilled" ? (nameResult.value as string) : "Unknown Token",
-      decimals: decimalsResult.status === "fulfilled" ? Number(decimalsResult.value) : 18,
-    };
-
-    tokenMetaCache.set(key, meta);
-    return meta;
-  } catch {
-    return { symbol: "???", name: "Unknown Token", decimals: 18 };
-  }
-}
+// Token metadata is resolved via the shared token-meta module (fetchTokenMeta)
 
 const ERC20_TRANSFER_ABI = [
   {
@@ -243,7 +187,7 @@ async function fallbackErc20Parse(
       });
 
       log.push(`sim-fallback: matched ERC-20 ${functionName}`);
-      const meta = await fetchTokenMeta(txParams.to as Address, chainId);
+      const meta = await fetchTokenMeta(chainId, txParams.to!);
 
       if (functionName === "transfer") {
         const [, amount] = args as [Address, bigint];

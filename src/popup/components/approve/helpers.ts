@@ -1,4 +1,8 @@
 import type { RefObject } from "preact";
+import { Gauge, Rocket, Zap } from "lucide-preact";
+
+export const GAS_ICONS = { slow: Gauge, normal: Zap, fast: Rocket } as const;
+export const GAS_LABELS = { slow: "Slow", normal: "Normal", fast: "Fast" } as const;
 
 export function formatGasCost(ethCost: string, nativeUsdPrice: number | null | undefined): string {
   const eth = parseFloat(ethCost);

@@ -1,6 +1,6 @@
 import { type Abi, decodeEventLog, erc20Abi, type Hex } from "viem";
-import { getBlockNumber, getTransaction, readContract } from "viem/actions";
-import browser from "webextension-polyfill";
+import { getBlockNumber, getTransaction } from "viem/actions";
+
 import type {
   ActivityItem,
   DecodedArg,
@@ -8,15 +8,15 @@ import type {
   DecodedEvent,
   TokenMovement,
 } from "../shared/types";
-import { resolveAbis } from "./etherscan";
+import { ETHERSCAN_BASE_URL, getEtherscanApiKey, resolveAbis } from "./etherscan";
 import { bgLog } from "./log";
 import { getPublicClient } from "./networks";
+import { type TokenMeta, clearTokenMetaCache, fetchTokenMetaBatch } from "./token-meta";
 import { stringify, tryDecode } from "./tx-decoder";
 
 import { StorageCache } from "./storage-cache";
 
 const STORAGE_KEY = "activityCache";
-const TOKEN_META_KEY = "tokenMeta";
 /** Etherscan/RPC page size per request */
 const FETCH_PAGE_SIZE = 50;
 /** Max transactions kept in cache (load more appends until this cap) */
@@ -24,79 +24,12 @@ const MAX_CACHED_ITEMS = 250;
 const ENRICH_BATCH = 5;
 const ETHERSCAN_LOGS_PAGE_SIZE = 1000;
 const RATE_LIMIT_MS = 60_000;
-const ETHERSCAN_BASE = "https://api.etherscan.io/v2/api";
 const INITIAL_BLOCK_RANGE = 10_000;
 const MIN_BLOCK_RANGE = 500;
 
 export type ActivitySource = "etherscan" | "rpc" | "cache";
 
-// ── Token metadata cache (persistent) ────────────────────────────────
-
-interface TokenMeta {
-  symbol: string;
-  decimals: number;
-}
-
-const tokenMetaStore = new StorageCache<Record<string, TokenMeta>>(TOKEN_META_KEY, "activity-tokenMeta");
-
-async function loadTokenMeta() {
-  return tokenMetaStore.load();
-}
-
-async function persistTokenMeta() {
-  return tokenMetaStore.persist();
-}
-
-function tmKey(chainId: number, addr: string): string {
-  return `${chainId}:${addr.toLowerCase()}`;
-}
-
-async function resolveTokenMeta(
-  chainId: number,
-  addresses: string[],
-): Promise<Map<string, TokenMeta>> {
-  const cache = await loadTokenMeta();
-  const result = new Map<string, TokenMeta>();
-  const missing: string[] = [];
-
-  for (const addr of addresses) {
-    const k = tmKey(chainId, addr);
-    if (cache[k]) result.set(addr.toLowerCase(), cache[k]);
-    else missing.push(addr);
-  }
-
-  if (missing.length > 0) {
-    const client = getPublicClient(chainId);
-    const calls = await Promise.allSettled(
-      missing.flatMap((addr) => [
-        readContract(client, {
-          address: addr as `0x${string}`,
-          abi: erc20Abi,
-          functionName: "symbol",
-        }),
-        readContract(client, {
-          address: addr as `0x${string}`,
-          abi: erc20Abi,
-          functionName: "decimals",
-        }),
-      ]),
-    );
-    for (let i = 0; i < missing.length; i++) {
-      const sym = calls[i * 2]!;
-      const dec = calls[i * 2 + 1]!;
-      const meta: TokenMeta = {
-        symbol: sym.status === "fulfilled" ? String(sym.value) : "???",
-        decimals: dec.status === "fulfilled" ? Number(dec.value) : 18,
-      };
-      const k = tmKey(chainId, missing[i]!);
-      cache[k] = meta;
-      result.set(missing[i]!.toLowerCase(), meta);
-    }
-    await persistTokenMeta();
-  }
-
-  return result;
-}
+// Token metadata is resolved via the shared token-meta module (fetchTokenMetaBatch)
 
 // ── Activity cache ───────────────────────────────────────────────────
 
@@ -156,11 +89,6 @@ interface RawEventLog {
   transactionHash: string;
 }
 
-async function getEtherscanApiKey(): Promise<string | null> {
-  const r = await browser.storage.local.get("etherscanApiKey");
-  return (r.etherscanApiKey as string) ?? null;
-}
-
 function parseFn(raw: string): string {
   if (!raw) return "";
   const p = raw.indexOf("(");
@@ -178,7 +106,7 @@ async function fetchLogsForTopic(
   const out: RawEventLog[] = [];
   let page = 1;
   while (true) {
-    const url = new URL(ETHERSCAN_BASE);
+    const url = new URL(ETHERSCAN_BASE_URL);
     url.searchParams.set("chainid", String(chainId));
     url.searchParams.set("module", "logs");
     url.searchParams.set("action", "getLogs");
@@ -438,7 +366,7 @@ async function enrichWithDecoding(
 
   const tokenMeta =
     transferTokens.size > 0
-      ? await resolveTokenMeta(chainId, [...transferTokens])
+      ? await fetchTokenMetaBatch(chainId, [...transferTokens])
       : new Map<string, TokenMeta>();
 
   attachTransfers(items, rawByTxIndex, tokenMeta, userAddress);
@@ -495,7 +423,7 @@ async function fetchEtherscanTxlist(
   const apiKey = await getEtherscanApiKey();
   if (!apiKey) return null;
 
-  const txlistUrl = new URL(ETHERSCAN_BASE);
+  const txlistUrl = new URL(ETHERSCAN_BASE_URL);
   txlistUrl.searchParams.set("chainid", String(chainId));
   txlistUrl.searchParams.set("module", "account");
   txlistUrl.searchParams.set("action", "txlist");
@@ -697,7 +625,7 @@ async function fetchRpcData(
   const uniqueTokens = [...new Set(rawTransfers.map((t) => t.token))];
   const meta =
     uniqueTokens.length > 0
-      ? await resolveTokenMeta(chainId, uniqueTokens)
+      ? await fetchTokenMetaBatch(chainId, uniqueTokens)
       : new Map<string, TokenMeta>();
 
   const transfersByHash: Record<string, TokenMovement[]> = {};
@@ -961,5 +889,5 @@ export async function pushActivityItem(
 export async function clearActivityCache(): Promise<void> {
   lastFetchTs.clear();
   await activityStore.clearStorage();
-  await tokenMetaStore.clearStorage();
+  await clearTokenMetaCache();
 }

@@ -1,4 +1,5 @@
 import { fetchNativePrice } from "./etherscan";
+import { bgLog } from "./log";
 
 interface CacheEntry {
   prices: Map<string, number>;
@@ -37,8 +38,8 @@ async function fetchCoinGeckoPrices(
         result.set(addr.toLowerCase(), val.usd);
       }
     }
-  } catch {
-    // CoinGecko unavailable
+  } catch (e) {
+    bgLog("[prices] CoinGecko fetch failed:", e);
   }
 
   return result;
@@ -49,7 +50,7 @@ export async function fetchPrices(
   chainId: number,
   tokenAddresses: string[],
 ): Promise<Map<string, number>> {
-  const cacheKey = `${chainId}:${tokenAddresses.sort().join(",")}`;
+  const cacheKey = `${chainId}:${[...tokenAddresses].sort().join(",")}`;
   const hit = cache.get(cacheKey);
   if (hit && Date.now() < hit.expiresAt) return hit.prices;
 

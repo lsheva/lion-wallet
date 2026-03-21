@@ -33,7 +33,7 @@ export function getTokenValueDisplay(value: string | number): TokenValueDisplay 
 }
 
 function displayScaled(sign: string, n: number, suffix: string): TokenValueDisplay {
-  const tail = suffix ? suffix : "";
+  const tail = suffix;
   const inner = decimalPieces(n);
   if (inner.length === 1 && inner[0]!.kind === "text") {
     return { pieces: [{ kind: "text", text: sign + inner[0]!.text + tail }] };
@@ -78,17 +78,6 @@ function decimalPieces(n: number): TokenValuePiece[] {
 function trimTrailing(s: string): string {
   if (!s.includes(".")) return s;
   return s.replace(/0+$/, "").replace(/\.$/, "");
-}
-
-/** Plain string (no HTML). Compact small values: `0.0(n)sig` with parentheses around the zero count. */
-export function formatTokenValue(value: string | number): string {
-  const { pieces } = getTokenValueDisplay(value);
-  let out = "";
-  for (const p of pieces) {
-    if (p.kind === "text") out += p.text;
-    else out += `(${p.text})`;
-  }
-  return out;
 }
 
 /** Truncate an Ethereum address to `0x1234...abcd` form. */

@@ -1,5 +1,5 @@
 import type { ApprovalData, GasSpeed, TransactionParams } from "@shared/types";
-import { ChevronDown, ChevronUp, Gauge, Info, Rocket, Zap } from "lucide-preact";
+import { ChevronDown, ChevronUp, Info } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
 import { route } from "preact-router";
 import { formatGwei } from "viem";
@@ -8,10 +8,7 @@ import { CopyButton } from "../CopyButton";
 import { FormattedTokenValue } from "../FormattedTokenValue";
 import { DecodedCallCard } from "./DecodedCallCard";
 import { TransfersCard } from "./TransfersCard";
-import { formatGasCost, scrollEndIntoView } from "./helpers";
-
-const GAS_ICONS = { slow: Gauge, normal: Zap, fast: Rocket } as const;
-const GAS_LABELS = { slow: "Slow", normal: "Normal", fast: "Fast" } as const;
+import { GAS_ICONS, GAS_LABELS, formatGasCost, scrollEndIntoView } from "./helpers";
 
 function ApiKeyHint({ text }: { text: string }) {
   return (

@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+
 
 export function bgLog(...args: unknown[]): void {
   // biome-ignore lint/suspicious/noConsole: this IS the logging utility

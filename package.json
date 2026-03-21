@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Lion Wallet — minimal EVM wallet for Safari (Web Extension MV3)",
   "private": true,
+  "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +16,8 @@
     "lint": "biome check src/ scripts/",
     "lint:fix": "biome check --write src/ scripts/",
     "format": "biome format --write src/ scripts/",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "push": "git remote add publish git@github.com:lsheva/lion-wallet.git && git push publish HEAD && git remote remove publish"
   },
   "dependencies": {
     "@noble/hashes": "^2.0.1",
@@ -26,8 +28,7 @@
     "preact": "^10.29.0",
     "preact-router": "^4.1.2",
     "qrcode": "^1.5.4",
-    "viem": "^2.47.5",
-    "webextension-polyfill": "^0.12.0"
+    "viem": "^2.47.5"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -43,7 +44,6 @@
     "@typescript/native-preview": "7.0.0-dev.20260319.1",
     "rolldown": "1.0.0-rc.10",
     "sharp": "^0.34.5",
-    "source-map-explorer": "^2.5.3",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.1"

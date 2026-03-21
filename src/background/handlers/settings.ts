@@ -1,14 +1,15 @@
 import type { Address } from "viem";
-import browser from "webextension-polyfill";
+
 import type { MessageResponse } from "../../shared/messages";
+import { getEtherscanApiKey } from "../etherscan";
 import * as keychain from "../keychain";
 import { bgLog } from "../log";
 import { setRpcProviderKeyInMemory } from "../networks";
 import { getStorageMode } from "../vault";
 
 export async function handleGetEtherscanKey(): Promise<MessageResponse> {
-  const result = await browser.storage.local.get("etherscanApiKey");
-  return { ok: true, data: { key: (result.etherscanApiKey as string) ?? null } };
+  const key = await getEtherscanApiKey();
+  return { ok: true, data: { key } };
 }
 
 export async function handleSetEtherscanKey(key: string): Promise<MessageResponse> {

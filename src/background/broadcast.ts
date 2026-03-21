@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+import type { Tabs } from "webextension-polyfill/namespaces/tabs";
 import { CHANNEL } from "../shared/messages";
 import { getPendingCount } from "./approval";
 import { bgLog } from "./log";
@@ -10,7 +10,7 @@ export function broadcastEvent(event: string, data: unknown): void {
     event,
     data,
   };
-  browser.tabs.query({}).then((tabs: browser.Tabs.Tab[]) => {
+  browser.tabs.query({}).then((tabs: Tabs.Tab[]) => {
     for (const tab of tabs) {
       if (tab.id != null) {
         browser.tabs.sendMessage(tab.id, payload).catch((e: unknown) => {

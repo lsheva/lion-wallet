@@ -1,6 +1,6 @@
 import { toErrorMessage } from "@shared/format";
 import type { Address, Hex } from "viem";
-import browser from "webextension-polyfill";
+
 import { bgLog } from "./log";
 
 const APP_ID = "dev.wallet.SafariEVMWallet";
@@ -70,7 +70,8 @@ export async function retrieveMnemonic(reason?: string): Promise<string | null> 
       ...(reason && { reason }),
     });
     return res.ok ? (res.value ?? null) : null;
-  } catch {
+  } catch (e) {
+    bgLog("[keychain] retrieveMnemonic exception:", toErrorMessage(e));
     return null;
   }
 }
@@ -78,8 +79,8 @@ export async function retrieveMnemonic(reason?: string): Promise<string | null> 
 export async function deleteMnemonic(): Promise<void> {
   try {
     await sendNative({ action: "keychain_delete", key: "mnemonic" });
-  } catch {
-    /* unavailable */
+  } catch (e) {
+    bgLog("[keychain] deleteMnemonic exception:", toErrorMessage(e));
   }
 }
 
@@ -87,7 +88,8 @@ export async function hasMnemonic(): Promise<boolean> {
   try {
     const res = await sendNative({ action: "keychain_has", key: "mnemonic" });
     return res.ok === true && res.exists === true;
-  } catch {
+  } catch (e) {
+    bgLog("[keychain] hasMnemonic exception:", toErrorMessage(e));
     return false;
   }
 }
@@ -123,7 +125,8 @@ export async function retrieveImportedKey(address: Address, reason?: string): Pr
       ...(reason && { reason }),
     });
     return res.ok ? ((res.value as Hex) ?? null) : null;
-  } catch {
+  } catch (e) {
+    bgLog("[keychain] retrieveImportedKey exception:", toErrorMessage(e));
     return null;
   }
 }
@@ -134,8 +137,8 @@ export async function deleteImportedKey(address: Address): Promise<void> {
       action: "keychain_delete",
       key: importedKeyId(address),
     });
-  } catch {
-    /* unavailable */
+  } catch (e) {
+    bgLog("[keychain] deleteImportedKey exception:", toErrorMessage(e));
   }
 }
 

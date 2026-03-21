@@ -1,6 +1,5 @@
 import { toErrorMessage } from "@shared/format";
 import { type Address, formatEther, type Hex } from "viem";
-import browser from "webextension-polyfill";
 import type { MessageResponse } from "../../shared/messages";
 import type { GasSpeed, TransactionParams } from "../../shared/types";
 import {
@@ -10,6 +9,7 @@ import {
   resolvePendingApproval,
 } from "../approval";
 import { broadcastPendingCount, updateBadge } from "../broadcast";
+import { getEtherscanApiKey } from "../etherscan";
 import { bgLog } from "../log";
 import { getNetworkConfig, hasRpcProviderKey } from "../networks";
 import { fetchPrices } from "../prices";
@@ -168,7 +168,11 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
   const pending = getPendingApproval();
   if (!pending) return { ok: true, data: null };
 
-  const meta = await loadAccountsMeta();
+  const [meta, etherscanKey, mode] = await Promise.all([
+    loadAccountsMeta(),
+    getEtherscanApiKey(),
+    getStorageMode(),
+  ]);
   const activeAccount = meta?.accounts[meta.activeAccountIndex];
   let gasPresets = null;
   let decoded = null;
@@ -181,8 +185,7 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
     pending.method === "eth_sendTransaction" || pending.method === "eth_signTransaction";
   const _debug: string[] = [];
 
-  const etherscanKeyResult = await browser.storage.local.get("etherscanApiKey");
-  const hasEtherscanKey = !!(etherscanKeyResult.etherscanApiKey as string);
+  const hasEtherscanKey = !!etherscanKey;
   const hasAlchemyKey = hasRpcProviderKey();
 
   if (isTxMethod) {
@@ -250,8 +253,6 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
       _debug.push(`decode/sim CATCH: ${toErrorMessage(e)}`);
     }
   }
-
-  const mode = await getStorageMode();
 
   return {
     ok: true,

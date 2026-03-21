@@ -210,10 +210,12 @@ export async function handleGetBalance(
   chainId: number,
 ): Promise<MessageResponse> {
   const client = getPublicClient(chainId);
-  const balance = await getBalance(client, { address });
   const cfg = getNetworkConfig(chainId);
   const isTestnet = cfg?.chain.testnet === true;
-  const nativeUsdPrice = isTestnet ? 0 : await fetchNativePrice(chainId);
+  const [balance, nativeUsdPrice] = await Promise.all([
+    getBalance(client, { address }),
+    isTestnet ? Promise.resolve(0) : fetchNativePrice(chainId),
+  ]);
   return { ok: true, data: { balance: formatEther(balance), nativeUsdPrice } };
 }
 

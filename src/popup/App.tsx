@@ -3,7 +3,7 @@ import { sendMessage } from "@shared/messages";
 import type { ActivityItem, ApprovalData } from "@shared/types";
 import { useEffect } from "preact/hooks";
 import Router, { Route, route } from "preact-router";
-import browser from "webextension-polyfill";
+
 import { DevToolbar } from "./mock/DevToolbar";
 import { ApiKeySetup } from "./pages/ApiKeySetup";
 import { Approve } from "./pages/Approve";

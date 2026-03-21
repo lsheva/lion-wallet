@@ -1,6 +1,5 @@
 import lionIconSvg from "../icons/icon.svg";
-
-const CHANNEL = "LION_WALLET";
+import { CHANNEL, MESSAGE_TIMEOUT_MS } from "../shared/protocol";
 
 let requestId = 0;
 const pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: unknown) => void }>();
@@ -161,7 +160,7 @@ class EIP1193Provider extends EventEmitter {
           pending.delete(id);
           reject(Object.assign(new Error("Request timed out"), { code: -32603 }));
         }
-      }, 60_000);
+      }, MESSAGE_TIMEOUT_MS);
     }).then((result) => {
       if (method === "eth_requestAccounts" || method === "eth_accounts") {
         this._accounts = (result as string[]) ?? [];

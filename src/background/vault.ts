@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+
 import type { EncryptedVault, SerializedAccount, VaultData } from "../shared/types";
 
 const VAULT_KEY = "vault";

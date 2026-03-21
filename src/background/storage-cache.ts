@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+
 import { bgLog } from "./log";
 
 /**
@@ -23,7 +23,8 @@ export class StorageCache<T extends Record<string, unknown>> {
     try {
       const r = await browser.storage.local.get(this._key);
       this._mem = ((r[this._key] as T) ?? {}) as T;
-    } catch {
+    } catch (e) {
+      bgLog(`[${this._label}] load failed:`, e);
       this._mem = {} as T;
     }
     return this._mem;

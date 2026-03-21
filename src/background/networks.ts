@@ -1,5 +1,5 @@
 import { createClient, type Client, http } from "viem";
-import browser from "webextension-polyfill";
+
 import { DEFAULT_NETWORK_ID, NETWORK_BY_ID, NETWORKS } from "../shared/constants";
 import type { NetworkConfig } from "../shared/types";
 
