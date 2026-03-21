@@ -1,6 +1,5 @@
 import { ArrowLeft, Check, Loader2, Plus } from "lucide-preact";
 import { useCallback, useRef, useState } from "preact/hooks";
-import { defineChain } from "viem";
 import { Button } from "../components/Button";
 import { ChainIcon } from "../components/ChainIcon";
 import { Input } from "../components/Input";
@@ -29,7 +28,7 @@ export function NetworkSelector() {
   const [error, setError] = useState("");
 
   const filtered = networks.value.filter((n) =>
-    n.chain.name.toLowerCase().includes(search.toLowerCase()),
+    n.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,7 +44,7 @@ export function NetworkSelector() {
       setDetecting(true);
       try {
         const id = await fetchChainId(url.trim());
-        if (networks.value.some((n) => n.chain.id === id)) {
+        if (networks.value.some((n) => n.id === id)) {
           setError(`Chain ID ${id} already exists`);
           setDetectedChainId(null);
         } else {
@@ -81,13 +80,10 @@ export function NetworkSelector() {
     networks.value = [
       ...networks.value,
       {
-        chain: defineChain({
-          id: detectedChainId,
-          name: name.trim(),
-          nativeCurrency: { name: sym, symbol: sym, decimals: 18 },
-          rpcUrls: { default: { http: [rpcUrl.trim()] } },
-        }),
-        color: "#8E8E93",
+        id: detectedChainId,
+        name: name.trim(),
+        nativeCurrency: { name: sym, symbol: sym, decimals: 18 },
+        rpcUrl: rpcUrl.trim(),
       },
     ];
     walletState.switchNetwork(detectedChainId);
@@ -185,11 +181,11 @@ export function NetworkSelector() {
           </div>
 
           <NetworkGroup
-            networks={filtered.filter((n) => !n.chain.testnet)}
+            networks={filtered.filter((n) => !n.testnet)}
             activeId={walletState.activeNetworkId.value}
             onSelect={(id) => walletState.switchNetwork(id)}
           />
-          {filtered.some((n) => n.chain.testnet) && (
+          {filtered.some((n) => n.testnet) && (
             <>
               <div class="px-4 pt-3 pb-1">
                 <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
@@ -197,7 +193,7 @@ export function NetworkSelector() {
                 </span>
               </div>
               <NetworkGroup
-                networks={filtered.filter((n) => n.chain.testnet)}
+                networks={filtered.filter((n) => n.testnet)}
                 activeId={walletState.activeNetworkId.value}
                 onSelect={(id) => walletState.switchNetwork(id)}
               />
@@ -223,27 +219,27 @@ function NetworkGroup({
   activeId,
   onSelect,
 }: {
-  networks: import("@shared/types").NetworkConfig[];
+  networks: import("@shared/types").ChainMeta[];
   activeId: number;
   onSelect: (id: number) => void;
 }) {
   return (
     <div class="divide-y divide-divider">
       {nets.map((network) => {
-        const isActive = network.chain.id === activeId;
-        const isTestnet = !!network.chain.testnet;
+        const isActive = network.id === activeId;
+        const isTestnet = !!network.testnet;
         return (
           <button
             type="button"
-            key={network.chain.id}
-            onClick={() => onSelect(network.chain.id)}
+            key={network.id}
+            onClick={() => onSelect(network.id)}
             class={`flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left ${isTestnet ? "opacity-80" : ""}`}
           >
-            <ChainIcon chainId={network.chain.id} size={20} />
+            <ChainIcon chainId={network.id} size={20} />
             <span
               class={`flex-1 text-sm ${isTestnet ? "text-text-secondary" : "text-text-primary"}`}
             >
-              {network.chain.name}
+              {network.name}
             </span>
             {isActive && <Check size={16} class="text-accent shrink-0" />}
           </button>

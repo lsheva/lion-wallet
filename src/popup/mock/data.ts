@@ -1,5 +1,4 @@
-import type { DecodedCall, NetworkConfig, TokenTransfer } from "@shared/types";
-import { defineChain } from "viem";
+import type { ChainMeta, DecodedCall, TokenTransfer } from "@shared/types";
 
 export type { DecodedCall, TokenTransfer };
 
@@ -79,50 +78,35 @@ export const MOCK_TOKENS: Token[] = [
   },
 ];
 
-export type Network = NetworkConfig;
+export type Network = ChainMeta;
 
-function mockChain(id: number, name: string, symbol: string, rpcUrl: string, testnet?: boolean) {
-  return defineChain({
+function mockChain(
+  id: number,
+  name: string,
+  symbol: string,
+  rpcUrl: string,
+  testnet?: boolean,
+): ChainMeta {
+  return {
     id,
     name,
     nativeCurrency: { name: symbol, symbol, decimals: 18 },
-    rpcUrls: { default: { http: [rpcUrl] } },
+    rpcUrl,
     ...(testnet ? { testnet } : {}),
-  });
+  };
 }
 
 export const NETWORKS: Network[] = [
-  { chain: mockChain(1, "Ethereum", "ETH", "https://eth.llamarpc.com"), color: "#627EEA" },
-  { chain: mockChain(137, "Polygon", "MATIC", "https://polygon-rpc.com"), color: "#8247E5" },
-  {
-    chain: mockChain(42161, "Arbitrum One", "ETH", "https://arb1.arbitrum.io/rpc"),
-    color: "#28A0F0",
-  },
-  { chain: mockChain(10, "Optimism", "ETH", "https://mainnet.optimism.io"), color: "#FF0420" },
-  { chain: mockChain(8453, "Base", "ETH", "https://mainnet.base.org"), color: "#0052FF" },
-  {
-    chain: mockChain(56, "BNB Smart Chain", "BNB", "https://bsc-dataseed.binance.org"),
-    color: "#F0B90B",
-  },
-  {
-    chain: mockChain(43114, "Avalanche", "AVAX", "https://api.avax.network/ext/bc/C/rpc"),
-    color: "#E84142",
-  },
-  {
-    chain: mockChain(11155111, "Sepolia", "ETH", "https://rpc.sepolia.org", true),
-    color: "#CFB5F0",
-  },
-  {
-    chain: mockChain(
-      421614,
-      "Arbitrum Sepolia",
-      "ETH",
-      "https://sepolia-rollup.arbitrum.io/rpc",
-      true,
-    ),
-    color: "#28A0F0",
-  },
-  { chain: mockChain(31337, "Hardhat", "ETH", "http://127.0.0.1:8545", true), color: "#FFF100" },
+  mockChain(1, "Ethereum", "ETH", "https://eth.llamarpc.com"),
+  mockChain(137, "Polygon", "MATIC", "https://polygon-rpc.com"),
+  mockChain(42161, "Arbitrum One", "ETH", "https://arb1.arbitrum.io/rpc"),
+  mockChain(10, "Optimism", "ETH", "https://mainnet.optimism.io"),
+  mockChain(8453, "Base", "ETH", "https://mainnet.base.org"),
+  mockChain(56, "BNB Smart Chain", "BNB", "https://bsc-dataseed.binance.org"),
+  mockChain(43114, "Avalanche", "AVAX", "https://api.avax.network/ext/bc/C/rpc"),
+  mockChain(11155111, "Sepolia", "ETH", "https://rpc.sepolia.org", true),
+  mockChain(421614, "Arbitrum Sepolia", "ETH", "https://sepolia-rollup.arbitrum.io/rpc", true),
+  mockChain(31337, "Hardhat", "ETH", "http://127.0.0.1:8545", true),
 ];
 
 export const MOCK_TX_REQUEST = {

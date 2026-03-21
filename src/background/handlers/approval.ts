@@ -30,14 +30,14 @@ import { retrieveImportedKey, retrieveMnemonic } from "./wallet";
 
 function buildSigningReason(method: string, params: unknown[], chainId: number): string {
   const net = getNetworkConfig(chainId);
-  const networkName = net?.chain.name ?? `Chain ${chainId}`;
+  const networkName = net?.name ?? `Chain ${chainId}`;
 
   switch (method) {
     case "eth_sendTransaction":
     case "eth_signTransaction": {
       const tx = params[0] as TransactionParams | undefined;
       if (tx?.value && BigInt(tx.value) > 0n) {
-        const symbol = net?.chain.nativeCurrency?.symbol ?? "ETH";
+        const symbol = net?.nativeCurrency?.symbol ?? "ETH";
         const amount = formatEther(BigInt(tx.value));
         const to = tx.to ? `${tx.to.slice(0, 6)}…${tx.to.slice(-4)}` : "contract";
         return `Send ${amount} ${symbol} to ${to} on ${networkName}`;
@@ -219,7 +219,7 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
       }
 
       const network = getNetworkConfig(pending.chainId);
-      const nativeSymbol = network?.chain.nativeCurrency.symbol ?? "ETH";
+      const nativeSymbol = network?.nativeCurrency.symbol ?? "ETH";
 
       const tokenAddresses = simTransfers
         .map((t) => t.tokenAddress)

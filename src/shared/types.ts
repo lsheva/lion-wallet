@@ -1,4 +1,4 @@
-import type { Address, Chain, Hex } from "viem";
+import type { Address, Hex } from "viem";
 
 export interface SerializedAccount {
   name: string;
@@ -20,9 +20,14 @@ export interface EncryptedVault {
   ciphertext: string;
 }
 
-export interface NetworkConfig {
-  chain: Chain;
-  color: string;
+export interface ChainMeta {
+  id: number;
+  name: string;
+  nativeCurrency: { name: string; symbol: string; decimals: number };
+  testnet?: boolean;
+  rpcUrl?: string;
+  blockExplorerUrl?: string;
+  alchemySlug?: string;
 }
 
 export interface WalletState {

@@ -1,5 +1,6 @@
 import { computed, signal } from "@preact/signals";
-import { MOCK_ACCOUNTS, MOCK_TOKENS, NETWORKS, type Network, type Token } from "./data";
+import type { ChainMeta } from "@shared/types";
+import { MOCK_ACCOUNTS, MOCK_TOKENS, NETWORKS, type Token } from "./data";
 
 export type WalletView = "onboarding" | "home" | "approval";
 
@@ -9,7 +10,7 @@ export const activeNetworkId = signal(1);
 export const showNetworkSelector = signal(false);
 export const storageMode = signal<"keychain" | "vault">("keychain");
 
-const MOCK_NETWORK_BY_ID = new Map(NETWORKS.map((n) => [n.chain.id, n]));
+const MOCK_NETWORK_BY_ID = new Map(NETWORKS.map((n) => [n.id, n]));
 
 export const activeAccount = computed(() => MOCK_ACCOUNTS[activeAccountIndex.value]);
 export const activeNetwork = computed(
@@ -18,7 +19,7 @@ export const activeNetwork = computed(
 
 export const accounts = signal(MOCK_ACCOUNTS);
 export const tokens = signal<Token[]>(MOCK_TOKENS);
-export const networks = signal<Network[]>(NETWORKS);
+export const networks = signal<ChainMeta[]>(NETWORKS);
 
 export const totalBalanceUsd = computed(() => "$11,306.62");
 export const ethBalance = computed(() => "3.4521");

@@ -52,8 +52,8 @@ function DevTx({ onSwitch }: { onSwitch: () => void }) {
 
       <div class="flex items-center justify-between px-4 py-1.5 text-xs text-text-tertiary border-b border-divider">
         <div class="flex items-center gap-1.5">
-          <ChainIcon chainId={network.chain.id} size={14} />
-          <span>{network.chain.name}</span>
+          <ChainIcon chainId={network.id} size={14} />
+          <span>{network.name}</span>
         </div>
         <span class="inline-flex items-center gap-1">
           {account.name} · {truncateAddress(account.address)}

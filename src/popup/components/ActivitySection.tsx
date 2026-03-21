@@ -15,8 +15,8 @@ export function ActivitySection({ account }: { account: { address: string } }) {
   const canShowMore = displayCount < items.length || hasMore;
 
   const network = walletState.activeNetwork.value;
-  const explorerUrl = network.chain.blockExplorers?.default?.url;
-  const nativeSymbol = network.chain.nativeCurrency.symbol;
+  const explorerUrl = network.blockExplorerUrl;
+  const nativeSymbol = network.nativeCurrency.symbol;
 
   const handleLoadMore = async () => {
     if (displayCount < items.length) {

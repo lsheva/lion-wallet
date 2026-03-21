@@ -1,4 +1,4 @@
-import { NETWORK_BY_ID, POPUP_ORIGIN } from "@shared/constants";
+import { CHAIN_BY_ID, POPUP_ORIGIN } from "@shared/constants";
 import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import type { ApprovalData, GasSpeed } from "@shared/types";
@@ -162,7 +162,7 @@ export function Approve() {
         : "Transaction Request"
     : "Signature Request";
 
-  const network = NETWORK_BY_ID.get(approval.chainId);
+  const network = CHAIN_BY_ID.get(approval.chainId);
 
   return (
     <div class="flex flex-col h-[600px]">
@@ -177,11 +177,9 @@ export function Approve() {
 
       <div class="flex items-center justify-between px-4 py-1.5 text-xs text-text-tertiary border-b border-divider">
         <div class="flex items-center gap-1.5">
-          {network && <ChainIcon chainId={network.chain.id} size={14} />}
-          <span>{network?.chain.name ?? `Chain ${approval.chainId}`}</span>
-          {network?.chain.testnet && (
-            <span class="text-[10px] text-warning font-medium">testnet</span>
-          )}
+          {network && <ChainIcon chainId={network.id} size={14} />}
+          <span>{network?.name ?? `Chain ${approval.chainId}`}</span>
+          {network?.testnet && <span class="text-[10px] text-warning font-medium">testnet</span>}
         </div>
         <span class="inline-flex items-center gap-1">
           {data.account.name} · {truncateAddress(data.account.address)}

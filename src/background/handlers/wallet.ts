@@ -211,7 +211,7 @@ export async function handleGetBalance(
 ): Promise<MessageResponse> {
   const client = getPublicClient(chainId);
   const cfg = getNetworkConfig(chainId);
-  const isTestnet = cfg?.chain.testnet === true;
+  const isTestnet = cfg?.testnet === true;
   const [balance, nativeUsdPrice] = await Promise.all([
     getBalance(client, { address }),
     isTestnet ? Promise.resolve(0) : fetchNativePrice(chainId),

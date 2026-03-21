@@ -75,7 +75,7 @@ export function Send() {
         const res = await sendMessage({
           type: "GET_BALANCE",
           address: account.address as Address,
-          chainId: network.chain.id,
+          chainId: network.id,
         });
         if (res.ok && res.data) {
           setBalance(res.data.balance);
@@ -106,7 +106,7 @@ export function Send() {
     } finally {
       setLoadingBalance(false);
     }
-  }, [selectedToken, network.chain.id]);
+  }, [selectedToken, network.id]);
 
   useEffect(() => {
     setBalance(null);
@@ -183,7 +183,7 @@ export function Send() {
           >
             <div class="flex items-center gap-2.5">
               {isNative(selectedToken) ? (
-                <ChainIcon chainId={network.chain.id} size={28} />
+                <ChainIcon chainId={network.id} size={28} />
               ) : (
                 <div
                   class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
@@ -214,7 +214,7 @@ export function Send() {
                   }`}
                 >
                   {isNative(token) ? (
-                    <ChainIcon chainId={network.chain.id} size={24} />
+                    <ChainIcon chainId={network.id} size={24} />
                   ) : (
                     <div
                       class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"

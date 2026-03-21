@@ -191,8 +191,8 @@ export function Settings() {
             class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer"
           >
             <div class="flex items-center gap-2">
-              <ChainIcon chainId={network.chain.id} size={16} />
-              <span class="text-sm text-text-primary">{network.chain.name}</span>
+              <ChainIcon chainId={network.id} size={16} />
+              <span class="text-sm text-text-primary">{network.name}</span>
             </div>
             <ChevronRight size={16} class="text-text-tertiary" />
           </button>

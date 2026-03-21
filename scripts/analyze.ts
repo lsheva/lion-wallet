@@ -3,7 +3,8 @@ import { Readable } from "node:stream";
 import { build, type RolldownOutput } from "rolldown";
 import { build as viteBuild, type Rollup } from "vite";
 
-type SizeEntry = { raw: number; gzip: number };
+type FileSize = { path: string; raw: number };
+type SizeEntry = { raw: number; gzip: number; files: FileSize[] };
 type DepMap = Map<string, SizeEntry>;
 
 async function gzipSize(code: string): Promise<number> {
@@ -17,12 +18,14 @@ async function gzipSize(code: string): Promise<number> {
 	});
 }
 
-function bucketName(moduleId: string): string {
+function bucketInfo(moduleId: string): { dep: string; file: string } {
 	const nmIdx = moduleId.lastIndexOf("node_modules/");
-	if (nmIdx === -1) return "(project)";
+	if (nmIdx === -1) return { dep: "(project)", file: moduleId.replace(/^.*\/src\//, "src/") };
 	const rest = moduleId.slice(nmIdx + "node_modules/".length);
 	const parts = rest.split("/");
-	return parts[0].startsWith("@") ? `${parts[0]}/${parts[1]}` : parts[0];
+	const dep = parts[0].startsWith("@") ? `${parts[0]}/${parts[1]}` : parts[0];
+	const file = parts[0].startsWith("@") ? parts.slice(2).join("/") : parts.slice(1).join("/");
+	return { dep, file };
 }
 
 function collectModules(
@@ -32,9 +35,10 @@ function collectModules(
 	for (const [id, mod] of Object.entries(modules)) {
 		const len = mod.code?.length ?? mod.renderedLength ?? 0;
 		if (len === 0) continue;
-		const dep = bucketName(id);
-		const prev = into.get(dep) ?? { raw: 0, gzip: 0 };
+		const { dep, file } = bucketInfo(id);
+		const prev = into.get(dep) ?? { raw: 0, gzip: 0, files: [] };
 		prev.raw += len;
+		prev.files.push({ path: file, raw: len });
 		into.set(dep, prev);
 	}
 }
@@ -46,6 +50,9 @@ function fmt(bytes: number): string {
 	return `${(kb / 1024).toFixed(2)} MB`;
 }
 
+const TOP_FILES = 3;
+const FILE_MIN_BYTES = 1024;
+
 function printTable(
 	label: string,
 	deps: DepMap,
@@ -53,25 +60,30 @@ function printTable(
 	bundleGzip: number,
 ) {
 	const sorted = [...deps.entries()].sort((a, b) => b[1].raw - a[1].raw);
-	const maxName = Math.max(...sorted.map(([n]) => n.length), 8);
 	const modulesTotal = [...deps.values()].reduce((s, e) => s + e.raw, 0);
-	const w = maxName + 34;
+
+	const rows: { text: string }[] = [];
+	for (const [name, s] of sorted) {
+		const pct = ((s.raw / modulesTotal) * 100).toFixed(1);
+		rows.push({ text: `  ${name}  ${fmt(s.raw)}  ${pct}%` });
+
+		const topFiles = s.files
+			.sort((a, b) => b.raw - a.raw)
+			.filter((f) => f.raw >= FILE_MIN_BYTES)
+			.slice(0, TOP_FILES);
+		for (const f of topFiles) {
+			rows.push({ text: `    └ ${f.path}  ${fmt(f.raw)}` });
+		}
+	}
+
+	const maxLine = Math.max(...rows.map((r) => r.text.length), 40);
+	const w = maxLine + 2;
 
 	console.log(`\n${"═".repeat(w)}`);
 	console.log(`  ${label}`);
 	console.log(`  output: ${fmt(bundleRaw)} │ gzip: ${fmt(bundleGzip)}`);
 	console.log(`${"─".repeat(w)}`);
-	console.log(
-		`  ${"Dependency".padEnd(maxName)}  ${"Size".padStart(10)}  ${"% bundle".padStart(10)}`,
-	);
-	console.log(`${"─".repeat(w)}`);
-
-	for (const [name, s] of sorted) {
-		const pct = ((s.raw / modulesTotal) * 100).toFixed(1);
-		console.log(
-			`  ${name.padEnd(maxName)}  ${fmt(s.raw).padStart(10)}  ${(pct + "%").padStart(10)}`,
-		);
-	}
+	for (const row of rows) console.log(row.text);
 	console.log(`${"═".repeat(w)}`);
 }
 

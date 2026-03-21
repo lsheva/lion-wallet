@@ -1,4 +1,4 @@
-import { NETWORK_BY_ID, POPUP_ORIGIN } from "@shared/constants";
+import { POPUP_ORIGIN } from "@shared/constants";
 import { sendMessage } from "@shared/messages";
 import { CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
@@ -36,7 +36,7 @@ export function TxResult({ status = "success" }: TxResultProps) {
   const errorMessage = stored.error as string | undefined;
 
   const network = walletState.activeNetwork.value;
-  const explorerUrl = NETWORK_BY_ID.get(network.chain.id)?.chain.blockExplorers?.default?.url;
+  const explorerUrl = network.blockExplorerUrl;
   const txExplorerUrl = explorerUrl && txHash ? `${explorerUrl}/tx/${txHash}` : null;
 
   const rpcFailCountRef = useRef(0);

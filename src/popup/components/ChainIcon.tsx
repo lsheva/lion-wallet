@@ -1,5 +1,5 @@
-import { NETWORK_BY_ID } from "@shared/constants";
-import { CHAIN_ICON_BY_ID } from "../chain-icons";
+import { CHAIN_BY_ID } from "@shared/constants";
+import { CHAIN_COLOR_BY_ID, CHAIN_ICON_BY_ID } from "../chain-ui.generated";
 
 interface ChainIconProps {
   chainId: number;
@@ -20,8 +20,8 @@ export function ChainIcon({ chainId, size = 16, class: cls = "" }: ChainIconProp
     );
   }
 
-  const network = NETWORK_BY_ID.get(chainId);
-  const label = network?.chain.name?.[0] ?? "?";
+  const chain = CHAIN_BY_ID.get(chainId);
+  const label = chain?.name?.[0] ?? "?";
 
   return (
     <span
@@ -30,7 +30,7 @@ export function ChainIcon({ chainId, size = 16, class: cls = "" }: ChainIconProp
         width: size,
         height: size,
         fontSize: size * 0.5,
-        backgroundColor: network?.color ?? "#8E8E93",
+        backgroundColor: CHAIN_COLOR_BY_ID.get(chainId) ?? "#8E8E93",
       }}
     >
       {label}

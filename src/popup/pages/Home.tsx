@@ -99,7 +99,7 @@ export function Home() {
           </div>
           <div class="divide-y divide-divider">
             {walletState.tokens.value.map((token) => (
-              <TokenRow key={token.symbol} token={token} chainId={network.chain.id} />
+              <TokenRow key={token.symbol} token={token} chainId={network.id} />
             ))}
           </div>
         </div>

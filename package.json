@@ -13,6 +13,7 @@
     "build:ext": "tsgo --noEmit && tsgo -p tsconfig.scripts.json --noEmit && pnpm icons && node scripts/build.ts",
     "build:safari": "pnpm build:ext && xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj -scheme LionWallet -configuration Debug build -allowProvisioningUpdates",
     "run:safari": "pnpm build:safari && open \"$(xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj -scheme LionWallet -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/LionWallet.app\"",
+    "gen:chains": "node scripts/gen-chains.ts",
     "icons": "node scripts/icons.ts",
     "analyze": "node scripts/analyze.ts",
     "lint": "biome check src/ scripts/",

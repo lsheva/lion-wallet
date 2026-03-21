@@ -1,11 +1,14 @@
 import { computed, signal } from "@preact/signals";
-import { NETWORKS } from "@shared/constants";
+import { CHAINS } from "@shared/constants";
 import { formatUsd } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import type { ActivityItem, NetworkConfig, SerializedAccount, TokenInfo } from "@shared/types";
+import type { ActivityItem, ChainMeta, SerializedAccount, TokenInfo } from "@shared/types";
 import type { Address } from "viem";
+import { CHAIN_COLOR_BY_ID } from "./chain-ui.generated";
 
 export type { ActivityItem, TokenInfo as Token };
+
+const DEFAULT_COLOR = "#8E8E93";
 
 export const accounts = signal<SerializedAccount[]>([]);
 export const activeAccountIndex = signal(0);
@@ -15,7 +18,7 @@ export const ethBalance = signal("0");
 /** Per-unit native token USD price; `0` on testnets; `null` if unavailable. */
 export const nativeUsdPrice = signal<number | null>(null);
 export const tokens = signal<TokenInfo[]>([]);
-export const networks = signal<NetworkConfig[]>(NETWORKS);
+export const networks = signal<ChainMeta[]>(CHAINS);
 export const storageMode = signal<"keychain" | "vault">("vault");
 
 export const activeAccount = computed(
@@ -28,11 +31,15 @@ export const activeAccount = computed(
     },
 );
 
-const networkMap = computed(() => new Map(networks.value.map((n) => [n.chain.id, n])));
+const networkMap = computed(() => new Map(networks.value.map((n) => [n.id, n])));
 
 export const activeNetwork = computed(
-  () => networkMap.value.get(activeNetworkId.value) ?? (networks.value[0] as NetworkConfig),
+  () => networkMap.value.get(activeNetworkId.value) ?? (networks.value[0] as ChainMeta),
 );
+
+export function chainColor(chainId: number): string {
+  return CHAIN_COLOR_BY_ID.get(chainId) ?? DEFAULT_COLOR;
+}
 
 function nativeBalanceUsdString(): string | undefined {
   const rate = nativeUsdPrice.peek();
@@ -46,11 +53,11 @@ function nativeBalanceUsdString(): string | undefined {
 function buildNativeToken(): TokenInfo {
   const net = activeNetwork.peek();
   return {
-    symbol: net.chain.nativeCurrency.symbol,
-    name: net.chain.nativeCurrency.name,
-    decimals: net.chain.nativeCurrency.decimals,
+    symbol: net.nativeCurrency.symbol,
+    name: net.nativeCurrency.name,
+    decimals: net.nativeCurrency.decimals,
     balance: ethBalance.peek(),
-    color: net.color,
+    color: chainColor(net.id),
     usdValue: nativeBalanceUsdString(),
   };
 }
