@@ -9,7 +9,7 @@ if [ "$BUMP" != "patch" ] && [ "$BUMP" != "minor" ] && [ "$BUMP" != "major" ]; t
 fi
 
 npm version "$BUMP" --no-git-tag-version
-VERSION=$(node -p "require('./package.json').version")
+VERSION=$(pnpm pkg get version | tr -d '"')
 
 git add package.json
 git commit -m "release: v${VERSION}"

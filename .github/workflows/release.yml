@@ -47,7 +47,7 @@ jobs:
       - name: Resolve version tag
         id: version
         run: |
-          TAG="v$(node -p 'require(\"./package.json\").version')"
+          TAG="v$(pnpm pkg get version | tr -d '"')"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
           # On push-to-main, check if this version is already tagged

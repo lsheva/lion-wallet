@@ -25,7 +25,7 @@
     "preview": "vite preview",
     "release": "scripts/release.sh",
     "push": "git remote remove publish 2>/dev/null; git remote add publish git@github-personal:lsheva/lion-wallet.git && git push publish HEAD --follow-tags; git remote remove publish",
-    "repush-tag": "git tag -d v$(node -p \"require('./package.json').version\") && git tag v$(node -p \"require('./package.json').version\") && git remote remove publish 2>/dev/null; git remote add publish git@github-personal:lsheva/lion-wallet.git && git push publish HEAD && git push publish v$(node -p \"require('./package.json').version\") --force; git remote remove publish"
+    "repush-tag": "git tag -d v$(pnpm pkg get version | tr -d '\"') && git tag v$(pnpm pkg get version | tr -d '\"') && git remote remove publish 2>/dev/null; git remote add publish git@github-personal:lsheva/lion-wallet.git && git push publish HEAD && git push publish v$(pnpm pkg get version | tr -d '\"') --force; git remote remove publish"
   },
   "dependencies": {
     "@noble/hashes": "^2.0.1",
