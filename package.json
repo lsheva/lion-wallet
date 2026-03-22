@@ -11,8 +11,10 @@
     "build": "tsgo --noEmit && node scripts/build.ts",
     "typecheck": "tsgo --noEmit",
     "build:ext": "pnpm gen && tsgo --noEmit && tsgo -p tsconfig.scripts.json --noEmit && pnpm icons && node scripts/build.ts",
-    "build:safari": "pnpm build:ext && xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj -scheme LionWallet -configuration Debug build -allowProvisioningUpdates",
-    "run:safari": "pnpm build:safari && open \"$(xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj -scheme LionWallet -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/LionWallet.app\"",
+    "build:chrome": "bash scripts/build-installer.sh",
+    "build:chrome:ext": "pnpm gen && tsgo --noEmit && tsgo -p tsconfig.scripts.json --noEmit && pnpm icons && node scripts/build.ts --chrome",
+    "build:safari": "pnpm build:ext && xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj -scheme LionWallet -configuration Debug -derivedDataPath build/safari build -allowProvisioningUpdates",
+    "run:safari": "pnpm build:safari && open build/safari/Build/Products/Debug/LionWallet.app",
     "clean": "node scripts/clean.ts",
     "gen": "node scripts/gen-chains.ts && node scripts/optimize-svg.ts",
     "icons": "node scripts/icons.ts",
@@ -33,7 +35,8 @@
     "preact": "^10.29.0",
     "preact-router": "^4.1.2",
     "uqr": "^0.1.2",
-    "viem": "^2.47.5"
+    "viem": "^2.47.5",
+    "webextension-polyfill": "^0.12.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

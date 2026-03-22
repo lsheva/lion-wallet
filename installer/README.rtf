@@ -1,0 +1,33 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0\fswiss\fcharset0 Helvetica;}{\f1\fmodern\fcharset0 Menlo;}}
+{\colortbl;\red0\green0\blue0;\red100\green100\blue100;\red0\green100\blue200;}
+\paperw12240\paperh15840\margl720\margr720\margt720\margb720
+
+\pard\sb200\sa100\f0\fs32\b Lion Wallet\b0\fs24\par
+
+\pard\sb100\sa60\fs28\b Safari\b0\fs24\par
+Drag \b LionWallet.app\b0  to the \b Applications\b0  folder, then:\par
+\pard\li360\fi-360\sb40\sa40
+1. Open LionWallet.app\par
+2. Go to \b Safari \u8594  Settings \u8594  Extensions\b0\par
+3. Enable \b Lion Wallet\b0\par
+
+\pard\sb200\sa60\fs28\b Chrome\b0\fs24\par
+\pard\sb40\sa40
+\b Install the extension:\b0\par
+\pard\li360\fi-360\sb40\sa40
+1. Unzip \b Chrome Extension.zip\b0\par
+2. Open Chrome and go to \f1\fs20 chrome://extensions\f0\fs24\par
+3. Enable \b Developer mode\b0  (top-right toggle)\par
+4. Click \b Load unpacked\b0  and select the unzipped folder\par
+
+\pard\sb120\sa40
+\b Set up native messaging (for Touch ID):\b0\par
+\pard\li360\fi-360\sb40\sa40
+1. Open Terminal\par
+2. Run: \f1\fs20 bash /Applications/LionWallet.app/Contents/Resources/.install-chrome-host.sh\f0\fs24\par
+3. Restart Chrome\par
+
+\pard\sb200\sa40\fs20\cf2
+Note: The native messaging host connects Chrome to LionWallet.app for secure Keychain/Touch ID access. Without it, the wallet will use password-based storage instead.\cf0\fs24\par
+}

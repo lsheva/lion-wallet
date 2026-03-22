@@ -52,8 +52,19 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Write Chrome extension signing key
+        run: echo "$CHROME_EXTENSION_PEM" > chrome-extension.pem
+        env:
+          CHROME_EXTENSION_PEM: ${{ secrets.CHROME_EXTENSION_PEM }}
+
+      - name: Generate Chrome extension ID and patch manifests
+        run: bash scripts/gen-chrome-key.sh
+
       - name: Build extension
         run: pnpm build:ext
+
+      - name: Build Chrome extension
+        run: pnpm build:chrome:ext
 
       - name: Build Safari app (unsigned)
         run: |
@@ -62,21 +73,20 @@ jobs:
             -configuration Release \
             CODE_SIGN_IDENTITY="" CODE_SIGNING_ALLOWED=NO \
             build \
-            -derivedDataPath build
+            -derivedDataPath build/safari
 
-      - name: Package artifacts
+      - name: Package installers
         run: |
-          TAG=${{ steps.version.outputs.tag }}
-          APP_PATH=$(find build -name "LionWallet.app" -type d | head -1)
-          DMG=LionWallet-${TAG}-macOS.dmg
-          hdiutil create -volname "Lion Wallet" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG"
-          ditto -c -k --keepParent "$APP_PATH" LionWallet-${TAG}-macOS.zip
+          bash scripts/build-installer.sh \
+            --package-only \
+            --app-dir=build/safari/Build/Products/Release/LionWallet.app
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           files: |
-            LionWallet-*-macOS.dmg
-            LionWallet-*-macOS.zip
+            build/LionWallet-*.pkg
+            build/LionWallet-*.dmg
+            build/lion-wallet-chrome-*.zip
           generate_release_notes: true

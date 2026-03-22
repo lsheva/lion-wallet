@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "Lion Wallet",
+  "version": "0.1.0",
+  "description": "A minimal EVM wallet",
+  "author": "Lion Wallet",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAraykHTSj6XYNkz1WL3jwXOUvHrzCpS4fac0ldoJMaiTGZWGZ6OVvUpfuiWyNNQNSil9JvhCKl7ozxZPLvglmpj/rSpVl5mMwF1MKWlI1LiPBjvnJAkvpP/lwUj5VEMPgMx9SyWk3eCpy6J98Zvj924WPSlq0yNB33YVUbL7pVmlDRvhkKXSjzuVNSjBHrLtNTEa6e6rB6OqrtXdBCsNUDphDks0XyL4cbHlXPcQ0GoibhSjPTDu7MZ1wLH1BxnbhAzeQT9rG34o9ya5kHTXJ13OdLgNEzeBY1cZqeVVgy9R9PxnvPhc9xCmmlmT0ep3fznPUPHPZR9VyTnmAUP+RzQIDAQAB",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "https://api.etherscan.io/*",
+    "https://www.4byte.directory/*",
+    "https://api.coingecko.com/*"
+  ],
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "Lion Wallet",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-script.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "inpage.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

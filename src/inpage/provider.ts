@@ -210,7 +210,7 @@ function announceProvider(provider: EIP1193Provider): void {
     uuid: "f7e2c1b4-8a9d-4e3f-9c2b-1d0e8f7a6b5c",
     name: "Lion Wallet",
     icon: `data:image/svg+xml,${encodeURIComponent(lionIconSvg.trim())}`,
-    rdns: "dev.wallet.lion",
+    rdns: "app.lionwallet",
   };
 
   const detail = Object.freeze({ info, provider });

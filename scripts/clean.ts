@@ -6,6 +6,7 @@ const generated = [
   "src/icons/icon.generated.svg",
   "src/icons/generated",
   "dist",
+  "build",
 ];
 
 for (const path of generated) {

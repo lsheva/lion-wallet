@@ -1,0 +1,56 @@
+#!/bin/bash
+HOST_NAME="app.lionwallet"
+EXTENSION_ID="kebalkcjgljkognggnbdbgnmkojkmjgp"
+APP_BINARY="/Applications/LionWallet.app/Contents/MacOS/LionWallet"
+
+CONSOLE_USER=$(/usr/bin/stat -f %Su /dev/console)
+USER_HOME=$(/usr/bin/dscl . -read /Users/"$CONSOLE_USER" NFSHomeDirectory | awk '{print $2}')
+
+MANIFEST_DIR="$USER_HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
+MANIFEST_PATH="$MANIFEST_DIR/$HOST_NAME.json"
+
+mkdir -p "$MANIFEST_DIR"
+chown "$CONSOLE_USER" "$MANIFEST_DIR"
+
+cat > "$MANIFEST_PATH" <<EOF
+{
+  "name": "$HOST_NAME",
+  "description": "Lion Wallet — Keychain bridge for Chrome",
+  "path": "$APP_BINARY",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://$EXTENSION_ID/"]
+}
+EOF
+
+chown "$CONSOLE_USER" "$MANIFEST_PATH"
+
+sudo -u "$CONSOLE_USER" osascript -e '
+display dialog "To install the Chrome extension:" & return & return & "1. Enable Developer mode in Chrome (top-right toggle)" & return & "2. Drag the zip file from Finder onto Chrome" & return & return & "Both windows will open automatically." with title "Lion Wallet" buttons {"OK"} default button "OK" with icon note
+
+tell application "Google Chrome"
+    activate
+    open location "chrome://extensions"
+end tell
+
+delay 1
+
+tell application "Finder"
+    set zipFile to POSIX file "/Applications/LionWallet.app/Contents/Resources/lion-wallet-chrome.zip" as alias
+    set screenBounds to bounds of window of desktop
+    set screenWidth to item 3 of screenBounds
+    set screenHeight to item 4 of screenBounds
+    set halfWidth to screenWidth / 2
+
+    set win to make new Finder window to (container of zipFile)
+    set bounds of win to {0, 0, halfWidth, screenHeight}
+    select zipFile
+    activate
+end tell
+
+tell application "Google Chrome"
+    activate
+    set bounds of front window to {halfWidth, 0, screenWidth, screenHeight}
+end tell
+' 2>/dev/null || true
+
+exit 0

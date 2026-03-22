@@ -1,0 +1,7 @@
+{
+  "name": "app.lionwallet",
+  "description": "Lion Wallet — Keychain bridge for Chrome",
+  "path": "/PLACEHOLDER",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://PLACEHOLDER/"]
+}

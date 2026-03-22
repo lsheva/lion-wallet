@@ -1,5 +1,6 @@
 node_modules
 dist
+build
 *.tsbuildinfo
 *.generated.ts
 .vscode/
@@ -10,6 +11,9 @@ xcode/**/*.xcuserstate
 xcode/**/xcuserdata/
 xcode/**/DerivedData/
 *.xcworkspace/xcuserdata/
+
+# Chrome extension signing key
+chrome-extension.pem
 
 # macOS
 .DS_Store

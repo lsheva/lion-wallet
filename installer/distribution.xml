@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>Lion Wallet</title>
+    <welcome file="welcome.html" mime-type="text/html" />
+    <pkg-ref id="app.lionwallet.pkg" />
+    <options customize="never" require-scripts="false" hostArchitectures="x86_64,arm64" />
+    <choices-outline>
+        <line choice="default">
+            <line choice="app.lionwallet.pkg" />
+        </line>
+    </choices-outline>
+    <choice id="default" />
+    <choice id="app.lionwallet.pkg" visible="false">
+        <pkg-ref id="app.lionwallet.pkg" />
+    </choice>
+    <pkg-ref id="app.lionwallet.pkg" version="0" onConclusion="none">LionWallet-component.pkg</pkg-ref>
+</installer-gui-script>
