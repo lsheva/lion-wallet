@@ -26,6 +26,7 @@ export function Header({ title, onBack, right }: HeaderProps) {
           <button
             type="button"
             onClick={handleBack}
+            aria-label="Go back"
             class="p-1 -ml-1 text-accent hover:text-accent-hover transition-colors cursor-pointer"
           >
             <ArrowLeft size={20} />

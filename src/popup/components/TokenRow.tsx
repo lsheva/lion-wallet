@@ -2,6 +2,7 @@ import { Fuel } from "lucide-preact";
 import type { Token } from "../store";
 import { ChainIcon } from "./ChainIcon";
 import { FormattedTokenValue } from "./FormattedTokenValue";
+import { TokenImage } from "./TokenImage";
 
 interface TokenRowProps {
   token: Token;
@@ -26,22 +27,21 @@ export function TokenRow({ token, chainId, onClick }: TokenRowProps) {
     <button
       type="button"
       onClick={onClick}
-      class="flex items-start w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
+      class="flex items-center w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
     >
-      {isNative ? (
-        <div class="shrink-0 pt-0.5">
+      <div class="shrink-0 flex items-center justify-center w-8 h-8">
+        {isNative ? (
           <ChainIcon chainId={chainId} size={32} />
-        </div>
-      ) : (
-        <div class="shrink-0 pt-0.5">
-          <div
-            class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-            style={{ backgroundColor: token.color }}
-          >
-            {token.symbol.slice(0, 1)}
-          </div>
-        </div>
-      )}
+        ) : (
+          <TokenImage
+            address={token.address}
+            chainId={chainId}
+            symbol={token.symbol}
+            color={token.color}
+            size={32}
+          />
+        )}
+      </div>
       <div class="ml-2 flex-1 min-w-0">
         <p class="text-sm font-medium text-text-primary leading-snug min-w-0 m-0">
           {gasNameParts ? (
@@ -66,7 +66,7 @@ export function TokenRow({ token, chainId, onClick }: TokenRowProps) {
           )}
         </p>
       </div>
-      <div class="text-right shrink-0 ml-2 pt-0.5">
+      <div class="text-right shrink-0 ml-2">
         <p class="text-sm font-mono font-medium text-text-primary">
           <FormattedTokenValue value={token.balance} />{" "}
           <span class="text-text-secondary text-xs">{token.symbol}</span>

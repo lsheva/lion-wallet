@@ -163,3 +163,112 @@ True hardware-enclave signing for Ethereum. The P-256 private key lives inside t
 [] - UI: distinguish Smart Account vs EOA in account list, show security level indicator
 
 [] - batch token sending (for privatekey and smartcontract wallets)
+
+## Reset Wallet
+
+Add a "Reset Wallet" button to Settings that wipes all data (mnemonic, accounts, imported keys, cached activity, API keys, preferences) and returns the user to the onboarding screen. The backend handler (`handleResetWallet`) already exists — this is primarily a UI task with a confirmation flow.
+
+**Why "Reset Wallet" and not "Logout" or "Remove Account":**
+- "Logout" implies a session — there's no server, no session to end. The data is destroyed, not signed out of.
+- "Remove Account" suggests deleting one account from a multi-account wallet. That's a separate, less destructive feature.
+- "Reset Wallet" is the industry standard (MetaMask, Rabby, etc.) and clearly communicates the irreversible action.
+
+### Confirmation flow
+
+Resetting is destructive and irreversible. The confirmation must make this extremely clear:
+
+1. User taps "Reset Wallet" in Settings (styled as a danger action at the bottom of the page)
+2. First confirmation modal:
+   - Warning icon + "Reset Wallet?" heading
+   - Text: "This will permanently delete your recovery phrase, all accounts, and all settings from this device. If you haven't backed up your recovery phrase, your funds will be lost forever."
+   - Two buttons: "Cancel" (primary) and "Reset" (danger, secondary)
+3. Second confirmation — type to confirm:
+   - Input field: "Type RESET to confirm"
+   - "Reset Wallet" button only enabled when input matches
+4. On confirm: call `RESET_WALLET` message, clear all local state, redirect to onboarding
+
+### What gets wiped
+
+- Mnemonic (keychain or encrypted vault)
+- All derived and imported account keys
+- Account metadata (names, derivation indices)
+- Active network selection
+- Cached activity and token data
+- API keys (Alchemy, Etherscan)
+- Theme preference
+- Any pending approval requests
+
+### Steps
+
+[] - add "Reset Wallet" danger button to Settings page (below all other sections)
+[] - build two-step confirmation modal (warning + type-to-confirm)
+[] - on confirm: send `RESET_WALLET` message, clear popup local state (localStorage, signals), redirect to onboarding
+[] - ensure all storage is actually cleared (verify keychain cleanup, vault, browser.storage.local, session storage)
+
+## Remove Individual Account
+
+Separate from full reset — allow removing a single account from the wallet without touching the mnemonic or other accounts. Useful for cleaning up unused derived accounts or removing an imported private key.
+
+### Behavior
+
+- Each account row in Settings → Accounts gets a remove/delete action (icon or swipe)
+- Cannot remove the last remaining account — show a hint to use "Reset Wallet" instead
+- For derived accounts (BIP-44): removes the account metadata only; the mnemonic stays, and the user can re-derive the same index later via "Add Account"
+- For imported private keys: deletes the key from keychain/vault permanently; warn that re-import requires the private key again
+- After removal, if the active account was removed, switch to the first remaining account
+- Confirmation required: "Remove Account 2 (0x1234…abcd)?" with a warning about imported keys being permanently deleted
+
+### Steps
+
+[] - add `REMOVE_ACCOUNT` message type and backend handler (delete key for imported, remove metadata for derived)
+[] - add delete action to account rows in Settings (trash icon or swipe-to-delete)
+[] - prevent removing the last account (disable button, show tooltip)
+[] - add confirmation modal with different wording for derived vs imported accounts
+[] - handle active account removal: auto-switch to first remaining account, broadcast `accountsChanged`
+
+## Active address discovery after mnemonic import
+
+After importing a mnemonic, detect which derived addresses (BIP-44 m/44'/60'/0'/0/i) have balances or activity. Discovery is lazy and per-chain — the wallet pre-derives a global list of addresses upfront (cheap, no RPC), but only checks balances on a given chain when the user actually opens it. This avoids hitting dozens of RPCs during onboarding since the wallet supports many chains.
+
+### Architecture
+
+- **Global derived address list** — on import, derive addresses from index 0 up to a fixed ceiling (e.g. 20) and store them all. This is a pure key derivation step, no network calls. The list is shared across all chains.
+- **Per-chain lazy detection** — when the user opens/switches to a chain for the first time, scan the global address list against that chain's RPC: check ETH balance and tx count for each address. Mark addresses with non-zero balance or activity as "active on this chain."
+- **Cache results** — once a chain has been scanned, store the results so re-opening the chain doesn't re-scan. Invalidate/re-scan on manual refresh or after a configurable TTL.
+- **Active address display** — on the home screen for a given chain, show all addresses that are active on that chain. Addresses with no activity on the current chain are hidden but still available via Settings → Accounts.
+
+### Behavior
+
+- On mnemonic import, derive N addresses (default ceiling = 20) and persist them — no RPC calls at this stage
+- When the user switches to a network, if that network hasn't been scanned yet:
+  - Batch-query balances and tx counts for all derived addresses against that chain's RPC
+  - Show a subtle loading indicator during the scan
+  - Mark addresses with balance > 0 or txCount > 0 as active for that chain
+  - Cache the scan result per chain
+- If no derived address beyond index 0 has activity on the current chain, behave as today (single account)
+- User can increase the derivation ceiling or manually add more addresses from Settings → Accounts
+- Re-scan can be triggered manually or happens automatically if cached results are older than TTL
+
+### Chain list scan status indicator
+
+In the network/chain selector list, each chain shows a small inline indicator reflecting its account discovery state:
+
+- **Not scanned yet** — no indicator (default state for all chains after import)
+- **Scanning** — subtle spinner or pulsing dot next to the chain name while RPC calls are in flight
+- **Scanned, accounts found** — small badge showing the number of active addresses (e.g. "3 accounts") next to the chain name
+- **Scanned, no extra accounts** — no badge (only the default index-0 address is active, same as current behavior)
+- **Scan failed** — warning icon with retry option (RPC timeout, rate limit, etc.)
+
+This lets the user see at a glance which chains have been checked and where they have funds, without needing to open each chain individually.
+
+### Steps
+
+[] - implement BIP-44 batch derivation (index 0…N, default N=20) on mnemonic import, persist global address list
+[] - add per-chain lazy balance/activity scan triggered on network switch
+[] - batch RPC calls (multicall or parallel `eth_getBalance` + `eth_getTransactionCount`) for all derived addresses
+[] - cache per-chain scan results in storage with TTL-based invalidation
+[] - add scan status indicator to chain selector list (spinner while scanning, account count badge when done, warning on failure)
+[] - show subtle loading state on home screen during per-chain scan ("Checking accounts…")
+[] - display active addresses for the current chain on the home screen, hide inactive ones
+[] - add Settings → Accounts: show all derived addresses, per-chain activity status, option to increase derivation ceiling
+[] - add manual re-scan / refresh action per chain

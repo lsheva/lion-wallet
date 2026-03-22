@@ -27,6 +27,7 @@ import {
   handleGetBalance,
   handleGetState,
   handleGetTokenBalances,
+  handleGetTokenInfo,
   handleImportPrivateKey,
   handleImportWallet,
   handleResetWallet,
@@ -85,7 +86,7 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
     case "REJECT_REQUEST":
       return handleRejectRequest(message.id);
     case "RESET_WALLET":
-      return handleResetWallet();
+      return handleResetWallet(message.password);
     case "ESTIMATE_GAS":
       return handleEstimateGas(message.chainId, message.tx);
     case "GET_ETHERSCAN_KEY":
@@ -108,6 +109,13 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleGetActivity(message.address, message.chainId, message.loadMore === true);
     case "CLEAR_ACTIVITY_CACHE":
       return handleClearActivityCache();
+    case "GET_TOKEN_INFO":
+      return handleGetTokenInfo(message.address, message.chainId);
+    case "GET_TOKEN_IMAGE": {
+      const { getTokenImage } = await import("./token-images");
+      const url = await getTokenImage(message.chainId, message.address);
+      return { ok: true, data: { url } };
+    }
     default:
       return { ok: false, error: "Unknown message type" };
   }

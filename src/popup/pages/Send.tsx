@@ -17,6 +17,8 @@ import { ChainIcon } from "../components/ChainIcon";
 import { FormattedTokenValue } from "../components/FormattedTokenValue";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
+import { Skeleton } from "../components/Skeleton";
+import { TokenImage } from "../components/TokenImage";
 import { type Token, walletState } from "../store";
 
 const isNative = (token: Token) => !token.address;
@@ -158,12 +160,13 @@ export function Send() {
               {isNative(selectedToken) ? (
                 <ChainIcon chainId={network.id} size={28} />
               ) : (
-                <div
-                  class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                  style={{ backgroundColor: selectedToken.color }}
-                >
-                  {selectedToken.symbol.slice(0, 1)}
-                </div>
+                <TokenImage
+                  address={selectedToken.address}
+                  chainId={network.id}
+                  symbol={selectedToken.symbol}
+                  color={selectedToken.color}
+                  size={28}
+                />
               )}
               <div class="text-left">
                 <span class="text-sm font-medium text-text-primary">{selectedToken.symbol}</span>
@@ -189,12 +192,13 @@ export function Send() {
                   {isNative(token) ? (
                     <ChainIcon chainId={network.id} size={24} />
                   ) : (
-                    <div
-                      class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-                      style={{ backgroundColor: token.color }}
-                    >
-                      {token.symbol.slice(0, 1)}
-                    </div>
+                    <TokenImage
+                      address={token.address}
+                      chainId={network.id}
+                      symbol={token.symbol}
+                      color={token.color}
+                      size={24}
+                    />
                   )}
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-text-primary">{token.symbol}</p>
@@ -242,7 +246,11 @@ export function Send() {
               <span class="text-text-tertiary">
                 Bal:{" "}
                 <span class="font-mono">
-                  {loadingBalance ? "..." : <FormattedTokenValue value={rawBalance} />}
+                  {loadingBalance ? (
+                    <Skeleton width={48} height={12} class="inline-block align-middle" />
+                  ) : (
+                    <FormattedTokenValue value={rawBalance} />
+                  )}
                 </span>
               </span>
               <span class="font-semibold text-accent hover:text-accent-hover transition-colors">

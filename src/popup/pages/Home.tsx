@@ -5,6 +5,7 @@ import { route } from "preact-router";
 import { AccountSwitcher } from "../components/AccountSwitcher";
 import { ActivitySection } from "../components/ActivitySection";
 import { NetworkBadge } from "../components/NetworkBadge";
+import { TokenRowSkeleton } from "../components/Skeleton";
 import { TokenRow } from "../components/TokenRow";
 import { fetchActivity, refreshAll, showNetworkSelector, walletState } from "../store";
 import { AddToken } from "./AddToken";
@@ -46,6 +47,7 @@ export function Home() {
         <button
           type="button"
           onClick={() => route("/settings", true)}
+          aria-label="Settings"
           class="p-1.5 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
         >
           <Settings size={20} />
@@ -98,9 +100,17 @@ export function Home() {
             </button>
           </div>
           <div class="divide-y divide-divider">
-            {walletState.tokens.value.map((token) => (
-              <TokenRow key={token.symbol} token={token} chainId={network.id} />
-            ))}
+            {walletState.tokens.value.length > 0 ? (
+              walletState.tokens.value.map((token) => (
+                <TokenRow key={token.symbol} token={token} chainId={network.id} />
+              ))
+            ) : (
+              <>
+                <TokenRowSkeleton />
+                <TokenRowSkeleton />
+                <TokenRowSkeleton />
+              </>
+            )}
           </div>
         </div>
 

@@ -22,6 +22,7 @@ export function CopyButton({ text, size = 16, class: cls = "" }: CopyButtonProps
     <button
       type="button"
       onClick={handleCopy}
+      aria-label={copied ? "Copied" : "Copy to clipboard"}
       class={`p-1 text-text-tertiary hover:text-accent transition-colors cursor-pointer ${cls}`}
     >
       {copied ? <Check size={size} class="text-success" /> : <Copy size={size} />}

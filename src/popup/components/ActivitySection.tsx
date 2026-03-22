@@ -3,6 +3,7 @@ import { useState } from "preact/hooks";
 import { route } from "preact-router";
 import { fetchActivity, walletState } from "../store";
 import { ActivityRow } from "./ActivityRow";
+import { ActivityRowSkeleton } from "./Skeleton";
 
 const PAGE_SIZE = 5;
 
@@ -69,10 +70,14 @@ export function ActivitySection({ account }: { account: { address: string } }) {
             </p>
           )}
         </>
+      ) : loading ? (
+        <div class="divide-y divide-divider">
+          <ActivityRowSkeleton />
+          <ActivityRowSkeleton />
+          <ActivityRowSkeleton />
+        </div>
       ) : (
-        <p class="px-4 py-6 text-sm text-text-tertiary text-center">
-          {loading ? "" : "No recent activity"}
-        </p>
+        <p class="px-4 py-6 text-sm text-text-tertiary text-center">No recent activity</p>
       )}
     </div>
   );

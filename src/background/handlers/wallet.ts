@@ -1,9 +1,10 @@
 import type { Address, Hex } from "viem";
 import { getBalance, readContract } from "viem/actions";
-import { encodeFunctionData, formatEther, numberToHex, parseUnits } from "viem/utils";
+import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits } from "viem/utils";
 import { erc20Abi } from "../../shared/abis";
 import type { MessageResponse } from "../../shared/messages";
 import type { SerializedAccount, WalletState } from "../../shared/types";
+import { fetchTokenMeta } from "../token-meta";
 import { broadcastEvent } from "../broadcast";
 import { fetchNativePrice } from "../etherscan";
 import * as keychain from "../keychain";
@@ -255,7 +256,9 @@ export async function handleExportMnemonic(password?: string): Promise<MessageRe
   return { ok: true, data: { mnemonic } };
 }
 
-export async function handleResetWallet(): Promise<MessageResponse> {
+export async function handleResetWallet(password?: string): Promise<MessageResponse> {
+  const mode = await getStorageMode();
+  await retrieveMnemonic(mode, password, "Reset wallet");
   const { clearAllPending } = await import("../approval");
   clearAllPending();
   await keychain.deleteMnemonic();
@@ -294,6 +297,44 @@ export async function handleGetTokenBalances(tokens: Address[]): Promise<Message
     balances[token] = String(results[i]);
   }
   return { ok: true, data: { balances } };
+}
+
+export async function handleGetTokenInfo(
+  address: Address,
+  chainId: number,
+): Promise<MessageResponse> {
+  const meta = await loadAccountsMeta();
+  const account = meta?.accounts[meta.activeAccountIndex];
+  if (!account) return { ok: false, error: "Wallet not initialized" };
+
+  const tokenMeta = await fetchTokenMeta(chainId, address);
+  if (tokenMeta.symbol === "???") {
+    return { ok: false, error: "Could not read token contract" };
+  }
+
+  const client = getPublicClient(chainId);
+  let balance = "0";
+  try {
+    const raw = await readContract(client, {
+      address,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [account.address],
+    });
+    balance = formatUnits(raw, tokenMeta.decimals);
+  } catch {
+    /* balance read failed — return 0 */
+  }
+
+  return {
+    ok: true,
+    data: {
+      name: tokenMeta.name,
+      symbol: tokenMeta.symbol,
+      decimals: tokenMeta.decimals,
+      balance,
+    },
+  };
 }
 
 export async function handleSendToken(

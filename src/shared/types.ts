@@ -46,6 +46,7 @@ export interface TokenInfo {
   balance: string;
   usdValue?: string;
   color: string;
+  logoUrl?: string;
 }
 
 export type GasSpeed = "slow" | "normal" | "fast";

@@ -20,7 +20,11 @@ export function Banner({ children, variant = "info", class: cls = "" }: BannerPr
   const Icon = config.icon;
 
   return (
-    <div class={`flex items-start gap-2.5 p-3 rounded-[var(--radius-card)] ${config.bg} ${cls}`}>
+    <div
+      role="alert"
+      aria-live="polite"
+      class={`flex items-start gap-2.5 p-3 rounded-[var(--radius-card)] ${config.bg} ${cls}`}
+    >
       <Icon size={18} class={`${config.text} shrink-0 mt-0.5`} />
       <p class={`text-sm leading-snug ${config.text}`}>{children}</p>
     </div>

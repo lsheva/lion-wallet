@@ -28,7 +28,7 @@ export type MessageRequest =
   | { type: "APPROVE_REQUEST"; id: string; gasSpeed?: GasSpeed; password?: string }
   | { type: "REJECT_REQUEST"; id: string }
   | { type: "ESTIMATE_GAS"; chainId: number; tx: TransactionParams }
-  | { type: "RESET_WALLET" }
+  | { type: "RESET_WALLET"; password?: string }
   | { type: "GET_ETHERSCAN_KEY" }
   | { type: "SET_ETHERSCAN_KEY"; key: string }
   | { type: "GET_RPC_PROVIDER_KEY" }
@@ -38,7 +38,9 @@ export type MessageRequest =
   | { type: "GET_TOKEN_BALANCES"; tokens: Address[] }
   | { type: "SEND_TOKEN"; tokenAddress: Address; to: Address; amount: string; decimals: number }
   | { type: "GET_ACTIVITY"; address: Address; chainId: number; loadMore?: boolean }
-  | { type: "CLEAR_ACTIVITY_CACHE" };
+  | { type: "CLEAR_ACTIVITY_CACHE" }
+  | { type: "GET_TOKEN_INFO"; address: Address; chainId: number }
+  | { type: "GET_TOKEN_IMAGE"; address: Address; chainId: number };
 
 /** Untyped base response — used by the background handler's return type. */
 export type MessageResponse = { ok: true; data?: unknown } | { ok: false; error: string };
@@ -76,6 +78,8 @@ export interface MessageDataMap {
     source: "etherscan" | "rpc" | "cache";
   };
   CLEAR_ACTIVITY_CACHE: undefined;
+  GET_TOKEN_INFO: { name: string; symbol: string; decimals: number; balance: string };
+  GET_TOKEN_IMAGE: { url: string | null };
 }
 
 /** Typed success/error response keyed by message type. */

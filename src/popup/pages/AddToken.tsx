@@ -1,9 +1,11 @@
+import { sendMessage } from "@shared/messages";
 import { Loader2 } from "lucide-preact";
 import { useCallback, useRef, useState } from "preact/hooks";
+import type { Address } from "viem";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
-import { tokens } from "../store";
+import { tokens, walletState } from "../store";
 
 interface AddTokenProps {
   open: boolean;
@@ -17,9 +19,14 @@ interface DetectedToken {
   balance: string;
 }
 
-async function fetchTokenInfo(_address: string): Promise<DetectedToken> {
-  await new Promise((r) => setTimeout(r, 900));
-  return { name: "Aave Token", symbol: "AAVE", decimals: 18, balance: "12.50" };
+async function fetchTokenInfo(address: string, chainId: number): Promise<DetectedToken> {
+  const res = await sendMessage({
+    type: "GET_TOKEN_INFO",
+    address: address as Address,
+    chainId,
+  });
+  if (!res.ok) throw new Error(res.error);
+  return res.data;
 }
 
 function randomColor(): string {
@@ -51,7 +58,8 @@ export function AddToken({ open, onClose }: AddTokenProps) {
     detectTimerRef.current = setTimeout(async () => {
       setDetecting(true);
       try {
-        const info = await fetchTokenInfo(trimmed);
+        const chainId = walletState.activeNetworkId.value;
+        const info = await fetchTokenInfo(trimmed, chainId);
         setDetected(info);
       } catch {
         setError("Could not read token contract");

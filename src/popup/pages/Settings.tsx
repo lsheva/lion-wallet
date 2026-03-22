@@ -1,14 +1,17 @@
 import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import {
+  AlertTriangle,
   Check,
   ChevronRight,
   ExternalLink,
   Fingerprint,
   Key,
+  Moon,
   Pencil,
   Plus,
   ShieldCheck,
+  Sun,
   Trash2,
   X,
   Zap,
@@ -22,6 +25,7 @@ import { CopyButton } from "../components/CopyButton";
 import { Header } from "../components/Header";
 import { Identicon } from "../components/Identicon";
 import { Input } from "../components/Input";
+import { Modal } from "../components/Modal";
 import { showNetworkSelector, walletState } from "../store";
 import { NetworkSelector } from "./NetworkSelector";
 
@@ -201,6 +205,9 @@ export function Settings() {
         {/* API Keys */}
         <ApiKeysSection />
 
+        {/* Theme */}
+        <ThemeSelector />
+
         {/* Data */}
         <ClearCacheRow />
 
@@ -224,10 +231,64 @@ export function Settings() {
             <SettingsRow label="Show Recovery Phrase" onClick={() => route("/show-phrase", true)} />
           </div>
         </Card>
+
+        {/* Reset */}
+        <ResetWalletRow />
       </div>
 
       {showNetworkSelector.value && <NetworkSelector />}
     </div>
+  );
+}
+
+type ThemePref = "system" | "light" | "dark";
+
+function getThemePref(): ThemePref {
+  const stored = localStorage.getItem("lion-theme");
+  if (stored === "light" || stored === "dark") return stored;
+  return "system";
+}
+
+function applyTheme(pref: ThemePref) {
+  localStorage.setItem("lion-theme", pref);
+  if (pref === "system") {
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.setAttribute("data-theme", pref);
+  }
+}
+
+function ThemeSelector() {
+  const [theme, setTheme] = useState<ThemePref>(getThemePref);
+
+  const options: Array<{ value: ThemePref; label: string; Icon: typeof Sun }> = [
+    { value: "system", label: "System", Icon: Sun },
+    { value: "light", label: "Light", Icon: Sun },
+    { value: "dark", label: "Dark", Icon: Moon },
+  ];
+
+  return (
+    <Card header="Appearance" padding={false}>
+      <div class="flex px-4 py-3 gap-2">
+        {options.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => {
+              setTheme(value);
+              applyTheme(value);
+            }}
+            class={`flex-1 py-1.5 text-xs font-medium rounded-[var(--radius-chip)] transition-colors cursor-pointer ${
+              theme === value
+                ? "bg-accent text-accent-foreground"
+                : "bg-base text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </Card>
   );
 }
 
@@ -425,5 +486,139 @@ function ApiKeysSection() {
         />
       </div>
     </Card>
+  );
+}
+
+function ResetWalletRow() {
+  const [showModal, setShowModal] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [password, setPassword] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [error, setError] = useState("");
+  const [resetting, setResetting] = useState(false);
+
+  const isVault = walletState.storageMode.value === "vault";
+
+  const close = () => {
+    setShowModal(false);
+    setStep(1);
+    setPassword("");
+    setConfirmText("");
+    setError("");
+  };
+
+  const handleReset = async () => {
+    if (isVault && password.length < 4) {
+      setError("Enter your password");
+      return;
+    }
+    setError("");
+    setResetting(true);
+    try {
+      const res = await sendMessage({
+        type: "RESET_WALLET",
+        ...(isVault ? { password } : {}),
+      });
+      if (!res.ok) {
+        setError(res.error);
+        setResetting(false);
+        return;
+      }
+      localStorage.removeItem("lion-theme");
+      document.documentElement.removeAttribute("data-theme");
+      route("/", true);
+    } catch {
+      setResetting(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setShowModal(true)}
+        class="flex items-center justify-center gap-2 w-full py-3 text-danger hover:text-danger-hover transition-colors cursor-pointer"
+      >
+        <Trash2 size={16} />
+        <span class="text-sm font-medium">Reset Wallet</span>
+      </button>
+
+      <Modal open={showModal} onClose={close} title="Reset Wallet">
+        {step === 1 ? (
+          <div class="p-4 space-y-4">
+            <div class="flex items-start gap-3 p-3 rounded-xl bg-danger/10">
+              <AlertTriangle size={20} class="text-danger shrink-0 mt-0.5" />
+              <p class="text-sm text-text-primary leading-relaxed">
+                This will permanently delete your recovery phrase, all accounts, and all settings
+                from this device. If you haven't backed up your recovery phrase, your funds will be
+                lost forever.
+              </p>
+            </div>
+            <div class="flex gap-2">
+              <Button variant="secondary" onClick={close}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={() => setStep(2)}>
+                Continue
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div class="p-4 space-y-4">
+            {isVault && (
+              <Input
+                label="Enter password to continue"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onInput={(v) => {
+                  setPassword(v);
+                  setError("");
+                }}
+                error={error || undefined}
+                autoFocus
+              />
+            )}
+            {!isVault && error && (
+              <div class="flex items-start gap-3 p-3 rounded-xl bg-danger/10">
+                <AlertTriangle size={16} class="text-danger shrink-0 mt-0.5" />
+                <p class="text-sm text-danger">{error}</p>
+              </div>
+            )}
+            <div>
+              <p class="text-sm text-text-secondary mb-2">
+                Type <span class="font-semibold text-text-primary">RESET</span> to confirm.
+              </p>
+              <Input
+                placeholder="Type RESET"
+                value={confirmText}
+                onInput={setConfirmText}
+                autoFocus={!isVault}
+              />
+            </div>
+            <div class="flex gap-2">
+              <Button variant="secondary" onClick={close}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                disabled={confirmText !== "RESET"}
+                loading={resetting}
+                onClick={handleReset}
+              >
+                {isVault ? (
+                  "Reset Wallet"
+                ) : (
+                  <span class="inline-flex items-center gap-1.5">
+                    <Fingerprint size={16} />
+                    Reset Wallet
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }

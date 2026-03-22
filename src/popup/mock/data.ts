@@ -163,3 +163,138 @@ export const MOCK_SIGN_REQUEST = {
   message:
     "Sign in to OpenSea\n\nNonce: 8a3f2b4c1d5e6f7a\nTimestamp: 2026-03-19T12:00:00Z\n\nBy signing, you agree to the Terms of Service.",
 };
+
+export const MOCK_TYPED_DATA_REQUEST = {
+  origin: "app.uniswap.org",
+  favicon: "https://app.uniswap.org/favicon.ico",
+  method: "eth_signTypedData_v4",
+  message: JSON.stringify(
+    {
+      types: {
+        EIP712Domain: [
+          { name: "name", type: "string" },
+          { name: "version", type: "string" },
+          { name: "chainId", type: "uint256" },
+          { name: "verifyingContract", type: "address" },
+        ],
+        Permit: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      },
+      primaryType: "Permit",
+      domain: {
+        name: "USD Coin",
+        version: "2",
+        chainId: 1,
+        verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      },
+      message: {
+        owner: "0x1a2B3c4D5e6F7a8B9c0D1e2F3a4B5c6D7e8F9a0B",
+        spender: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+        value: "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        nonce: "0",
+        deadline: "1735689600",
+      },
+    },
+    null,
+    2,
+  ),
+};
+
+export const MOCK_ACTIVITY: Array<{
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  ts: number;
+  error: boolean;
+  method: string;
+  fn: string;
+  block: number;
+  transfers: Array<{ token: string; symbol: string; amount: string; decimals: number; dir: "in" | "out" }>;
+  decoded: DecodedCall | null;
+  events: Array<{ name: string; args: Array<{ name: string; type: string; value: string }>; contract: string }>;
+}> = [
+  {
+    hash: "0xabc123def456789012345678901234567890123456789012345678901234abcd",
+    from: "0x1a2B3c4D5e6F7a8B9c0D1e2F3a4B5c6D7e8F9a0B",
+    to: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+    value: "500000000000000000",
+    ts: Math.floor(Date.now() / 1000) - 3600,
+    error: false,
+    method: "0x5ae401dc",
+    fn: "",
+    block: 19500000,
+    transfers: [
+      { token: "USDC", symbol: "USDC", amount: "1180000000", decimals: 6, dir: "in" },
+    ],
+    decoded: {
+      contractName: "SwapRouter02",
+      functionName: "exactInputSingle",
+      args: [
+        { name: "tokenIn", type: "address", value: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
+        { name: "amountIn", type: "uint256", value: "500000000000000000" },
+      ],
+    },
+    events: [],
+  },
+  {
+    hash: "0xdef456789012345678901234567890123456789012345678901234567890efgh",
+    from: "0x8f7E6d5C4b3A2918273645FeDcBa0987654321Ab",
+    to: "0x1a2B3c4D5e6F7a8B9c0D1e2F3a4B5c6D7e8F9a0B",
+    value: "1000000000000000000",
+    ts: Math.floor(Date.now() / 1000) - 86400,
+    error: false,
+    method: "0x",
+    fn: "",
+    block: 19499000,
+    transfers: [],
+    decoded: null,
+    events: [],
+  },
+  {
+    hash: "0x789012345678901234567890123456789012345678901234567890123456ijkl",
+    from: "0x1a2B3c4D5e6F7a8B9c0D1e2F3a4B5c6D7e8F9a0B",
+    to: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    value: "0",
+    ts: Math.floor(Date.now() / 1000) - 172800,
+    error: false,
+    method: "0xa9059cbb",
+    fn: "",
+    block: 19498000,
+    transfers: [
+      { token: "USDC", symbol: "USDC", amount: "500000000", decimals: 6, dir: "out" },
+    ],
+    decoded: {
+      functionName: "transfer",
+      args: [
+        { name: "to", type: "address", value: "0x8f7E6d5C4b3A2918273645FeDcBa0987654321Ab" },
+        { name: "amount", type: "uint256", value: "500000000" },
+      ],
+    },
+    events: [{ name: "Transfer", args: [], contract: "USDC" }],
+  },
+  {
+    hash: "0x456789012345678901234567890123456789012345678901234567890123mnop",
+    from: "0x1a2B3c4D5e6F7a8B9c0D1e2F3a4B5c6D7e8F9a0B",
+    to: "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    value: "250000000000000000",
+    ts: Math.floor(Date.now() / 1000) - 604800,
+    error: true,
+    method: "0x7ff36ab5",
+    fn: "",
+    block: 19490000,
+    transfers: [],
+    decoded: {
+      functionName: "swapExactETHForTokens",
+      args: [
+        { name: "amountOutMin", type: "uint256", value: "0" },
+      ],
+    },
+    events: [],
+  },
+];

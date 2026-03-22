@@ -16,6 +16,7 @@ export function NetworkBadge({ clickable = true, class: cls = "" }: NetworkBadge
     <button
       type="button"
       onClick={clickable ? () => (showNetworkSelector.value = true) : undefined}
+      aria-label={clickable ? `Network: ${network.name}. Click to change` : `Network: ${network.name}`}
       class={`
         inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
         text-sm font-medium transition-colors
@@ -23,15 +24,14 @@ export function NetworkBadge({ clickable = true, class: cls = "" }: NetworkBadge
         ${clickable ? "hover:bg-divider cursor-pointer" : ""}
         ${cls}
       `}
-      style={!isTestnet ? { backgroundColor: `${color}18`, color } : undefined}
+      style={!isTestnet ? { backgroundColor: `${color}25` } : undefined}
     >
       <ChainIcon chainId={network.id} size={14} />
-      <span class="truncate max-w-[140px]">{network.name}</span>
+      <span class="truncate max-w-[140px] text-text-primary">{network.name}</span>
       {clickable && (
         <ChevronDown
           size={14}
-          class={`shrink-0 ${isTestnet ? "text-text-tertiary" : ""}`}
-          style={!isTestnet ? { color, opacity: 0.6 } : undefined}
+          class="shrink-0 text-text-tertiary"
         />
       )}
     </button>

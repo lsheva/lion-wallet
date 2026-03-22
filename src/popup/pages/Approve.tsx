@@ -14,7 +14,7 @@ import { Button } from "../components/Button";
 import { ChainIcon } from "../components/ChainIcon";
 import { CopyButton } from "../components/CopyButton";
 import { Input } from "../components/Input";
-import { Spinner } from "../components/Spinner";
+import { GasPresetsSkeleton, Skeleton } from "../components/Skeleton";
 
 const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
 
@@ -131,8 +131,23 @@ export function Approve() {
 
   if (loading) {
     return (
-      <div class="flex items-center justify-center h-[600px]">
-        <Spinner />
+      <div class="flex flex-col h-[600px] animate-fade-in">
+        <div class="text-center py-3 border-b border-divider">
+          <Skeleton width={160} height={18} class="mx-auto" />
+        </div>
+        <div class="flex items-center justify-between px-4 py-2 border-b border-divider">
+          <Skeleton width={100} height={14} />
+          <Skeleton width={120} height={14} />
+        </div>
+        <div class="flex-1 px-4 pt-4 space-y-3">
+          <Skeleton variant="card" height={80} />
+          <GasPresetsSkeleton />
+          <Skeleton variant="card" height={60} />
+        </div>
+        <div class="px-4 py-4 flex gap-3">
+          <Skeleton variant="card" height={44} class="flex-1" />
+          <Skeleton variant="card" height={44} class="flex-1" />
+        </div>
       </div>
     );
   }

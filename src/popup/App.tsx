@@ -104,7 +104,7 @@ export function App() {
 
   return (
     <div
-      class="relative mx-auto bg-base"
+      class="relative mx-auto"
       style={{ width: 360, minHeight: 600, maxHeight: 600, overflow: "hidden" }}
     >
       <div class="h-[600px] overflow-y-auto overflow-x-hidden">
