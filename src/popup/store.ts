@@ -1,9 +1,16 @@
 import { CHAINS } from "@shared/constants";
 import { formatUsd } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import type { ActivityItem, ChainMeta, SerializedAccount, TokenInfo } from "@shared/types";
+import type {
+  ActivityItem,
+  ChainMeta,
+  SerializedAccount,
+  StoredToken,
+  TokenInfo,
+} from "@shared/types";
 import { batch, createMemo, createRoot, createSignal, untrack } from "solid-js";
 import type { Address } from "viem";
+import { formatUnits } from "viem/utils";
 import { CHAIN_COLOR_BY_ID } from "./chain-ui.generated";
 
 export type { ActivityItem, TokenInfo as Token };
@@ -82,17 +89,62 @@ export async function fetchState(): Promise<void> {
 export async function fetchBalance(): Promise<void> {
   const account = untrack(activeAccount);
   if (!account.address || account.address === "0x0000000000000000000000000000000000000000") return;
+  const chainId = untrack(activeNetworkId);
+  const address = account.address as Address;
+
   const res = await sendMessage({
     type: "GET_BALANCE",
-    address: account.address as Address,
-    chainId: untrack(activeNetworkId),
+    address,
+    chainId,
   });
   if (res.ok && res.data) {
     batch(() => {
       setEthBalance(res.data.balance);
       setNativeUsdPrice(res.data.nativeUsdPrice);
-      setTokens([buildNativeToken(), ...untrack(tokens).filter((t) => t.address)]);
+      setTokens([buildNativeToken()]);
     });
+  }
+
+  loadDiscoveredTokens(chainId);
+
+  sendMessage({ type: "SCAN_TOKENS", chainId, address }).catch(() => {});
+}
+
+async function loadDiscoveredTokens(chainId: number): Promise<void> {
+  try {
+    const res = await sendMessage({ type: "GET_DISCOVERED_TOKENS", chainId });
+    if (!res.ok || !res.data?.tokens?.length) return;
+
+    const discovered: StoredToken[] = res.data.tokens;
+    const tokenAddresses = discovered.map((t) => t.address as Address);
+
+    const balRes = await sendMessage({ type: "GET_TOKEN_BALANCES", tokens: tokenAddresses });
+    const balances: Record<string, string> = balRes.ok && balRes.data ? balRes.data.balances : {};
+
+    const erc20Tokens: TokenInfo[] = discovered.map((t) => ({
+      symbol: t.symbol,
+      name: t.name,
+      address: t.address as Address,
+      decimals: t.decimals,
+      balance: formatBalance(balances[t.address as Address] ?? "0", t.decimals),
+      color: chainColor(chainId),
+      source: t.source,
+    }));
+
+    batch(() => {
+      const native = untrack(tokens).find((t) => !t.address);
+      setTokens([...(native ? [native] : [buildNativeToken()]), ...erc20Tokens]);
+    });
+  } catch {
+    /* non-critical — keep native-only list */
+  }
+}
+
+function formatBalance(raw: string, decimals: number): string {
+  try {
+    return formatUnits(BigInt(raw), decimals);
+  } catch {
+    return "0";
   }
 }
 

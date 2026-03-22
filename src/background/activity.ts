@@ -15,6 +15,7 @@ import { bgLog } from "./log";
 import { getPublicClient } from "./networks";
 import { StorageCache } from "./storage-cache";
 import { clearTokenMetaCache, fetchTokenMetaBatch, type TokenMeta } from "./token-meta";
+import { addDiscoveredTokens } from "./token-store";
 import { stringify, tryDecode } from "./tx-decoder";
 
 const STORAGE_KEY = "activityCache";
@@ -26,7 +27,10 @@ const ENRICH_BATCH = 5;
 const ETHERSCAN_LOGS_PAGE_SIZE = 1000;
 const RATE_LIMIT_MS = 60_000;
 const INITIAL_BLOCK_RANGE = 10_000;
+const TOKEN_DISCOVERY_BLOCK_RANGE = 50_000;
 const MIN_BLOCK_RANGE = 500;
+const ETHERSCAN_TOKENTX_DISCOVERY_SIZE = 1000;
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
 export type ActivitySource = "etherscan" | "rpc" | "cache";
 
@@ -372,6 +376,12 @@ async function enrichWithDecoding(
 
   attachTransfers(items, rawByTxIndex, tokenMeta, userAddress);
 
+  if (transferTokens.size > 0) {
+    addDiscoveredTokens(chainId, [...transferTokens], tokenMeta, "activity").catch((e) => {
+      bgLog("[activity] addDiscoveredTokens failed:", e);
+    });
+  }
+
   const withTransfers = items.filter((i) => i.transfers.length > 0).length;
   const withDecoded = items.filter((i) => i.decoded).length;
   const withEvents = items.filter((i) => i.events.length > 0).length;
@@ -629,6 +639,12 @@ async function fetchRpcData(
       ? await fetchTokenMetaBatch(chainId, uniqueTokens)
       : new Map<string, TokenMeta>();
 
+  if (uniqueTokens.length > 0) {
+    addDiscoveredTokens(chainId, uniqueTokens, meta, "activity").catch((e) => {
+      bgLog("[activity] addDiscoveredTokens (rpc) failed:", e);
+    });
+  }
+
   const transfersByHash: Record<string, TokenMovement[]> = {};
   for (const t of rawTransfers) {
     const info = meta.get(t.token.toLowerCase());
@@ -678,6 +694,123 @@ async function enrichHashes(
     });
   }
   return items;
+}
+
+// ── Extended token discovery (fire-and-forget) ──────────────────────
+
+async function discoverTokensFromRpcExtended(
+  address: string,
+  chainId: number,
+): Promise<void> {
+  try {
+    const client = getPublicClient(chainId);
+    const latest = await getBlockNumber(client);
+    const padded = `0x${address.slice(2).toLowerCase().padStart(64, "0")}` as `0x${string}`;
+    let blockRange = BigInt(TOKEN_DISCOVERY_BLOCK_RANGE);
+    let logs: RpcLog[] = [];
+
+    while (blockRange >= BigInt(MIN_BLOCK_RANGE)) {
+      const from = latest - blockRange > 0n ? latest - blockRange : 0n;
+      try {
+        const [t1, t2] = await Promise.all([
+          client.request({
+            method: "eth_getLogs",
+            params: [
+              {
+                fromBlock: toHex(from),
+                toBlock: toHex(latest),
+                topics: [TRANSFER_TOPIC as `0x${string}`, padded],
+              },
+            ],
+          }) as Promise<RpcLog[]>,
+          client.request({
+            method: "eth_getLogs",
+            params: [
+              {
+                fromBlock: toHex(from),
+                toBlock: toHex(latest),
+                topics: [TRANSFER_TOPIC as `0x${string}`, null, padded] as [
+                  `0x${string}`,
+                  null,
+                  `0x${string}`,
+                ],
+              },
+            ],
+          }) as Promise<RpcLog[]>,
+        ]);
+        logs = [...t1, ...t2];
+        break;
+      } catch {
+        blockRange = blockRange / 2n;
+      }
+    }
+
+    const tokenAddrs = new Set<string>();
+    for (const log of logs) {
+      if (log.address) tokenAddrs.add(log.address.toLowerCase());
+    }
+
+    if (tokenAddrs.size > 0) {
+      const meta = await fetchTokenMetaBatch(chainId, [...tokenAddrs]);
+      await addDiscoveredTokens(chainId, [...tokenAddrs], meta, "activity");
+      bgLog("[activity] extended RPC scan found", tokenAddrs.size, "tokens");
+    }
+  } catch (e) {
+    bgLog("[activity] extended RPC token discovery failed:", e);
+  }
+}
+
+async function discoverTokensFromEtherscanTokTx(
+  address: string,
+  chainId: number,
+  apiKey: string,
+): Promise<void> {
+  try {
+    const url = new URL(ETHERSCAN_BASE_URL);
+    url.searchParams.set("chainid", String(chainId));
+    url.searchParams.set("module", "account");
+    url.searchParams.set("action", "tokentx");
+    url.searchParams.set("address", address);
+    url.searchParams.set("startblock", "0");
+    url.searchParams.set("endblock", "999999999");
+    url.searchParams.set("page", "1");
+    url.searchParams.set("offset", String(ETHERSCAN_TOKENTX_DISCOVERY_SIZE));
+    url.searchParams.set("sort", "desc");
+    url.searchParams.set("apikey", apiKey);
+
+    const resp = await fetch(url.toString());
+    if (!resp.ok) return;
+
+    const body = (await resp.json()) as {
+      status?: string;
+      result?: Array<{
+        contractAddress?: string;
+        tokenSymbol?: string;
+        tokenName?: string;
+        tokenDecimal?: string;
+      }>;
+    };
+    if (body.status !== "1" || !Array.isArray(body.result)) return;
+
+    const metaMap = new Map<string, TokenMeta>();
+    for (const tx of body.result) {
+      if (!tx.contractAddress) continue;
+      const addr = tx.contractAddress.toLowerCase();
+      if (metaMap.has(addr)) continue;
+      metaMap.set(addr, {
+        symbol: tx.tokenSymbol ?? "???",
+        name: tx.tokenName ?? "Unknown Token",
+        decimals: Number(tx.tokenDecimal) || 18,
+      });
+    }
+
+    if (metaMap.size > 0) {
+      await addDiscoveredTokens(chainId, [...metaMap.keys()], metaMap, "activity");
+      bgLog("[activity] etherscan tokentx found", metaMap.size, "tokens");
+    }
+  } catch (e) {
+    bgLog("[activity] etherscan tokentx discovery failed:", e);
+  }
 }
 
 // ── Public API ───────────────────────────────────────────────────────
@@ -848,6 +981,9 @@ export async function fetchActivity(
       enrichEtherscanAsync(address, chainId, phase1).catch((e) => {
         bgLog("[activity] enrichEtherscanAsync failed:", e);
       });
+      discoverTokensFromEtherscanTokTx(address, chainId, phase1.apiKey).catch((e) => {
+        bgLog("[activity] tokentx discovery failed:", e);
+      });
       return { items: merged, hasMore: fullPage, source: "etherscan" };
     }
     bgLog("[activity] etherscan returned null, falling back to rpc");
@@ -856,7 +992,11 @@ export async function fetchActivity(
   }
 
   try {
-    return await fetchViaRpc(address, chainId, entry?.items ?? [], cache, k);
+    const rpcResult = await fetchViaRpc(address, chainId, entry?.items ?? [], cache, k);
+    discoverTokensFromRpcExtended(address, chainId).catch((e) => {
+      bgLog("[activity] extended rpc discovery failed:", e);
+    });
+    return rpcResult;
   } catch (e) {
     bgLog("[activity] rpc exception:", e);
   }

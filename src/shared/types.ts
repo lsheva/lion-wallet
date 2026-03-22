@@ -47,6 +47,7 @@ export interface TokenInfo {
   usdValue?: string;
   color: string;
   logoUrl?: string;
+  source?: "manual" | "activity" | "scan";
 }
 
 export type GasSpeed = "slow" | "normal" | "fast";
@@ -142,6 +143,17 @@ export interface ActivityItem {
   transfers: TokenMovement[];
   decoded: DecodedCall | null;
   events: DecodedEvent[];
+}
+
+export interface StoredToken {
+  address: string;
+  chainId: number;
+  symbol: string;
+  name: string;
+  decimals: number;
+  source: "manual" | "activity" | "scan";
+  hidden?: boolean;
+  addedAt: number;
 }
 
 export interface ApprovalData {

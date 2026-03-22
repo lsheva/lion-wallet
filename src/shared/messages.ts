@@ -7,6 +7,7 @@ import type {
   GasPresets,
   GasSpeed,
   SerializedAccount,
+  StoredToken,
   TransactionParams,
   WalletState,
 } from "./types";
@@ -40,7 +41,11 @@ export type MessageRequest =
   | { type: "GET_ACTIVITY"; address: Address; chainId: number; loadMore?: boolean }
   | { type: "CLEAR_ACTIVITY_CACHE" }
   | { type: "GET_TOKEN_INFO"; address: Address; chainId: number }
-  | { type: "GET_TOKEN_IMAGE"; address: Address; chainId: number };
+  | { type: "GET_TOKEN_IMAGE"; address: Address; chainId: number }
+  | { type: "GET_DISCOVERED_TOKENS"; chainId: number }
+  | { type: "HIDE_DISCOVERED_TOKEN"; chainId: number; address: Address }
+  | { type: "ADD_MANUAL_TOKEN"; address: Address; chainId: number }
+  | { type: "SCAN_TOKENS"; chainId: number; address: Address };
 
 /** Untyped base response — used by the background handler's return type. */
 export type MessageResponse = { ok: true; data?: unknown } | { ok: false; error: string };
@@ -80,6 +85,10 @@ export interface MessageDataMap {
   CLEAR_ACTIVITY_CACHE: undefined;
   GET_TOKEN_INFO: { name: string; symbol: string; decimals: number; balance: string };
   GET_TOKEN_IMAGE: { url: string | null };
+  GET_DISCOVERED_TOKENS: { tokens: StoredToken[] };
+  HIDE_DISCOVERED_TOKEN: undefined;
+  ADD_MANUAL_TOKEN: undefined;
+  SCAN_TOKENS: { found: number };
 }
 
 /** Typed success/error response keyed by message type. */

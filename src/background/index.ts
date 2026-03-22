@@ -19,6 +19,12 @@ import {
   handleSetRpcProviderKey,
 } from "./handlers/settings";
 import {
+  handleAddManualToken,
+  handleGetDiscoveredTokens,
+  handleHideDiscoveredToken,
+  handleScanTokens,
+} from "./handlers/tokens";
+import {
   handleAddAccount,
   handleCreateWallet,
   handleExportMnemonic,
@@ -116,6 +122,14 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       const url = await getTokenImage(message.chainId, message.address);
       return { ok: true, data: { url } };
     }
+    case "GET_DISCOVERED_TOKENS":
+      return handleGetDiscoveredTokens(message.chainId);
+    case "HIDE_DISCOVERED_TOKEN":
+      return handleHideDiscoveredToken(message.chainId, message.address);
+    case "ADD_MANUAL_TOKEN":
+      return handleAddManualToken(message.address, message.chainId);
+    case "SCAN_TOKENS":
+      return handleScanTokens(message.chainId, message.address);
     default:
       return { ok: false, error: "Unknown message type" };
   }

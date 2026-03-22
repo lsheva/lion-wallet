@@ -5,7 +5,7 @@ import type { Address } from "viem";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
-import { setTokens, tokens, walletState } from "../store";
+import { fetchBalance, tokens, walletState } from "../store";
 
 interface AddTokenProps {
   open: boolean;
@@ -27,11 +27,6 @@ async function fetchTokenInfo(address: string, chainId: number): Promise<Detecte
   });
   if (!res.ok) throw new Error(res.error);
   return res.data;
-}
-
-function randomColor(): string {
-  const h = Math.floor(Math.random() * 360);
-  return `hsl(${h}, 55%, 50%)`;
 }
 
 export function AddToken(props: AddTokenProps) {
@@ -72,21 +67,13 @@ export function AddToken(props: AddTokenProps) {
     }, 300);
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const d = detected();
     if (!d) return;
-    setTokens([
-      ...tokens(),
-      {
-        symbol: d.symbol,
-        name: d.name,
-        balance: d.balance,
-        usdValue: "--",
-        color: randomColor(),
-        address: address().trim() as `0x${string}`,
-        decimals: d.decimals,
-      },
-    ]);
+    const trimmed = address().trim() as Address;
+    const chainId = walletState.activeNetworkId();
+    await sendMessage({ type: "ADD_MANUAL_TOKEN", address: trimmed, chainId });
+    await fetchBalance();
     handleClose();
   };
 
@@ -144,7 +131,7 @@ export function AddToken(props: AddTokenProps) {
         </Show>
 
         <Button onClick={handleAdd} disabled={!detected()} size="md">
-          {detected() ? `Add ${detected()!.symbol}` : "Add Token"}
+          {detected() ? `Add ${detected()?.symbol}` : "Add Token"}
         </Button>
       </div>
     </Modal>

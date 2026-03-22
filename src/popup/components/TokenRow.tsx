@@ -69,6 +69,9 @@ export function TokenRow(props: TokenRowProps) {
             <span class="break-words [overflow-wrap:anywhere]">{props.token.name}</span>
           )}
         </p>
+        <Show when={!isNative && props.token.source && props.token.source !== "manual"}>
+          <p class="text-[10px] text-text-tertiary leading-tight mt-0.5">Auto-detected</p>
+        </Show>
       </div>
       <div class="text-right shrink-0 ml-2">
         <p class="text-sm font-mono font-medium text-text-primary">
