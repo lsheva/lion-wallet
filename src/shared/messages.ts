@@ -42,9 +42,9 @@ export type MessageRequest =
   | { type: "CLEAR_ACTIVITY_CACHE" }
   | { type: "GET_TOKEN_INFO"; address: Address; chainId: number }
   | { type: "GET_TOKEN_IMAGE"; address: Address; chainId: number }
-  | { type: "GET_DISCOVERED_TOKENS"; chainId: number }
-  | { type: "HIDE_DISCOVERED_TOKEN"; chainId: number; address: Address }
-  | { type: "ADD_MANUAL_TOKEN"; address: Address; chainId: number }
+  | { type: "GET_DISCOVERED_TOKENS"; chainId: number; walletAddress: Address }
+  | { type: "HIDE_DISCOVERED_TOKEN"; chainId: number; walletAddress: Address; address: Address }
+  | { type: "ADD_MANUAL_TOKEN"; address: Address; chainId: number; walletAddress: Address }
   | { type: "SCAN_TOKENS"; chainId: number; address: Address };
 
 /** Untyped base response — used by the background handler's return type. */

@@ -105,14 +105,15 @@ export async function fetchBalance(): Promise<void> {
     });
   }
 
-  loadDiscoveredTokens(chainId);
+  loadDiscoveredTokens(chainId, address);
 
   sendMessage({ type: "SCAN_TOKENS", chainId, address }).catch(() => {});
 }
 
-async function loadDiscoveredTokens(chainId: number): Promise<void> {
+async function loadDiscoveredTokens(chainId: number, walletAddress?: Address): Promise<void> {
+  const addr = walletAddress ?? (untrack(activeAccount).address as Address);
   try {
-    const res = await sendMessage({ type: "GET_DISCOVERED_TOKENS", chainId });
+    const res = await sendMessage({ type: "GET_DISCOVERED_TOKENS", chainId, walletAddress: addr });
     if (!res.ok || !res.data?.tokens?.length) return;
 
     const discovered: StoredToken[] = res.data.tokens;
@@ -145,6 +146,23 @@ function formatBalance(raw: string, decimals: number): string {
     return formatUnits(BigInt(raw), decimals);
   } catch {
     return "0";
+  }
+}
+
+export function parseUsdValue(v: string | undefined): number {
+  if (!v) return 0;
+  const n = parseFloat(v.replace(/[^0-9.-]/g, ""));
+  return Number.isNaN(n) ? 0 : n;
+}
+
+export async function hideToken(tokenAddress: Address): Promise<void> {
+  const chainId = untrack(activeNetworkId);
+  const walletAddress = untrack(activeAccount).address as Address;
+  try {
+    await sendMessage({ type: "HIDE_DISCOVERED_TOKEN", chainId, walletAddress, address: tokenAddress });
+    setTokens(untrack(tokens).filter((t) => t.address !== tokenAddress));
+  } catch {
+    /* non-critical */
   }
 }
 
@@ -205,12 +223,18 @@ export const walletState = {
   async switchNetwork(id: number): Promise<void> {
     setActiveNetworkId(id);
     setShowNetworkSelector(false);
+    batch(() => {
+      setActivity([]);
+      setActivitySource(null);
+      setActivityHasMore(false);
+    });
     try {
       await sendMessage({ type: "SWITCH_NETWORK", chainId: id });
     } catch (e) {
       console.warn("[store] switchNetwork message failed:", e);
     }
     await fetchBalance();
+    fetchActivity().catch(() => {});
   },
 
   async switchAccount(index: number): Promise<void> {

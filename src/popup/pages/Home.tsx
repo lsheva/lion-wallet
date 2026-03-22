@@ -1,13 +1,14 @@
 import { formatUsd } from "@shared/format";
 import { useNavigate } from "@solidjs/router";
-import { ArrowDownLeft, ArrowUpRight, Plus, Settings } from "lucide-solid";
+import { ArrowDownLeft, ArrowUpRight, Plus, Settings, SlidersHorizontal } from "lucide-solid";
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
+import type { Address } from "viem";
 import { AccountSwitcher } from "../components/AccountSwitcher";
 import { ActivitySection } from "../components/ActivitySection";
 import { NetworkBadge } from "../components/NetworkBadge";
 import { TokenRowSkeleton } from "../components/Skeleton";
 import { TokenRow } from "../components/TokenRow";
-import { fetchActivity, refreshAll, showNetworkSelector, walletState } from "../store";
+import { fetchActivity, hideToken, parseUsdValue, refreshAll, showNetworkSelector, walletState } from "../store";
 import { AddToken } from "./AddToken";
 import { NetworkSelector } from "./NetworkSelector";
 
@@ -27,11 +28,32 @@ function balanceUsdTotal(ethBalance: string, nativeUsdPerUnit: number | null): s
 export function Home() {
   const navigate = useNavigate();
   const [showAddToken, setShowAddToken] = createSignal(false);
+  const [managingTokens, setManagingTokens] = createSignal(false);
   let lastFetch = 0;
 
   const usdTotal = createMemo(() =>
     balanceUsdTotal(walletState.ethBalance(), walletState.nativeUsdPrice()),
   );
+
+  const sortedTokens = createMemo(() => {
+    const all = walletState.tokens();
+    const native = all.filter((t) => !t.address);
+    const erc20 = all
+      .filter((t) => t.address)
+      .sort((a, b) => parseUsdValue(b.usdValue) - parseUsdValue(a.usdValue));
+    return [...native, ...erc20];
+  });
+
+  const hasHideableTokens = createMemo(() =>
+    sortedTokens().some((t) => t.address && canHideToken(t)),
+  );
+
+  function canHideToken(token: { address?: string; balance: string; usdValue?: string }): boolean {
+    if (!token.address) return false;
+    const bal = parseFloat(token.balance);
+    if (Number.isNaN(bal) || bal === 0) return true;
+    return parseUsdValue(token.usdValue) < 1;
+  }
 
   onMount(() => {
     const now = Date.now();
@@ -94,11 +116,15 @@ export function Home() {
             </h3>
             <button
               type="button"
-              onClick={() => setShowAddToken(true)}
-              class="flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
+              onClick={() => setManagingTokens((v) => !v)}
+              class={`flex items-center gap-1 text-xs transition-colors cursor-pointer ${
+                managingTokens()
+                  ? "text-accent font-medium"
+                  : "text-text-tertiary hover:text-text-secondary"
+              }`}
             >
-              <Plus size={12} />
-              Add
+              <SlidersHorizontal size={11} />
+              {managingTokens() ? "Done" : "Manage"}
             </button>
           </div>
           <div class="divide-y divide-divider">
@@ -112,9 +138,27 @@ export function Home() {
                 </>
               }
             >
-              <For each={walletState.tokens()}>
-                {(token) => <TokenRow token={token} chainId={walletState.activeNetwork().id} />}
+              <For each={sortedTokens()}>
+                {(token) => (
+                  <TokenRow
+                    token={token}
+                    chainId={walletState.activeNetwork().id}
+                    managing={managingTokens()}
+                    canHide={canHideToken(token)}
+                    onHide={() => hideToken(token.address as Address)}
+                  />
+                )}
               </For>
+            </Show>
+            <Show when={managingTokens()}>
+              <button
+                type="button"
+                onClick={() => setShowAddToken(true)}
+                class="flex items-center gap-2 w-full px-4 py-3 text-xs text-accent hover:bg-base/50 transition-colors cursor-pointer"
+              >
+                <Plus size={14} />
+                Add token
+              </button>
             </Show>
           </div>
         </div>

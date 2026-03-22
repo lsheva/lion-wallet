@@ -377,7 +377,7 @@ async function enrichWithDecoding(
   attachTransfers(items, rawByTxIndex, tokenMeta, userAddress);
 
   if (transferTokens.size > 0) {
-    addDiscoveredTokens(chainId, [...transferTokens], tokenMeta, "activity").catch((e) => {
+    addDiscoveredTokens(chainId, userAddress, [...transferTokens], tokenMeta, "activity").catch((e) => {
       bgLog("[activity] addDiscoveredTokens failed:", e);
     });
   }
@@ -528,6 +528,7 @@ async function enrichEtherscanAsync(
         items: merged,
         source: "etherscan",
         hasMore: cache[k].etherscanHasMore === true,
+        chainId,
       })
       .catch(() => {
         /* popup not open — expected */
@@ -640,7 +641,7 @@ async function fetchRpcData(
       : new Map<string, TokenMeta>();
 
   if (uniqueTokens.length > 0) {
-    addDiscoveredTokens(chainId, uniqueTokens, meta, "activity").catch((e) => {
+    addDiscoveredTokens(chainId, address, uniqueTokens, meta, "activity").catch((e) => {
       bgLog("[activity] addDiscoveredTokens (rpc) failed:", e);
     });
   }
@@ -752,7 +753,7 @@ async function discoverTokensFromRpcExtended(
 
     if (tokenAddrs.size > 0) {
       const meta = await fetchTokenMetaBatch(chainId, [...tokenAddrs]);
-      await addDiscoveredTokens(chainId, [...tokenAddrs], meta, "activity");
+      await addDiscoveredTokens(chainId, address, [...tokenAddrs], meta, "activity");
       bgLog("[activity] extended RPC scan found", tokenAddrs.size, "tokens");
     }
   } catch (e) {
@@ -805,7 +806,7 @@ async function discoverTokensFromEtherscanTokTx(
     }
 
     if (metaMap.size > 0) {
-      await addDiscoveredTokens(chainId, [...metaMap.keys()], metaMap, "activity");
+      await addDiscoveredTokens(chainId, address, [...metaMap.keys()], metaMap, "activity");
       bgLog("[activity] etherscan tokentx found", metaMap.size, "tokens");
     }
   } catch (e) {

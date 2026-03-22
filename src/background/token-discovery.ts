@@ -3,16 +3,9 @@ import { ETHERSCAN_BASE_URL, getEtherscanApiKey } from "./etherscan";
 import { bgLog } from "./log";
 import { getPublicClient, hasRpcProviderKey } from "./networks";
 import { fetchTokenMetaBatch, type TokenMeta } from "./token-meta";
-import { addDiscoveredTokens } from "./token-store";
+import { addDiscoveredTokens, markTokensScanned, shouldScanTokens } from "./token-store";
 
 const ETHERSCAN_TOKENTX_PAGE_SIZE = 1000;
-const SCAN_CACHE_TTL = 60 * 60 * 1000; // 1 hour
-
-const lastScanTs = new Map<string, number>();
-
-function scanKey(address: string, chainId: number): string {
-  return `${chainId}:${address.toLowerCase()}`;
-}
 
 /**
  * Scan the active chain for tokens held by `address`.
@@ -21,16 +14,16 @@ function scanKey(address: string, chainId: number): string {
  * Tier 2: Etherscan key present → account?action=tokentx (large page)
  * Tier 3: No keys → no-op (activity-based discovery is the only source)
  *
+ * Respects a persistent 1-hour TTL per (chain, address) pair.
  * Activity-based discovery always runs separately via activity.ts hooks.
  */
 export async function scanTokens(address: string, chainId: number): Promise<number> {
-  const sk = scanKey(address, chainId);
-  const lastTs = lastScanTs.get(sk) ?? 0;
-  if (Date.now() - lastTs < SCAN_CACHE_TTL) {
+  const canScan = await shouldScanTokens(chainId, address);
+  if (!canScan) {
     bgLog("[token-discovery] scan rate-limited for chain", chainId);
     return 0;
   }
-  lastScanTs.set(sk, Date.now());
+  await markTokensScanned(chainId, address);
 
   const meta = CHAIN_BY_ID.get(chainId);
   if (!meta) return 0;
@@ -77,7 +70,7 @@ async function scanViaAlchemy(address: string, chainId: number): Promise<number>
 
     const addrs = nonZero.map((t) => t.contractAddress);
     const metaMap = await fetchTokenMetaBatch(chainId, addrs);
-    const added = await addDiscoveredTokens(chainId, addrs, metaMap, "scan");
+    const added = await addDiscoveredTokens(chainId, address, addrs, metaMap, "scan");
 
     bgLog(
       "[token-discovery] alchemy: chain",
@@ -144,7 +137,7 @@ async function scanViaEtherscan(
 
     if (metaMap.size === 0) return 0;
 
-    const added = await addDiscoveredTokens(chainId, [...metaMap.keys()], metaMap, "scan");
+    const added = await addDiscoveredTokens(chainId, address, [...metaMap.keys()], metaMap, "scan");
     bgLog(
       "[token-discovery] etherscan: chain",
       chainId,

@@ -123,11 +123,11 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return { ok: true, data: { url } };
     }
     case "GET_DISCOVERED_TOKENS":
-      return handleGetDiscoveredTokens(message.chainId);
+      return handleGetDiscoveredTokens(message.chainId, message.walletAddress);
     case "HIDE_DISCOVERED_TOKEN":
-      return handleHideDiscoveredToken(message.chainId, message.address);
+      return handleHideDiscoveredToken(message.chainId, message.walletAddress, message.address);
     case "ADD_MANUAL_TOKEN":
-      return handleAddManualToken(message.address, message.chainId);
+      return handleAddManualToken(message.address, message.chainId, message.walletAddress);
     case "SCAN_TOKENS":
       return handleScanTokens(message.chainId, message.address);
     default:

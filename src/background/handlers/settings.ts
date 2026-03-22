@@ -61,6 +61,7 @@ export async function handleGetActivity(
 export async function handleClearActivityCache(): Promise<MessageResponse> {
   const { clearActivityCache } = await import("../activity");
   const { clearAbiCache } = await import("../etherscan");
-  await Promise.all([clearActivityCache(), clearAbiCache()]);
+  const { clearTokenStore } = await import("../token-store");
+  await Promise.all([clearActivityCache(), clearAbiCache(), clearTokenStore()]);
   return { ok: true };
 }

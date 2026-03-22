@@ -67,17 +67,19 @@ export async function fetchTokenMetaBatch(
         const hex = addr as `0x${string}`;
         return [
           readContract(client, { address: hex, abi: erc20Abi, functionName: "symbol" }),
+          readContract(client, { address: hex, abi: erc20Abi, functionName: "name" }),
           readContract(client, { address: hex, abi: erc20Abi, functionName: "decimals" }),
         ];
       }),
     );
 
     for (const [i, addr] of missing.entries()) {
-      const sym = calls[i * 2];
-      const dec = calls[i * 2 + 1];
+      const sym = calls[i * 3];
+      const nm = calls[i * 3 + 1];
+      const dec = calls[i * 3 + 2];
       const meta: TokenMeta = {
         symbol: sym?.status === "fulfilled" ? String(sym.value) : DEFAULTS.symbol,
-        name: DEFAULTS.name,
+        name: nm?.status === "fulfilled" ? String(nm.value) : DEFAULTS.name,
         decimals: dec?.status === "fulfilled" ? Number(dec.value) : DEFAULTS.decimals,
       };
       const k = cacheKey(chainId, addr);
