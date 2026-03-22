@@ -1,7 +1,7 @@
 import { sendMessage } from "@shared/messages";
-import { ChevronDown, ChevronUp, ExternalLink, Search, Zap } from "lucide-preact";
-import { useState } from "preact/hooks";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { ChevronDown, ChevronUp, ExternalLink, Search, Zap } from "lucide-solid";
+import { createSignal, For, Show } from "solid-js";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -10,11 +10,7 @@ import { Input } from "../components/Input";
 
 const KEY_REGEX = /^[A-Za-z0-9_-]{20,40}$/;
 
-function HelpAccordion({
-  open,
-  onToggle,
-  steps,
-}: {
+function HelpAccordion(props: {
   open: boolean;
   onToggle: () => void;
   steps: Array<{ text: string; href?: string }>;
@@ -23,47 +19,50 @@ function HelpAccordion({
     <div>
       <button
         type="button"
-        onClick={onToggle}
+        onClick={props.onToggle}
         class="flex items-center gap-1 text-xs text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
       >
         <span>Need a key?</span>
-        {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        {props.open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
       </button>
-      {open && (
+      <Show when={props.open}>
         <ol class="mt-2 space-y-1.5 text-xs text-text-secondary list-decimal list-inside">
-          {steps.map((step, i) => (
-            <li key={i}>
-              {step.href ? (
-                <a
-                  href={step.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-accent hover:text-accent-hover inline-flex items-center gap-0.5"
-                >
-                  {step.text}
-                  <ExternalLink size={10} />
-                </a>
-              ) : (
-                step.text
-              )}
-            </li>
-          ))}
+          <For each={props.steps}>
+            {(step) => (
+              <li>
+                {step.href ? (
+                  <a
+                    href={step.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-accent hover:text-accent-hover inline-flex items-center gap-0.5"
+                  >
+                    {step.text}
+                    <ExternalLink size={10} />
+                  </a>
+                ) : (
+                  step.text
+                )}
+              </li>
+            )}
+          </For>
         </ol>
-      )}
+      </Show>
     </div>
   );
 }
 
 export function ApiKeySetup() {
-  const [alchemyKey, setAlchemyKey] = useState("");
-  const [etherscanKey, setEtherscanKey] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [helpOpen, setHelpOpen] = useState<"alchemy" | "etherscan" | null>(null);
+  const navigate = useNavigate();
+  const [alchemyKey, setAlchemyKey] = createSignal("");
+  const [etherscanKey, setEtherscanKey] = createSignal("");
+  const [saving, setSaving] = createSignal(false);
+  const [error, setError] = createSignal("");
+  const [helpOpen, setHelpOpen] = createSignal<"alchemy" | "etherscan" | null>(null);
 
   const handleContinue = async () => {
-    const alchemy = alchemyKey.trim();
-    const etherscan = etherscanKey.trim();
+    const alchemy = alchemyKey().trim();
+    const etherscan = etherscanKey().trim();
 
     if (alchemy && !KEY_REGEX.test(alchemy)) {
       setError("Alchemy key doesn't look valid");
@@ -80,7 +79,7 @@ export function ApiKeySetup() {
       if (alchemy) promises.push(sendMessage({ type: "SET_RPC_PROVIDER_KEY", key: alchemy }));
       if (etherscan) promises.push(sendMessage({ type: "SET_ETHERSCAN_KEY", key: etherscan }));
       await Promise.all(promises);
-      route("/home");
+      navigate("/home");
     } catch {
       setError("Failed to save — try again");
       setSaving(false);
@@ -106,7 +105,7 @@ export function ApiKeySetup() {
 
             <Input
               placeholder="Paste Alchemy API key"
-              value={alchemyKey}
+              value={alchemyKey()}
               onInput={(v) => {
                 setAlchemyKey(v);
                 setError("");
@@ -115,8 +114,8 @@ export function ApiKeySetup() {
             />
 
             <HelpAccordion
-              open={helpOpen === "alchemy"}
-              onToggle={() => setHelpOpen(helpOpen === "alchemy" ? null : "alchemy")}
+              open={helpOpen() === "alchemy"}
+              onToggle={() => setHelpOpen(helpOpen() === "alchemy" ? null : "alchemy")}
               steps={[
                 { text: "Open Alchemy Dashboard", href: "https://dashboard.alchemy.com/" },
                 { text: "Sign up for a free account" },
@@ -138,7 +137,7 @@ export function ApiKeySetup() {
 
             <Input
               placeholder="Paste Etherscan API key"
-              value={etherscanKey}
+              value={etherscanKey()}
               onInput={(v) => {
                 setEtherscanKey(v);
                 setError("");
@@ -147,8 +146,8 @@ export function ApiKeySetup() {
             />
 
             <HelpAccordion
-              open={helpOpen === "etherscan"}
-              onToggle={() => setHelpOpen(helpOpen === "etherscan" ? null : "etherscan")}
+              open={helpOpen() === "etherscan"}
+              onToggle={() => setHelpOpen(helpOpen() === "etherscan" ? null : "etherscan")}
               steps={[
                 { text: "Open Etherscan", href: "https://etherscan.io/myapikey" },
                 { text: "Create a free account" },
@@ -158,16 +157,18 @@ export function ApiKeySetup() {
           </div>
         </Card>
 
-        {error && <Banner variant="danger">{error}</Banner>}
+        <Show when={error()}>
+          <Banner variant="danger">{error()}</Banner>
+        </Show>
       </div>
 
       <div class="px-4 py-4 space-y-2">
-        <Button onClick={handleContinue} size="lg" loading={saving}>
+        <Button onClick={handleContinue} size="lg" loading={saving()}>
           Continue
         </Button>
         <button
           type="button"
-          onClick={() => route("/home")}
+          onClick={() => navigate("/home")}
           class="w-full text-center text-sm text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer py-1"
         >
           Skip for now

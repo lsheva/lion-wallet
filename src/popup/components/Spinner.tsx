@@ -1,11 +1,11 @@
-import { Loader2 } from "lucide-preact";
+import { Loader2 } from "lucide-solid";
 
 interface SpinnerProps {
   size?: "sm" | "md";
   class?: string;
 }
 
-export function Spinner({ size = "md", class: cls = "" }: SpinnerProps) {
-  const px = size === "sm" ? 16 : 24;
-  return <Loader2 size={px} class={`animate-spin text-accent ${cls}`} />;
+export function Spinner(props: SpinnerProps) {
+  const px = () => ((props.size ?? "md") === "sm" ? 16 : 24);
+  return <Loader2 size={px()} class={`animate-spin text-accent ${props.class ?? ""}`} />;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { createEffect, createSignal, Show } from "solid-js";
 import { encode } from "uqr";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { Banner } from "../components/Banner";
@@ -35,32 +35,34 @@ function renderQR(canvas: HTMLCanvasElement, data: string) {
 }
 
 export function Receive() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const address = walletState.activeAccount.value.address;
-  const [qrError, setQrError] = useState(false);
+  let canvasRef: HTMLCanvasElement | undefined;
+  const [qrError, setQrError] = createSignal(false);
 
-  useEffect(() => {
-    if (canvasRef.current) {
+  createEffect(() => {
+    const address = walletState.activeAccount().address;
+    if (canvasRef) {
       try {
-        renderQR(canvasRef.current, address);
+        renderQR(canvasRef, address);
       } catch {
         setQrError(true);
       }
     }
-  }, [address]);
+  });
 
   return (
     <div class="flex flex-col h-[600px]">
       <Header title="Receive" onBack="/home" />
 
       <div class="flex-1 flex flex-col items-center justify-center px-4">
-        {qrError && <Banner variant="danger">Failed to generate QR code</Banner>}
+        <Show when={qrError()}>
+          <Banner variant="danger">Failed to generate QR code</Banner>
+        </Show>
         <div class="bg-surface rounded-2xl p-5 shadow-sm">
-          <canvas ref={canvasRef} class="rounded-lg" />
+          <canvas ref={(el) => (canvasRef = el)} class="rounded-lg" />
         </div>
 
         <div class="mt-5">
-          <AddressDisplay address={address} full />
+          <AddressDisplay address={walletState.activeAccount().address} full />
         </div>
 
         <div class="mt-4">

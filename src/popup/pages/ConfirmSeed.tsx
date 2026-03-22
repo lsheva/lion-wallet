@@ -1,35 +1,36 @@
-import { useMemo, useState } from "preact/hooks";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { createMemo, createSignal, For, Index } from "solid-js";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { refreshAll } from "../store";
 
 export function ConfirmSeed() {
-  const [selected, setSelected] = useState<string[]>([]);
-  const [error, setError] = useState(false);
+  const navigate = useNavigate();
+  const [selected, setSelected] = createSignal<string[]>([]);
+  const [error, setError] = createSignal(false);
 
-  const seedWords = useMemo(() => {
+  const seedWords = createMemo(() => {
     const mnemonic = sessionStorage.getItem("onboarding_mnemonic") ?? "";
     return mnemonic.split(" ").filter(Boolean);
-  }, []);
+  });
 
-  const shuffled = useMemo(() => {
-    return [...seedWords].sort(() => Math.random() - 0.5);
-  }, [seedWords]);
+  const shuffled = createMemo(() => {
+    return [...seedWords()].sort(() => Math.random() - 0.5);
+  });
 
-  if (seedWords.length === 0) {
-    route("/");
+  if (seedWords().length === 0) {
+    navigate("/", { replace: true });
     return null;
   }
 
-  const uniqueRemaining = useMemo(() => {
+  const uniqueRemaining = createMemo(() => {
     const selectedCounts: Record<string, number> = {};
-    for (const s of selected) selectedCounts[s] = (selectedCounts[s] || 0) + 1;
+    for (const s of selected()) selectedCounts[s] = (selectedCounts[s] || 0) + 1;
 
     const shuffledCounts: Record<string, number> = {};
-    for (const s of shuffled) shuffledCounts[s] = (shuffledCounts[s] || 0) + 1;
+    for (const s of shuffled()) shuffledCounts[s] = (shuffledCounts[s] || 0) + 1;
 
-    const remaining = shuffled.filter((w) => (selectedCounts[w] || 0) < (shuffledCounts[w] || 0));
+    const remaining = shuffled().filter((w) => (selectedCounts[w] || 0) < (shuffledCounts[w] || 0));
 
     if (new Set(remaining).size === remaining.length) return remaining;
 
@@ -38,15 +39,15 @@ export function ConfirmSeed() {
       const priorInRemaining = arr.slice(0, i).filter((s) => s === w).length;
       return priorSelected + priorInRemaining < (shuffledCounts[w] || 0);
     });
-  }, [selected, shuffled]);
+  });
 
   const handleSelect = (word: string) => {
     setError(false);
-    const next = [...selected, word];
+    const next = [...selected(), word];
     setSelected(next);
 
-    if (next.length === seedWords.length) {
-      const correct = next.every((w, i) => w === seedWords[i]);
+    if (next.length === seedWords().length) {
+      const correct = next.every((w, i) => w === seedWords()[i]);
       if (!correct) {
         setError(true);
         setTimeout(() => {
@@ -62,14 +63,14 @@ export function ConfirmSeed() {
     setError(false);
   };
 
-  const isComplete = selected.length === seedWords.length;
-  const isCorrect = isComplete && selected.every((w, i) => w === seedWords[i]);
+  const isComplete = () => selected().length === seedWords().length;
+  const isCorrect = () => isComplete() && selected().every((w, i) => w === seedWords()[i]);
 
   const handleFinish = async () => {
     sessionStorage.removeItem("onboarding_mnemonic");
     sessionStorage.removeItem("onboarding_password");
     await refreshAll();
-    route("/api-key-setup");
+    navigate("/api-key-setup");
   };
 
   return (
@@ -82,52 +83,54 @@ export function ConfirmSeed() {
         </p>
 
         <div
-          class={`grid grid-cols-4 gap-1.5 min-h-[80px] p-2 bg-surface rounded-[var(--radius-card)] ${error ? "animate-shake" : ""}`}
+          class={`grid grid-cols-4 gap-1.5 min-h-[80px] p-2 bg-surface rounded-[var(--radius-card)] ${error() ? "animate-shake" : ""}`}
         >
-          {Array.from({ length: seedWords.length }).map((_, i) => (
-            <button
-              type="button"
-              key={i}
-              onClick={() => selected[i] && handleRemove(i)}
-              class={`
+          <Index each={Array.from({ length: seedWords().length })}>
+            {(_, i) => (
+              <button
+                type="button"
+                onClick={() => selected()[i] && handleRemove(i)}
+                class={`
                 h-8 rounded-[var(--radius-chip)] text-xs font-mono flex items-center justify-center
                 transition-all duration-150
                 ${
-                  selected[i]
+                  selected()[i]
                     ? "bg-accent-light text-accent cursor-pointer hover:bg-accent/20"
                     : "bg-base text-text-tertiary"
                 }
-                ${error && selected[i] ? "bg-danger-bg text-danger" : ""}
+                ${error() && selected()[i] ? "bg-danger-bg text-danger" : ""}
               `}
-            >
-              {selected[i] ? (
-                <span>{selected[i]}</span>
-              ) : (
-                <span class="text-text-tertiary">{i + 1}</span>
-              )}
-            </button>
-          ))}
+              >
+                {selected()[i] ? (
+                  <span>{selected()[i]}</span>
+                ) : (
+                  <span class="text-text-tertiary">{i + 1}</span>
+                )}
+              </button>
+            )}
+          </Index>
         </div>
 
         <div class="grid grid-cols-4 gap-1.5">
-          {uniqueRemaining.map((word, i) => (
-            <button
-              type="button"
-              key={`${word}-${i}`}
-              onClick={() => handleSelect(word)}
-              class="h-8 bg-surface rounded-[var(--radius-chip)] text-xs font-mono text-text-primary
+          <For each={uniqueRemaining()}>
+            {(word) => (
+              <button
+                type="button"
+                onClick={() => handleSelect(word)}
+                class="h-8 bg-surface rounded-[var(--radius-chip)] text-xs font-mono text-text-primary
                      hover:bg-accent-light hover:text-accent shadow-sm
                      transition-all duration-150 cursor-pointer active:scale-95"
-            >
-              {word}
-            </button>
-          ))}
+              >
+                {word}
+              </button>
+            )}
+          </For>
         </div>
       </div>
 
       <div class="px-4 py-4">
-        <Button disabled={!isCorrect} onClick={handleFinish} size="lg">
-          {isCorrect ? "Wallet Created!" : "Verify & Finish"}
+        <Button disabled={!isCorrect()} onClick={handleFinish} size="lg">
+          {isCorrect() ? "Wallet Created!" : "Verify & Finish"}
         </Button>
       </div>
     </div>

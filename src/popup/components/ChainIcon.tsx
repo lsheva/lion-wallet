@@ -1,4 +1,5 @@
 import { CHAIN_BY_ID } from "@shared/constants";
+import { Show } from "solid-js";
 import { CHAIN_COLOR_BY_ID, CHAIN_ICON_BY_ID } from "../chain-ui.generated";
 
 interface ChainIconProps {
@@ -7,33 +8,32 @@ interface ChainIconProps {
   class?: string;
 }
 
-export function ChainIcon({ chainId, size = 16, class: cls = "" }: ChainIconProps) {
-  const svg = CHAIN_ICON_BY_ID.get(chainId);
-
-  if (svg) {
-    return (
-      <span
-        class={`inline-flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full ${cls}`}
-        style={{ width: size, height: size }}
-        dangerouslySetInnerHTML={{ __html: svg }}
-      />
-    );
-  }
-
-  const chain = CHAIN_BY_ID.get(chainId);
-  const label = chain?.name?.[0] ?? "?";
+export function ChainIcon(props: ChainIconProps) {
+  const size = () => props.size ?? 16;
+  const svg = () => CHAIN_ICON_BY_ID.get(props.chainId);
 
   return (
-    <span
-      class={`inline-flex items-center justify-center rounded-full text-white font-bold shrink-0 ${cls}`}
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.5,
-        backgroundColor: CHAIN_COLOR_BY_ID.get(chainId) ?? "#8E8E93",
-      }}
+    <Show
+      when={svg()}
+      fallback={
+        <span
+          class={`inline-flex items-center justify-center rounded-full text-white font-bold shrink-0 ${props.class ?? ""}`}
+          style={{
+            width: `${size()}px`,
+            height: `${size()}px`,
+            "font-size": `${size() * 0.5}px`,
+            "background-color": CHAIN_COLOR_BY_ID.get(props.chainId) ?? "#8E8E93",
+          }}
+        >
+          {CHAIN_BY_ID.get(props.chainId)?.name?.[0] ?? "?"}
+        </span>
+      }
     >
-      {label}
-    </span>
+      <span
+        class={`inline-flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full ${props.class ?? ""}`}
+        style={{ width: `${size()}px`, height: `${size()}px` }}
+        innerHTML={svg()}
+      />
+    </Show>
   );
 }

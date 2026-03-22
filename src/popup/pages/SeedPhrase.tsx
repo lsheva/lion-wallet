@@ -1,20 +1,21 @@
-import { useMemo, useState } from "preact/hooks";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { createMemo, createSignal, For } from "solid-js";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { CopyButton } from "../components/CopyButton";
 import { Header } from "../components/Header";
 
 export function SeedPhrase() {
-  const [confirmed, setConfirmed] = useState(false);
+  const navigate = useNavigate();
+  const [confirmed, setConfirmed] = createSignal(false);
 
-  const words = useMemo(() => {
+  const words = createMemo(() => {
     const mnemonic = sessionStorage.getItem("onboarding_mnemonic") ?? "";
     return mnemonic.split(" ").filter(Boolean);
-  }, []);
+  });
 
-  if (words.length === 0) {
-    route("/");
+  if (words().length === 0) {
+    navigate("/", { replace: true });
     return null;
   }
 
@@ -24,20 +25,19 @@ export function SeedPhrase() {
 
       <div class="flex-1 px-4 pt-2 space-y-4 overflow-y-auto">
         <Banner variant="warning">
-          Write down these {words.length} words in order and store them safely. Never share them
+          Write down these {words().length} words in order and store them safely. Never share them
           with anyone.
         </Banner>
 
         <div class="grid grid-cols-3 gap-2">
-          {words.map((word, i) => (
-            <div
-              key={i}
-              class="flex items-center gap-1.5 bg-surface rounded-[var(--radius-chip)] px-2.5 py-2 shadow-sm"
-            >
-              <span class="text-xs text-text-tertiary w-4 text-right">{i + 1}</span>
-              <span class="font-mono text-sm text-text-primary">{word}</span>
-            </div>
-          ))}
+          <For each={words()}>
+            {(word, i) => (
+              <div class="flex items-center gap-1.5 bg-surface rounded-[var(--radius-chip)] px-2.5 py-2 shadow-sm">
+                <span class="text-xs text-text-tertiary w-4 text-right">{i() + 1}</span>
+                <span class="font-mono text-sm text-text-primary">{word}</span>
+              </div>
+            )}
+          </For>
         </div>
 
         <div class="flex justify-center">
@@ -45,7 +45,7 @@ export function SeedPhrase() {
             type="button"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-accent transition-colors cursor-pointer"
           >
-            <CopyButton text={words.join(" ")} size={14} />
+            <CopyButton text={words().join(" ")} size={14} />
             <span>Copy to clipboard</span>
           </button>
         </div>
@@ -53,7 +53,7 @@ export function SeedPhrase() {
         <label class="flex items-center gap-2 cursor-pointer select-none">
           <input
             type="checkbox"
-            checked={confirmed}
+            checked={confirmed()}
             onChange={(e) => setConfirmed((e.target as HTMLInputElement).checked)}
             class="w-4 h-4 rounded accent-accent"
           />
@@ -62,7 +62,7 @@ export function SeedPhrase() {
       </div>
 
       <div class="px-4 py-4">
-        <Button disabled={!confirmed} onClick={() => route("/confirm-seed")} size="lg">
+        <Button disabled={!confirmed()} onClick={() => navigate("/confirm-seed")} size="lg">
           Continue
         </Button>
       </div>

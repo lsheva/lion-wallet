@@ -272,3 +272,51 @@ This lets the user see at a glance which chains have been checked and where they
 [] - display active addresses for the current chain on the home screen, hide inactive ones
 [] - add Settings → Accounts: show all derived addresses, per-chain activity status, option to increase derivation ceiling
 [] - add manual re-scan / refresh action per chain
+
+## Page transition animations
+
+Add smooth animations when navigating between popup pages. Transitions should feel native and fast — slide-in for forward navigation, slide-out for back, crossfade for tab switches.
+
+[] - choose animation approach (CSS transitions, View Transitions API, or lightweight library like framer-motion)
+[] - implement forward/back slide transitions for push/pop navigation
+[] - add crossfade or subtle transitions for tab/section switches
+[] - ensure animations don't block interaction or feel sluggish (target ≤200ms)
+
+## Token discovery from transaction scanning
+
+When scanning on-chain transactions, automatically detect ERC-20 tokens the user has interacted with and add them to the token list. This avoids requiring manual token imports for tokens the user already uses.
+
+### Behavior
+
+- When fetching transaction history for an account, parse ERC-20 Transfer events (topic `0xddf252ad...`) from transaction receipts or indexed logs
+- For each token contract seen, fetch token metadata (name, symbol, decimals) and add to the user's token list if not already present
+- Scan a longer lookback window for ERC-20 transfers than for general transaction history — the goal is to populate the "recently used tokens" list even if the transfers are older
+- Tokens discovered this way are marked as "auto-discovered" so the user can distinguish them from manually added tokens and hide/remove them if unwanted
+
+### Steps
+
+[] - parse ERC-20 Transfer logs from transaction scan results, extract unique token contract addresses
+[] - fetch token metadata (name, symbol, decimals) for discovered contracts via multicall or individual RPC calls
+[] - add discovered tokens to the stored token list (deduplicate, mark as auto-discovered)
+[] - extend ERC-20 transfer log scan to a longer lookback period (e.g. last 1000 blocks or ~3 days) to seed recently used tokens
+[] - add UI indicator for auto-discovered tokens (subtle label or grouping) with option to hide/remove
+
+## Cross-chain token detection
+
+Detect all tokens an address holds across all supported chains without requiring the user to manually switch networks and wait for each scan. Provides a unified "portfolio" view of token holdings.
+
+### Approach
+
+- Use multi-chain balance aggregation APIs where available (e.g. Alchemy's `getTokenBalances` supports multiple chains, or use a dedicated portfolio API like Zapper/DeBank/Covalent)
+- For chains without aggregation APIs, fall back to per-chain RPC queries: call a multicall contract with `balanceOf` for known token lists, or scan Transfer logs for the address
+- Run cross-chain scans in the background, progressively updating the UI as results arrive per chain
+- Cache results per chain with TTL-based invalidation
+
+### Steps
+
+[] - evaluate and integrate a cross-chain portfolio API (Alchemy multi-chain, Covalent, or similar) for bulk token balance queries
+[] - implement fallback per-chain token detection via `eth_getLogs` Transfer events or multicall `balanceOf` for known token lists
+[] - run detection across all supported chains in parallel, progressively populating results
+[] - cache cross-chain token holdings with per-chain TTL invalidation
+[] - add portfolio / cross-chain overview UI showing all token holdings grouped by chain
+[] - allow user to trigger manual cross-chain rescan from settings or portfolio view

@@ -1,5 +1,6 @@
 import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
+import { useNavigate } from "@solidjs/router";
 import {
   AlertTriangle,
   Check,
@@ -15,9 +16,8 @@ import {
   Trash2,
   X,
   Zap,
-} from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
-import { route } from "preact-router";
+} from "lucide-solid";
+import { createSignal, For, onMount, Show } from "solid-js";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { ChainIcon } from "../components/ChainIcon";
@@ -26,44 +26,49 @@ import { Header } from "../components/Header";
 import { Identicon } from "../components/Identicon";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
-import { showNetworkSelector, walletState } from "../store";
+import {
+  setActivity,
+  setActivityHasMore,
+  setActivitySource,
+  setShowNetworkSelector,
+  showNetworkSelector,
+  walletState,
+} from "../store";
 import { NetworkSelector } from "./NetworkSelector";
 
-function SettingsRow({ label, onClick }: { label: string; onClick?: () => void }) {
+function SettingsRow(props: { label: string; onClick?: () => void }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={props.onClick}
       class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
     >
-      <span class="text-sm text-text-primary">{label}</span>
+      <span class="text-sm text-text-primary">{props.label}</span>
       <ChevronRight size={16} class="text-text-tertiary" />
     </button>
   );
 }
 
 export function Settings() {
-  const accounts = walletState.accounts.value;
-  const network = walletState.activeNetwork.value;
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editName, setEditName] = useState("");
-  const [addingAccount, setAddingAccount] = useState(false);
-  const [addPassword, setAddPassword] = useState("");
-  const [addError, setAddError] = useState("");
-
-  const isVaultMode = walletState.storageMode.value === "vault";
+  const navigate = useNavigate();
+  const [editingIndex, setEditingIndex] = createSignal<number | null>(null);
+  const [editName, setEditName] = createSignal("");
+  const [addingAccount, setAddingAccount] = createSignal(false);
+  const [addPassword, setAddPassword] = createSignal("");
+  const [addError, setAddError] = createSignal("");
 
   const handleAddAccount = async () => {
-    if (isVaultMode && !addingAccount) {
+    const isVault = walletState.storageMode() === "vault";
+    if (isVault && !addingAccount()) {
       setAddingAccount(true);
       return;
     }
-    if (isVaultMode && addPassword.length < 4) {
+    if (isVault && addPassword().length < 4) {
       setAddError("Enter your password");
       return;
     }
     setAddError("");
-    await walletState.addAccount(isVaultMode ? addPassword : undefined);
+    await walletState.addAccount(isVault ? addPassword() : undefined);
     setAddingAccount(false);
     setAddPassword("");
   };
@@ -76,83 +81,84 @@ export function Settings() {
         {/* Accounts */}
         <Card header="Accounts" padding={false}>
           <div class="divide-y divide-divider">
-            {accounts.map((acc, i) => (
-              <button
-                type="button"
-                key={acc.address}
-                onClick={() => walletState.switchAccount(i)}
-                class={`flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left
-                  ${i === walletState.activeAccountIndex.value ? "bg-accent-light" : ""}`}
-              >
-                <Identicon address={acc.address} size={32} />
-                <div class="flex-1 min-w-0">
-                  {editingIndex === i ? (
-                    <div class="flex items-center gap-1">
-                      <input
-                        class="text-sm font-semibold text-text-primary bg-transparent outline-none w-full py-0 shadow-[0_1px_0_0_var(--color-accent)]"
-                        value={editName}
-                        onClick={(e) => e.stopPropagation()}
-                        onInput={(e) => setEditName((e.target as HTMLInputElement).value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            walletState.renameAccount(i, editName.trim() || acc.name);
+            <For each={walletState.accounts()}>
+              {(acc, i) => (
+                <button
+                  type="button"
+                  onClick={() => walletState.switchAccount(i())}
+                  class={`flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left
+                  ${i() === walletState.activeAccountIndex() ? "bg-accent-light" : ""}`}
+                >
+                  <Identicon address={acc.address} size={32} />
+                  <div class="flex-1 min-w-0">
+                    {editingIndex() === i() ? (
+                      <div class="flex items-center gap-1">
+                        <input
+                          class="text-sm font-semibold text-text-primary bg-transparent outline-none w-full py-0 shadow-[0_1px_0_0_var(--color-accent)]"
+                          value={editName()}
+                          onClick={(e) => e.stopPropagation()}
+                          onInput={(e) => setEditName((e.target as HTMLInputElement).value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              walletState.renameAccount(i(), editName().trim() || acc.name);
+                              setEditingIndex(null);
+                            }
+                            if (e.key === "Escape") setEditingIndex(null);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            walletState.renameAccount(i(), editName().trim() || acc.name);
                             setEditingIndex(null);
-                          }
-                          if (e.key === "Escape") setEditingIndex(null);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          walletState.renameAccount(i, editName.trim() || acc.name);
-                          setEditingIndex(null);
-                        }}
-                        class="p-0.5 text-accent hover:text-accent-hover cursor-pointer shrink-0"
-                      >
-                        <Check size={14} />
-                      </button>
+                          }}
+                          class="p-0.5 text-accent hover:text-accent-hover cursor-pointer shrink-0"
+                        >
+                          <Check size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div class="flex items-center gap-1.5">
+                        <p class="text-sm font-semibold text-text-primary">{acc.name}</p>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingIndex(i());
+                            setEditName(acc.name);
+                          }}
+                          class="p-0.5 text-text-tertiary hover:text-accent transition-colors cursor-pointer shrink-0"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      </div>
+                    )}
+                    <div class="flex items-center gap-1 mt-0.5">
+                      <span class="text-xs font-mono font-medium text-text-primary/70 truncate">
+                        {truncateAddress(acc.address)}
+                      </span>
+                      <CopyButton text={acc.address} size={12} />
                     </div>
-                  ) : (
-                    <div class="flex items-center gap-1.5">
-                      <p class="text-sm font-semibold text-text-primary">{acc.name}</p>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingIndex(i);
-                          setEditName(acc.name);
-                        }}
-                        class="p-0.5 text-text-tertiary hover:text-accent transition-colors cursor-pointer shrink-0"
-                      >
-                        <Pencil size={12} />
-                      </button>
-                    </div>
-                  )}
-                  <div class="flex items-center gap-1 mt-0.5">
-                    <span class="text-xs font-mono font-medium text-text-primary/70 truncate">
-                      {truncateAddress(acc.address)}
-                    </span>
-                    <CopyButton text={acc.address} size={12} />
+                    <p class="text-[10px] font-mono text-text-tertiary mt-1">{acc.path}</p>
                   </div>
-                  <p class="text-[10px] font-mono text-text-tertiary mt-1">{acc.path}</p>
-                </div>
-                {i === walletState.activeAccountIndex.value && (
-                  <div class="w-2 h-2 rounded-full bg-accent shrink-0" />
-                )}
-              </button>
-            ))}
-            {addingAccount ? (
+                  {i() === walletState.activeAccountIndex() && (
+                    <div class="w-2 h-2 rounded-full bg-accent shrink-0" />
+                  )}
+                </button>
+              )}
+            </For>
+            {addingAccount() ? (
               <div class="px-4 py-3 space-y-2">
                 <Input
                   type="password"
                   placeholder="Enter password"
-                  value={addPassword}
+                  value={addPassword()}
                   onInput={(v) => {
                     setAddPassword(v);
                     setAddError("");
                   }}
-                  error={addError || undefined}
+                  error={addError() || undefined}
                   autoFocus
                 />
                 <div class="flex gap-2">
@@ -189,14 +195,12 @@ export function Settings() {
         <Card header="Network" padding={false}>
           <button
             type="button"
-            onClick={() => {
-              showNetworkSelector.value = true;
-            }}
+            onClick={() => setShowNetworkSelector(true)}
             class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer"
           >
             <div class="flex items-center gap-2">
-              <ChainIcon chainId={network.id} size={16} />
-              <span class="text-sm text-text-primary">{network.name}</span>
+              <ChainIcon chainId={walletState.activeNetwork().id} size={16} />
+              <span class="text-sm text-text-primary">{walletState.activeNetwork().name}</span>
             </div>
             <ChevronRight size={16} class="text-text-tertiary" />
           </button>
@@ -215,7 +219,7 @@ export function Settings() {
         <Card header="Security" padding={false}>
           <div class="divide-y divide-divider">
             <div class="flex items-center gap-2 px-4 py-3">
-              {walletState.storageMode.value === "keychain" ? (
+              {walletState.storageMode() === "keychain" ? (
                 <>
                   <Fingerprint size={16} class="text-accent" />
                   <span class="text-sm text-text-primary">Secured by Touch ID</span>
@@ -227,8 +231,14 @@ export function Settings() {
                 </>
               )}
             </div>
-            <SettingsRow label="Export Private Key" onClick={() => route("/export-key", true)} />
-            <SettingsRow label="Show Recovery Phrase" onClick={() => route("/show-phrase", true)} />
+            <SettingsRow
+              label="Export Private Key"
+              onClick={() => navigate("/export-key", { replace: true })}
+            />
+            <SettingsRow
+              label="Show Recovery Phrase"
+              onClick={() => navigate("/show-phrase", { replace: true })}
+            />
           </div>
         </Card>
 
@@ -236,7 +246,9 @@ export function Settings() {
         <ResetWalletRow />
       </div>
 
-      {showNetworkSelector.value && <NetworkSelector />}
+      <Show when={showNetworkSelector()}>
+        <NetworkSelector />
+      </Show>
     </div>
   );
 }
@@ -259,7 +271,7 @@ function applyTheme(pref: ThemePref) {
 }
 
 function ThemeSelector() {
-  const [theme, setTheme] = useState<ThemePref>(getThemePref);
+  const [theme, setTheme] = createSignal<ThemePref>(getThemePref());
 
   const options: Array<{ value: ThemePref; label: string; Icon: typeof Sun }> = [
     { value: "system", label: "System", Icon: Sun },
@@ -270,34 +282,35 @@ function ThemeSelector() {
   return (
     <Card header="Appearance" padding={false}>
       <div class="flex px-4 py-3 gap-2">
-        {options.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => {
-              setTheme(value);
-              applyTheme(value);
-            }}
-            class={`flex-1 py-1.5 text-xs font-medium rounded-[var(--radius-chip)] transition-colors cursor-pointer ${
-              theme === value
-                ? "bg-accent text-accent-foreground"
-                : "bg-base text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        <For each={options}>
+          {({ value, label }) => (
+            <button
+              type="button"
+              onClick={() => {
+                setTheme(value);
+                applyTheme(value);
+              }}
+              class={`flex-1 py-1.5 text-xs font-medium rounded-[var(--radius-chip)] transition-colors cursor-pointer ${
+                theme() === value
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-base text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {label}
+            </button>
+          )}
+        </For>
       </div>
     </Card>
   );
 }
 
 function ClearCacheRow() {
-  const [cleared, setCleared] = useState(false);
-  const [clearError, setClearError] = useState(false);
+  const [cleared, setCleared] = createSignal(false);
+  const [clearError, setClearError] = createSignal(false);
 
   const handleClear = async () => {
-    if (cleared) return;
+    if (cleared()) return;
     setClearError(false);
     const res = await sendMessage({ type: "CLEAR_ACTIVITY_CACHE" });
     if (!res.ok) {
@@ -305,9 +318,9 @@ function ClearCacheRow() {
       setTimeout(() => setClearError(false), 3000);
       return;
     }
-    walletState.activity.value = [];
-    walletState.activitySource.value = null;
-    walletState.activityHasMore.value = false;
+    setActivity([]);
+    setActivitySource(null);
+    setActivityHasMore(false);
     setCleared(true);
     setTimeout(() => setCleared(false), 2000);
   };
@@ -318,14 +331,14 @@ function ClearCacheRow() {
         type="button"
         onClick={handleClear}
         class={`flex items-center gap-2 w-full px-4 py-3 transition-colors cursor-pointer text-left ${
-          clearError ? "text-danger" : cleared ? "text-success" : "text-danger hover:bg-base/50"
+          clearError() ? "text-danger" : cleared() ? "text-success" : "text-danger hover:bg-base/50"
         }`}
       >
-        {cleared ? <Check size={16} /> : <Trash2 size={16} />}
+        {cleared() ? <Check size={16} /> : <Trash2 size={16} />}
         <span class="text-sm font-medium">
-          {clearError
+          {clearError()
             ? "Failed to clear cache"
-            : cleared
+            : cleared()
               ? "Activity Cache Cleared"
               : "Clear Activity Cache"}
         </span>
@@ -334,15 +347,7 @@ function ClearCacheRow() {
   );
 }
 
-function ApiKeyRow({
-  icon: Icon,
-  label,
-  currentKey,
-  dashboardUrl,
-  dashboardLabel,
-  onSave,
-  onRemove,
-}: {
+function ApiKeyRow(props: {
   icon: typeof Key;
   label: string;
   currentKey: string | null;
@@ -351,94 +356,96 @@ function ApiKeyRow({
   onSave: (key: string) => Promise<void>;
   onRemove: () => Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState("");
-  const [saving, setSaving] = useState(false);
+  const Icon = props.icon;
+  const [editing, setEditing] = createSignal(false);
+  const [editValue, setEditValue] = createSignal("");
+  const [saving, setSaving] = createSignal(false);
 
-  const maskedKey = currentKey ? `${currentKey.slice(0, 4)}${"•".repeat(8)}` : "Not set";
+  const maskedKey = () =>
+    props.currentKey ? `${props.currentKey.slice(0, 4)}${"•".repeat(8)}` : "Not set";
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(editValue.trim());
+    await props.onSave(editValue().trim());
     setEditing(false);
     setSaving(false);
   };
 
   const handleRemove = async () => {
     setSaving(true);
-    await onRemove();
+    await props.onRemove();
     setEditing(false);
     setEditValue("");
     setSaving(false);
   };
 
-  if (editing) {
-    return (
-      <div class="px-4 py-3 space-y-2">
-        <Input
-          label={label}
-          placeholder="Paste your API key"
-          value={editValue}
-          onInput={setEditValue}
-          mono
-          autoFocus
-        />
-        <a
-          href={dashboardUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-accent transition-colors"
-        >
-          {dashboardLabel}
-          <ExternalLink size={10} />
-        </a>
-        <div class="flex gap-2">
-          <Button size="sm" onClick={handleSave} loading={saving}>
-            Save
-          </Button>
-          {currentKey && (
-            <Button size="sm" variant="ghost" onClick={handleRemove} loading={saving}>
-              Remove
-            </Button>
-          )}
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            class="ml-auto text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={() => {
-        setEditValue(currentKey ?? "");
-        setEditing(true);
-      }}
-      class="flex items-center justify-between w-full px-4 py-3 cursor-pointer text-left hover:bg-base/50 transition-colors"
-    >
-      <div class="flex items-center gap-2">
-        <Icon size={16} class="text-text-tertiary" />
-        <div>
-          <p class="text-sm text-text-primary">{label}</p>
-          <p class="text-xs font-mono text-text-tertiary">{maskedKey}</p>
+    <>
+      {editing() ? (
+        <div class="px-4 py-3 space-y-2">
+          <Input
+            label={props.label}
+            placeholder="Paste your API key"
+            value={editValue()}
+            onInput={setEditValue}
+            mono
+            autoFocus
+          />
+          <a
+            href={props.dashboardUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-accent transition-colors"
+          >
+            {props.dashboardLabel}
+            <ExternalLink size={10} />
+          </a>
+          <div class="flex gap-2">
+            <Button size="sm" onClick={handleSave} loading={saving()}>
+              Save
+            </Button>
+            {props.currentKey && (
+              <Button size="sm" variant="ghost" onClick={handleRemove} loading={saving()}>
+                Remove
+              </Button>
+            )}
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              class="ml-auto text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
-      </div>
-      <ChevronRight size={16} class="text-text-tertiary" />
-    </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setEditValue(props.currentKey ?? "");
+            setEditing(true);
+          }}
+          class="flex items-center justify-between w-full px-4 py-3 cursor-pointer text-left hover:bg-base/50 transition-colors"
+        >
+          <div class="flex items-center gap-2">
+            <Icon size={16} class="text-text-tertiary" />
+            <div>
+              <p class="text-sm text-text-primary">{props.label}</p>
+              <p class="text-xs font-mono text-text-tertiary">{maskedKey()}</p>
+            </div>
+          </div>
+          <ChevronRight size={16} class="text-text-tertiary" />
+        </button>
+      )}
+    </>
   );
 }
 
 function ApiKeysSection() {
-  const [alchemyKey, setAlchemyKey] = useState<string | null>(null);
-  const [etherscanKey, setEtherscanKey] = useState<string | null>(null);
+  const [alchemyKey, setAlchemyKey] = createSignal<string | null>(null);
+  const [etherscanKey, setEtherscanKey] = createSignal<string | null>(null);
 
-  useEffect(() => {
+  onMount(() => {
     sendMessage({ type: "GET_RPC_PROVIDER_KEY" }).then((res) => {
       if (res.ok && res.data) {
         setAlchemyKey(res.data.key);
@@ -449,7 +456,7 @@ function ApiKeysSection() {
         setEtherscanKey(res.data.key);
       }
     });
-  }, []);
+  });
 
   return (
     <Card header="API Keys" padding={false}>
@@ -457,7 +464,7 @@ function ApiKeysSection() {
         <ApiKeyRow
           icon={Zap}
           label="Alchemy RPC Key"
-          currentKey={alchemyKey}
+          currentKey={alchemyKey()}
           dashboardUrl="https://dashboard.alchemy.com/"
           dashboardLabel="Get a key"
           onSave={async (key) => {
@@ -472,7 +479,7 @@ function ApiKeysSection() {
         <ApiKeyRow
           icon={Key}
           label="Etherscan API Key"
-          currentKey={etherscanKey}
+          currentKey={etherscanKey()}
           dashboardUrl="https://etherscan.io/myapikey"
           dashboardLabel="Get a key"
           onSave={async (key) => {
@@ -490,14 +497,13 @@ function ApiKeysSection() {
 }
 
 function ResetWalletRow() {
-  const [showModal, setShowModal] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1);
-  const [password, setPassword] = useState("");
-  const [confirmText, setConfirmText] = useState("");
-  const [error, setError] = useState("");
-  const [resetting, setResetting] = useState(false);
-
-  const isVault = walletState.storageMode.value === "vault";
+  const navigate = useNavigate();
+  const [showModal, setShowModal] = createSignal(false);
+  const [step, setStep] = createSignal<1 | 2>(1);
+  const [password, setPassword] = createSignal("");
+  const [confirmText, setConfirmText] = createSignal("");
+  const [error, setError] = createSignal("");
+  const [resetting, setResetting] = createSignal(false);
 
   const close = () => {
     setShowModal(false);
@@ -508,7 +514,8 @@ function ResetWalletRow() {
   };
 
   const handleReset = async () => {
-    if (isVault && password.length < 4) {
+    const isVault = walletState.storageMode() === "vault";
+    if (isVault && password().length < 4) {
       setError("Enter your password");
       return;
     }
@@ -517,7 +524,7 @@ function ResetWalletRow() {
     try {
       const res = await sendMessage({
         type: "RESET_WALLET",
-        ...(isVault ? { password } : {}),
+        ...(isVault ? { password: password() } : {}),
       });
       if (!res.ok) {
         setError(res.error);
@@ -526,7 +533,7 @@ function ResetWalletRow() {
       }
       localStorage.removeItem("lion-theme");
       document.documentElement.removeAttribute("data-theme");
-      route("/", true);
+      navigate("/", { replace: true });
     } catch {
       setResetting(false);
     }
@@ -543,8 +550,8 @@ function ResetWalletRow() {
         <span class="text-sm font-medium">Reset Wallet</span>
       </button>
 
-      <Modal open={showModal} onClose={close} title="Reset Wallet">
-        {step === 1 ? (
+      <Modal open={showModal()} onClose={close} title="Reset Wallet">
+        {step() === 1 ? (
           <div class="p-4 space-y-4">
             <div class="flex items-start gap-3 p-3 rounded-xl bg-danger/10">
               <AlertTriangle size={20} class="text-danger shrink-0 mt-0.5" />
@@ -565,24 +572,24 @@ function ResetWalletRow() {
           </div>
         ) : (
           <div class="p-4 space-y-4">
-            {isVault && (
+            {walletState.storageMode() === "vault" && (
               <Input
                 label="Enter password to continue"
                 type="password"
                 placeholder="Password"
-                value={password}
+                value={password()}
                 onInput={(v) => {
                   setPassword(v);
                   setError("");
                 }}
-                error={error || undefined}
+                error={error() || undefined}
                 autoFocus
               />
             )}
-            {!isVault && error && (
+            {walletState.storageMode() !== "vault" && error() && (
               <div class="flex items-start gap-3 p-3 rounded-xl bg-danger/10">
                 <AlertTriangle size={16} class="text-danger shrink-0 mt-0.5" />
-                <p class="text-sm text-danger">{error}</p>
+                <p class="text-sm text-danger">{error()}</p>
               </div>
             )}
             <div>
@@ -591,9 +598,9 @@ function ResetWalletRow() {
               </p>
               <Input
                 placeholder="Type RESET"
-                value={confirmText}
+                value={confirmText()}
                 onInput={setConfirmText}
-                autoFocus={!isVault}
+                autoFocus={walletState.storageMode() !== "vault"}
               />
             </div>
             <div class="flex gap-2">
@@ -602,11 +609,11 @@ function ResetWalletRow() {
               </Button>
               <Button
                 variant="danger"
-                disabled={confirmText !== "RESET"}
-                loading={resetting}
+                disabled={confirmText() !== "RESET"}
+                loading={resetting()}
                 onClick={handleReset}
               >
-                {isVault ? (
+                {walletState.storageMode() === "vault" ? (
                   "Reset Wallet"
                 ) : (
                   <span class="inline-flex items-center gap-1.5">

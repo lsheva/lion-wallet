@@ -1,8 +1,8 @@
-import { computed, signal } from "@preact/signals";
 import { CHAINS } from "@shared/constants";
 import { formatUsd } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import type { ActivityItem, ChainMeta, SerializedAccount, TokenInfo } from "@shared/types";
+import { batch, createMemo, createRoot, createSignal, untrack } from "solid-js";
 import type { Address } from "viem";
 import { CHAIN_COLOR_BY_ID } from "./chain-ui.generated";
 
@@ -10,40 +10,46 @@ export type { ActivityItem, TokenInfo as Token };
 
 const DEFAULT_COLOR = "#8E8E93";
 
-export const accounts = signal<SerializedAccount[]>([]);
-export const activeAccountIndex = signal(0);
-export const activeNetworkId = signal(1);
-export const showNetworkSelector = signal(false);
-export const ethBalance = signal("0");
+export const [accounts, setAccounts] = createSignal<SerializedAccount[]>([]);
+export const [activeAccountIndex, setActiveAccountIndex] = createSignal(0);
+export const [activeNetworkId, setActiveNetworkId] = createSignal(1);
+export const [showNetworkSelector, setShowNetworkSelector] = createSignal(false);
+export const [ethBalance, setEthBalance] = createSignal("0");
 /** Per-unit native token USD price; `0` on testnets; `null` if unavailable. */
-export const nativeUsdPrice = signal<number | null>(null);
-export const tokens = signal<TokenInfo[]>([]);
-export const networks = signal<ChainMeta[]>(CHAINS);
-export const storageMode = signal<"keychain" | "vault">("vault");
+export const [nativeUsdPrice, setNativeUsdPrice] = createSignal<number | null>(null);
+export const [tokens, setTokens] = createSignal<TokenInfo[]>([]);
+export const [networks, setNetworks] = createSignal<ChainMeta[]>(CHAINS);
+export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">("vault");
 
-export const activeAccount = computed(
-  () =>
-    accounts.value[activeAccountIndex.value] ?? {
-      name: "Account 1",
-      address: "0x0000000000000000000000000000000000000000" as Address,
-      path: "m/44'/60'/0'/0/0",
-      index: 0,
-    },
-);
+const derived = createRoot(() => {
+  const activeAccount = createMemo(
+    () =>
+      accounts()[activeAccountIndex()] ?? {
+        name: "Account 1",
+        address: "0x0000000000000000000000000000000000000000" as Address,
+        path: "m/44'/60'/0'/0/0",
+        index: 0,
+      },
+  );
 
-const networkMap = computed(() => new Map(networks.value.map((n) => [n.id, n])));
+  const networkMap = createMemo(() => new Map(networks().map((n) => [n.id, n])));
 
-export const activeNetwork = computed(
-  () => networkMap.value.get(activeNetworkId.value) ?? (networks.value[0] as ChainMeta),
-);
+  const activeNetwork = createMemo(
+    () => networkMap().get(activeNetworkId()) ?? (networks()[0] as ChainMeta),
+  );
+
+  return { activeAccount, activeNetwork };
+});
+
+export const { activeAccount, activeNetwork } = derived;
 
 export function chainColor(chainId: number): string {
   return CHAIN_COLOR_BY_ID.get(chainId) ?? DEFAULT_COLOR;
 }
 
 function nativeBalanceUsdString(): string | undefined {
-  const rate = nativeUsdPrice.peek();
-  const bal = parseFloat(ethBalance.peek());
+  const rate = untrack(nativeUsdPrice);
+  const bal = parseFloat(untrack(ethBalance));
   if (Number.isNaN(bal) || rate == null) return undefined;
   if (rate === 0) return formatUsd(0);
   if (rate > 0) return formatUsd(bal * rate);
@@ -51,12 +57,12 @@ function nativeBalanceUsdString(): string | undefined {
 }
 
 function buildNativeToken(): TokenInfo {
-  const net = activeNetwork.peek();
+  const net = untrack(activeNetwork);
   return {
     symbol: net.nativeCurrency.symbol,
     name: net.nativeCurrency.name,
     decimals: net.nativeCurrency.decimals,
-    balance: ethBalance.peek(),
+    balance: untrack(ethBalance),
     color: chainColor(net.id),
     usdValue: nativeBalanceUsdString(),
   };
@@ -65,52 +71,60 @@ function buildNativeToken(): TokenInfo {
 export async function fetchState(): Promise<void> {
   const res = await sendMessage({ type: "GET_STATE" });
   if (!res.ok || !res.data) return;
-  accounts.value = res.data.accounts;
-  activeAccountIndex.value = res.data.activeAccountIndex;
-  activeNetworkId.value = res.data.activeNetworkId;
-  storageMode.value = res.data.storageMode;
+  batch(() => {
+    setAccounts(res.data.accounts);
+    setActiveAccountIndex(res.data.activeAccountIndex);
+    setActiveNetworkId(res.data.activeNetworkId);
+    setStorageMode(res.data.storageMode);
+  });
 }
 
 export async function fetchBalance(): Promise<void> {
-  const account = activeAccount.peek();
+  const account = untrack(activeAccount);
   if (!account.address || account.address === "0x0000000000000000000000000000000000000000") return;
   const res = await sendMessage({
     type: "GET_BALANCE",
     address: account.address as Address,
-    chainId: activeNetworkId.peek(),
+    chainId: untrack(activeNetworkId),
   });
   if (res.ok && res.data) {
-    ethBalance.value = res.data.balance;
-    nativeUsdPrice.value = res.data.nativeUsdPrice;
-    tokens.value = [buildNativeToken(), ...tokens.value.filter((t) => t.address)];
+    batch(() => {
+      setEthBalance(res.data.balance);
+      setNativeUsdPrice(res.data.nativeUsdPrice);
+      setTokens([buildNativeToken(), ...untrack(tokens).filter((t) => t.address)]);
+    });
   }
 }
 
-export const activity = signal<ActivityItem[]>([]);
-export const activityLoading = signal(false);
-export const activitySource = signal<"etherscan" | "rpc" | "cache" | null>(null);
-export const activityHasMore = signal(false);
+export const [activity, setActivity] = createSignal<ActivityItem[]>([]);
+export const [activityLoading, setActivityLoading] = createSignal(false);
+export const [activitySource, setActivitySource] = createSignal<
+  "etherscan" | "rpc" | "cache" | null
+>(null);
+export const [activityHasMore, setActivityHasMore] = createSignal(false);
 
 export async function fetchActivity(options?: { loadMore?: boolean }): Promise<void> {
-  const account = activeAccount.peek();
+  const account = untrack(activeAccount);
   if (!account.address || account.address === "0x0000000000000000000000000000000000000000") return;
-  activityLoading.value = true;
+  setActivityLoading(true);
   try {
     const res = await sendMessage({
       type: "GET_ACTIVITY",
       address: account.address as Address,
-      chainId: activeNetworkId.peek(),
+      chainId: untrack(activeNetworkId),
       ...(options?.loadMore ? { loadMore: true } : {}),
     });
     if (res.ok && res.data) {
-      activity.value = res.data.items;
-      activitySource.value = res.data.source;
-      activityHasMore.value = res.data.hasMore;
+      batch(() => {
+        setActivity(res.data.items);
+        setActivitySource(res.data.source);
+        setActivityHasMore(res.data.hasMore);
+      });
     }
   } catch {
     /* non-blocking — keep whatever was in the signal */
   } finally {
-    activityLoading.value = false;
+    setActivityLoading(false);
   }
 }
 
@@ -137,8 +151,8 @@ export const walletState = {
   activityHasMore,
 
   async switchNetwork(id: number): Promise<void> {
-    activeNetworkId.value = id;
-    showNetworkSelector.value = false;
+    setActiveNetworkId(id);
+    setShowNetworkSelector(false);
     try {
       await sendMessage({ type: "SWITCH_NETWORK", chainId: id });
     } catch (e) {
@@ -148,7 +162,7 @@ export const walletState = {
   },
 
   async switchAccount(index: number): Promise<void> {
-    activeAccountIndex.value = index;
+    setActiveAccountIndex(index);
     try {
       await sendMessage({ type: "SWITCH_ACCOUNT", accountIndex: index });
     } catch (e) {
@@ -158,9 +172,7 @@ export const walletState = {
   },
 
   renameAccount(index: number, newName: string) {
-    accounts.value = accounts.value.map((acc, i) =>
-      i === index ? { ...acc, name: newName } : acc,
-    );
+    setAccounts(accounts().map((acc, i) => (i === index ? { ...acc, name: newName } : acc)));
   },
 
   async addAccount(password?: string): Promise<void> {

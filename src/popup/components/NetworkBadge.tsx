@@ -1,5 +1,6 @@
-import { ChevronDown } from "lucide-preact";
-import { activeNetwork, chainColor, showNetworkSelector } from "../store";
+import { ChevronDown } from "lucide-solid";
+import { Show } from "solid-js";
+import { activeNetwork, chainColor, setShowNetworkSelector } from "../store";
 import { ChainIcon } from "./ChainIcon";
 
 interface NetworkBadgeProps {
@@ -7,33 +8,36 @@ interface NetworkBadgeProps {
   class?: string;
 }
 
-export function NetworkBadge({ clickable = true, class: cls = "" }: NetworkBadgeProps) {
-  const network = activeNetwork.value;
-  const isTestnet = !!network.testnet;
-  const color = chainColor(network.id);
+export function NetworkBadge(props: NetworkBadgeProps) {
+  const clickable = () => props.clickable ?? true;
 
   return (
     <button
       type="button"
-      onClick={clickable ? () => (showNetworkSelector.value = true) : undefined}
-      aria-label={clickable ? `Network: ${network.name}. Click to change` : `Network: ${network.name}`}
+      onClick={clickable() ? () => setShowNetworkSelector(true) : undefined}
+      aria-label={
+        clickable()
+          ? `Network: ${activeNetwork().name}. Click to change`
+          : `Network: ${activeNetwork().name}`
+      }
       class={`
         inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
         text-sm font-medium transition-colors
-        ${isTestnet ? "bg-surface text-text-secondary" : "bg-surface text-text-primary"}
-        ${clickable ? "hover:bg-divider cursor-pointer" : ""}
-        ${cls}
+        ${activeNetwork().testnet ? "bg-surface text-text-secondary" : "bg-surface text-text-primary"}
+        ${clickable() ? "hover:bg-divider cursor-pointer" : ""}
+        ${props.class ?? ""}
       `}
-      style={!isTestnet ? { backgroundColor: `${color}25` } : undefined}
+      style={
+        !activeNetwork().testnet
+          ? { "background-color": `${chainColor(activeNetwork().id)}25` }
+          : undefined
+      }
     >
-      <ChainIcon chainId={network.id} size={14} />
-      <span class="truncate max-w-[140px] text-text-primary">{network.name}</span>
-      {clickable && (
-        <ChevronDown
-          size={14}
-          class="shrink-0 text-text-tertiary"
-        />
-      )}
+      <ChainIcon chainId={activeNetwork().id} size={14} />
+      <span class="truncate max-w-[140px] text-text-primary">{activeNetwork().name}</span>
+      <Show when={clickable()}>
+        <ChevronDown size={14} class="shrink-0 text-text-tertiary" />
+      </Show>
     </button>
   );
 }

@@ -1,3 +1,5 @@
+import { For } from "solid-js";
+
 interface TabItem {
   id: string;
   label: string;
@@ -10,27 +12,28 @@ interface TabsProps {
   class?: string;
 }
 
-export function Tabs({ items, active, onChange, class: cls = "" }: TabsProps) {
+export function Tabs(props: TabsProps) {
   return (
-    <div class={`flex bg-divider rounded-[var(--radius-btn)] p-0.5 ${cls}`}>
-      {items.map((item) => (
-        <button
-          type="button"
-          key={item.id}
-          onClick={() => onChange(item.id)}
-          class={`
+    <div class={`flex bg-divider rounded-[var(--radius-btn)] p-0.5 ${props.class ?? ""}`}>
+      <For each={props.items}>
+        {(item) => (
+          <button
+            type="button"
+            onClick={() => props.onChange(item.id)}
+            class={`
             flex-1 px-3 py-1.5 text-sm font-medium rounded-[7px]
             transition-all duration-150 cursor-pointer
             ${
-              active === item.id
+              props.active === item.id
                 ? "bg-surface text-text-primary shadow-sm"
                 : "text-text-secondary hover:text-text-primary"
             }
           `}
-        >
-          {item.label}
-        </button>
-      ))}
+          >
+            {item.label}
+          </button>
+        )}
+      </For>
     </div>
   );
 }

@@ -1,36 +1,35 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 202.4 kB │ gzip: 63.1 kB
+  output: 256.7 kB │ gzip: 81.2 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  180.3 kB  58.3%
+  (project)  245.8 kB  58.3%
+    └ src/popup/pages/Settings.tsx  21.7 kB
     └ src/shared/chains.generated.ts  21.4 kB
-    └ src/popup/pages/Settings.tsx  18.7 kB
-    └ src/popup/pages/Send.tsx  8.4 kB
-  @web3icons/core  49.8 kB  16.1%
+    └ src/popup/components/approve/DevApprove.tsx  11.5 kB
+  solid-js  52.7 kB  12.5%
+    └ node_modules/solid-js/dist/solid.js  32.4 kB
+    └ node_modules/solid-js/web/dist/web.js  20.3 kB
+  @web3icons/core  49.8 kB  11.8%
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/mantle.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/sei-network.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/metis-andromeda.svg.js  2.0 kB
-  uqr  19.4 kB  6.3%
+  @solidjs/router  25.6 kB  6.1%
+    └ node_modules/@solidjs/router/dist/routing.js  9.3 kB
+    └ node_modules/@solidjs/router/dist/utils.js  4.1 kB
+    └ node_modules/@solidjs/router/dist/routers/components.jsx  4.1 kB
+  lucide-solid  20.1 kB  4.8%
+    └ node_modules/lucide-solid/dist/source/Icon.jsx  2.3 kB
+  uqr  19.4 kB  4.6%
     └ node_modules/uqr/dist/index.mjs  19.4 kB
-  preact  19.0 kB  6.2%
-    └ node_modules/preact/dist/preact.module.js  14.6 kB
-    └ node_modules/preact/hooks/dist/hooks.module.js  3.7 kB
-  lucide-preact  16.2 kB  5.2%
-  viem  8.1 kB  2.6%
+  viem  8.1 kB  1.9%
     └ node_modules/viem/_esm/errors/base.js  2.3 kB
     └ node_modules/viem/_esm/utils/unit/parseUnits.js  1.2 kB
     └ node_modules/viem/_esm/utils/data/pad.js  1.1 kB
-  @preact/signals-core  6.9 kB  2.2%
-    └ node_modules/@preact/signals-core/dist/signals-core.module.js  6.9 kB
-  @preact/signals  4.7 kB  1.5%
-    └ node_modules/@preact/signals/dist/signals.module.js  4.7 kB
-  preact-router  4.7 kB  1.5%
-    └ node_modules/preact-router/dist/preact-router.mjs  4.7 kB
 ══════════════════════════════════════════════════════════════════════════════════════════════
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 291.3 kB │ gzip: 92.9 kB
+  output: 281.9 kB │ gzip: 90.5 kB
 ──────────────────────────────────────────────────────────────────────────────────
   viem  245.4 kB  47.6%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
@@ -67,7 +66,7 @@
 
 ══════════════════════════════════════════
   Content Script
-  output: 10.6 kB │ gzip: 3.1 kB
+  output: 1.2 kB │ gzip: 517 B
 ──────────────────────────────────────────
   (project)  1.9 kB  100.0%
     └ src/content/index.ts  1.9 kB

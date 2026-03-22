@@ -1,4 +1,5 @@
 import { getTokenValueDisplay } from "@shared/format";
+import { For } from "solid-js";
 
 interface FormattedTokenValueProps {
   value: string | number;
@@ -6,19 +7,15 @@ interface FormattedTokenValueProps {
 }
 
 /** Renders token amounts; uses HTML `<sub>` for runs of leading fractional zeros. */
-export function FormattedTokenValue({ value, class: className }: FormattedTokenValueProps) {
-  const { pieces } = getTokenValueDisplay(value);
+export function FormattedTokenValue(props: FormattedTokenValueProps) {
+  const display = () => getTokenValueDisplay(props.value);
   return (
-    <span class={className}>
-      {pieces.map((p, i) =>
-        p.kind === "text" ? (
-          p.text
-        ) : (
-          <sub key={i} class="text-[0.75em] leading-none">
-            {p.text}
-          </sub>
-        ),
-      )}
+    <span class={props.class}>
+      <For each={display().pieces}>
+        {(p) =>
+          p.kind === "text" ? p.text : <sub class="text-[0.75em] leading-none">{p.text}</sub>
+        }
+      </For>
     </span>
   );
 }

@@ -60,10 +60,7 @@ async function evictIfNeeded(cache: Cache): Promise<void> {
   await saveLru(lru);
 }
 
-export async function getTokenImage(
-  chainId: number,
-  address: string,
-): Promise<string | null> {
+export async function getTokenImage(chainId: number, address: string): Promise<string | null> {
   const url = cdnUrl(chainId, address);
   if (!url) return null;
 

@@ -1,4 +1,4 @@
-import { render } from "preact";
+import { render } from "solid-js/web";
 import { App } from "./App";
 import "./styles/globals.css";
 
@@ -8,4 +8,4 @@ if (savedTheme === "dark" || savedTheme === "light") {
 }
 
 const root = document.getElementById("app");
-if (root) render(<App />, root);
+if (root) render(() => <App />, root);

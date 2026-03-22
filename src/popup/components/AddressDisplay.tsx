@@ -1,4 +1,5 @@
 import { truncateAddress } from "@shared/format";
+import { mergeProps } from "solid-js";
 import { CopyButton } from "./CopyButton";
 
 interface AddressDisplayProps {
@@ -7,15 +8,16 @@ interface AddressDisplayProps {
   class?: string;
 }
 
-export function AddressDisplay({ address, full = false, class: cls = "" }: AddressDisplayProps) {
+export function AddressDisplay(rawProps: AddressDisplayProps) {
+  const props = mergeProps({ full: false, class: "" }, rawProps);
   return (
-    <span class={`inline-flex items-center gap-1 ${cls}`}>
+    <span class={`inline-flex items-center gap-1 ${props.class}`}>
       <span
-        class={`font-mono text-text-secondary ${full ? "text-[10px] leading-tight" : "text-sm"}`}
+        class={`font-mono text-text-secondary ${props.full ? "text-[10px] leading-tight" : "text-sm"}`}
       >
-        {full ? address : truncateAddress(address)}
+        {props.full ? props.address : truncateAddress(props.address)}
       </span>
-      <CopyButton text={address} size={14} />
+      <CopyButton text={props.address} size={14} />
     </span>
   );
 }

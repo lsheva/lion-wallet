@@ -1,7 +1,7 @@
 import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { Eye, EyeOff, Fingerprint } from "lucide-preact";
-import { useState } from "preact/hooks";
+import { Eye, EyeOff, Fingerprint } from "lucide-solid";
+import { createSignal, Show } from "solid-js";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -11,18 +11,17 @@ import { Input } from "../components/Input";
 import { walletState } from "../store";
 
 export function ExportPrivateKey() {
-  const [password, setPassword] = useState("");
-  const [revealed, setRevealed] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [privateKey, setPrivateKey] = useState("");
-  const account = walletState.activeAccount.value;
-  const storageMode = walletState.storageMode.value;
-  const isVault = storageMode === "vault";
+  const [password, setPassword] = createSignal("");
+  const [revealed, setRevealed] = createSignal(false);
+  const [showKey, setShowKey] = createSignal(false);
+  const [error, setError] = createSignal("");
+  const [loading, setLoading] = createSignal(false);
+  const [privateKey, setPrivateKey] = createSignal("");
+  const account = () => walletState.activeAccount();
+  const isVault = () => walletState.storageMode() === "vault";
 
   const handleReveal = async () => {
-    if (isVault && password.length < 4) {
+    if (isVault() && password().length < 4) {
       setError("Incorrect password");
       return;
     }
@@ -31,8 +30,8 @@ export function ExportPrivateKey() {
 
     const res = await sendMessage({
       type: "EXPORT_PRIVATE_KEY",
-      accountIndex: walletState.activeAccountIndex.value,
-      ...(isVault ? { password } : {}),
+      accountIndex: walletState.activeAccountIndex(),
+      ...(isVault() ? { password: password() } : {}),
     });
 
     setLoading(false);
@@ -57,41 +56,49 @@ export function ExportPrivateKey() {
 
         <Card>
           <p class="text-xs text-text-secondary">Account</p>
-          <p class="text-sm font-semibold text-text-primary mt-0.5">{account.name}</p>
+          <p class="text-sm font-semibold text-text-primary mt-0.5">{account().name}</p>
           <p class="text-xs font-mono text-text-primary/70 mt-0.5">
-            {truncateAddress(account.address)}
+            {truncateAddress(account().address)}
           </p>
         </Card>
 
-        {!revealed ? (
-          <>
-            {isVault && (
-              <Input
-                label="Enter password to continue"
-                type="password"
-                placeholder="Password"
-                value={password}
-                onInput={(v) => {
-                  setPassword(v);
-                  setError("");
-                }}
-                error={error || undefined}
-                autoFocus
-              />
-            )}
-            {!isVault && error && <Banner variant="danger">{error}</Banner>}
-            <Button onClick={handleReveal} size="lg" loading={loading}>
-              {isVault ? (
-                "Reveal Private Key"
-              ) : (
-                <span class="inline-flex items-center gap-1.5">
-                  <Fingerprint size={16} />
+        <Show
+          when={revealed()}
+          fallback={
+            <>
+              <Show when={isVault()}>
+                <Input
+                  label="Enter password to continue"
+                  type="password"
+                  placeholder="Password"
+                  value={password()}
+                  onInput={(v) => {
+                    setPassword(v);
+                    setError("");
+                  }}
+                  error={error() || undefined}
+                  autoFocus
+                />
+              </Show>
+              <Show when={!isVault() && error()}>
+                <Banner variant="danger">{error()}</Banner>
+              </Show>
+              <Button onClick={handleReveal} size="lg" loading={loading()}>
+                <Show
+                  when={isVault()}
+                  fallback={
+                    <span class="inline-flex items-center gap-1.5">
+                      <Fingerprint size={16} />
+                      Reveal Private Key
+                    </span>
+                  }
+                >
                   Reveal Private Key
-                </span>
-              )}
-            </Button>
-          </>
-        ) : (
+                </Show>
+              </Button>
+            </>
+          }
+        >
           <div class="space-y-3">
             <Card>
               <div class="flex items-center justify-between mb-2">
@@ -99,20 +106,22 @@ export function ExportPrivateKey() {
                 <div class="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => setShowKey(!showKey)}
+                    onClick={() => setShowKey(!showKey())}
                     class="p-1 text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
                   >
-                    {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    <Show when={showKey()} fallback={<Eye size={14} />}>
+                      <EyeOff size={14} />
+                    </Show>
                   </button>
-                  <CopyButton text={privateKey} size={14} />
+                  <CopyButton text={privateKey()} size={14} />
                 </div>
               </div>
               <p class="font-mono text-xs text-text-primary break-all leading-relaxed select-all">
-                {showKey ? privateKey : "\u2022".repeat(66)}
+                {showKey() ? privateKey() : "\u2022".repeat(66)}
               </p>
             </Card>
           </div>
-        )}
+        </Show>
       </div>
     </div>
   );

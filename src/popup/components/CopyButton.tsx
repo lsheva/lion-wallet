@@ -1,6 +1,5 @@
-import { Check, Copy } from "lucide-preact";
-import type { JSX } from "preact";
-import { useState } from "preact/hooks";
+import { Check, Copy } from "lucide-solid";
+import { createSignal, Show } from "solid-js";
 
 interface CopyButtonProps {
   text: string;
@@ -8,12 +7,12 @@ interface CopyButtonProps {
   class?: string;
 }
 
-export function CopyButton({ text, size = 16, class: cls = "" }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false);
+export function CopyButton(props: CopyButtonProps) {
+  const [copied, setCopied] = createSignal(false);
 
-  const handleCopy = async (e: JSX.TargetedMouseEvent<HTMLButtonElement>) => {
+  const handleCopy = async (e: MouseEvent) => {
     e.stopPropagation();
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(props.text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -22,10 +21,12 @@ export function CopyButton({ text, size = 16, class: cls = "" }: CopyButtonProps
     <button
       type="button"
       onClick={handleCopy}
-      aria-label={copied ? "Copied" : "Copy to clipboard"}
-      class={`p-1 text-text-tertiary hover:text-accent transition-colors cursor-pointer ${cls}`}
+      aria-label={copied() ? "Copied" : "Copy to clipboard"}
+      class={`p-1 text-text-tertiary hover:text-accent transition-colors cursor-pointer ${props.class ?? ""}`}
     >
-      {copied ? <Check size={size} class="text-success" /> : <Copy size={size} />}
+      <Show when={copied()} fallback={<Copy size={props.size ?? 16} />}>
+        <Check size={props.size ?? 16} class="text-success" />
+      </Show>
     </button>
   );
 }

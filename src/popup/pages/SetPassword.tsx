@@ -1,6 +1,6 @@
 import { sendMessage } from "@shared/messages";
-import { useMemo, useState } from "preact/hooks";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
@@ -20,23 +20,23 @@ function getStrength(pw: string): { level: number; label: string; color: string 
 }
 
 export function SetPassword() {
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const strength = getStrength(password);
-  const match = password.length > 0 && password === confirm;
-  const canContinue = match && strength.level >= 2;
+  const navigate = useNavigate();
+  const [password, setPassword] = createSignal("");
+  const [confirm, setConfirm] = createSignal("");
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal("");
+  const strength = () => getStrength(password());
+  const match = () => password().length > 0 && password() === confirm();
+  const canContinue = () => match() && strength().level >= 2;
 
-  const chosePasswordOverKeychain = useMemo(
+  const chosePasswordOverKeychain = createMemo(
     () => sessionStorage.getItem("onboarding_vault_preferred") === "true",
-    [],
   );
 
   const handleContinue = async () => {
     setLoading(true);
     setError("");
-    const res = await sendMessage({ type: "CREATE_WALLET", password });
+    const res = await sendMessage({ type: "CREATE_WALLET", password: password() });
     setLoading(false);
 
     if (!res.ok) {
@@ -45,23 +45,23 @@ export function SetPassword() {
     }
 
     sessionStorage.setItem("onboarding_mnemonic", res.data.mnemonic);
-    sessionStorage.setItem("onboarding_password", password);
+    sessionStorage.setItem("onboarding_password", password());
     sessionStorage.removeItem("onboarding_vault_preferred");
-    route("/seed-phrase");
+    navigate("/seed-phrase");
   };
 
   return (
     <div class="flex flex-col h-[600px]">
       <Header title="Set Password" onBack="/" />
       <div class="flex-1 px-4 pt-4">
-        {chosePasswordOverKeychain && (
+        <Show when={chosePasswordOverKeychain()}>
           <div class="mb-4">
             <Banner variant="warning">
               Touch ID protects your keys with hardware-backed security. A password is less secure —
               make it strong.
             </Banner>
           </div>
-        )}
+        </Show>
 
         <p class="text-sm text-text-secondary mb-6">
           Create a password to encrypt your wallet on this device.
@@ -71,7 +71,7 @@ export function SetPassword() {
           label="Password"
           type="password"
           placeholder="Enter password"
-          value={password}
+          value={password()}
           onInput={setPassword}
           autoFocus
         />
@@ -81,37 +81,38 @@ export function SetPassword() {
             label="Confirm Password"
             type="password"
             placeholder="Re-enter password"
-            value={confirm}
+            value={confirm()}
             onInput={setConfirm}
-            error={confirm.length > 0 && !match ? "Passwords don't match" : undefined}
+            error={confirm().length > 0 && !match() ? "Passwords don't match" : undefined}
           />
         </div>
 
-        {password.length > 0 && (
+        <Show when={password().length > 0}>
           <div class="mt-3 space-y-1">
             <div class="flex gap-1 h-1">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  class={`flex-1 rounded-full transition-colors duration-300 ${
-                    i <= strength.level ? strength.color : "bg-divider"
-                  }`}
-                />
-              ))}
+              <For each={[1, 2, 3]}>
+                {(i) => (
+                  <div
+                    class={`flex-1 rounded-full transition-colors duration-300 ${
+                      i <= strength().level ? strength().color : "bg-divider"
+                    }`}
+                  />
+                )}
+              </For>
             </div>
-            <p class="text-xs text-text-tertiary">{strength.label}</p>
+            <p class="text-xs text-text-tertiary">{strength().label}</p>
           </div>
-        )}
+        </Show>
 
-        {error && (
+        <Show when={error()}>
           <div class="mt-3">
-            <Banner variant="danger">{error}</Banner>
+            <Banner variant="danger">{error()}</Banner>
           </div>
-        )}
+        </Show>
       </div>
 
       <div class="px-4 py-4">
-        <Button disabled={!canContinue} onClick={handleContinue} loading={loading} size="lg">
+        <Button disabled={!canContinue()} onClick={handleContinue} loading={loading()} size="lg">
           Continue
         </Button>
       </div>

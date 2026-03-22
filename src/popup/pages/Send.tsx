@@ -1,9 +1,9 @@
 import { POPUP_ORIGIN } from "@shared/constants";
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { ChevronDown, Clipboard } from "lucide-preact";
-import { useCallback, useEffect, useState } from "preact/hooks";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { ChevronDown, Clipboard } from "lucide-solid";
+import { batch, createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import type { Address } from "viem";
 import { numberToHex, parseEther } from "viem/utils";
 
@@ -24,35 +24,42 @@ import { type Token, walletState } from "../store";
 const isNative = (token: Token) => !token.address;
 
 export function Send() {
-  const tokens = walletState.tokens.value;
-  const network = walletState.activeNetwork.value;
+  const navigate = useNavigate();
 
-  const [to, setTo] = useState("");
-  const [amount, setAmount] = useState("");
-  const [selectedToken, setSelectedToken] = useState<Token>(tokens[0] as Token);
-  const [showTokenPicker, setShowTokenPicker] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [balance, setBalance] = useState<string | null>(null);
-  const [loadingBalance, setLoadingBalance] = useState(false);
+  const [to, setTo] = createSignal("");
+  const [amount, setAmount] = createSignal("");
+  const [selectedToken, setSelectedToken] = createSignal<Token>(walletState.tokens()[0] as Token);
+  const [showTokenPicker, setShowTokenPicker] = createSignal(false);
+  const [submitting, setSubmitting] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
+  const [balance, setBalance] = createSignal<string | null>(null);
+  const [loadingBalance, setLoadingBalance] = createSignal(false);
 
-  const addressValid = to.length === 0 || isAddress(to);
-  const rawBalance = balance ?? selectedToken.balance;
-  const numericBalance = parseFloat(rawBalance.replace(/,/g, ""));
-  const numericAmount = parseFloat(amount.replace(/,/g, "") || "0");
-  const insufficientBalance = numericAmount > 0 && numericAmount > numericBalance;
-  const canSubmit =
-    to.length > 0 && isAddress(to) && numericAmount > 0 && !insufficientBalance && !submitting;
+  const addressValid = createMemo(() => to().length === 0 || isAddress(to()));
+  const rawBalance = createMemo(() => balance() ?? selectedToken().balance);
+  const numericBalance = createMemo(() => parseFloat(rawBalance().replace(/,/g, "")));
+  const numericAmount = createMemo(() => parseFloat(amount().replace(/,/g, "") || "0"));
+  const insufficientBalance = createMemo(
+    () => numericAmount() > 0 && numericAmount() > numericBalance(),
+  );
+  const canSubmit = createMemo(
+    () =>
+      to().length > 0 &&
+      isAddress(to()) &&
+      numericAmount() > 0 &&
+      !insufficientBalance() &&
+      !submitting(),
+  );
 
-  const fetchBalance = useCallback(async () => {
+  async function fetchTokenBalance(token: Token, networkId: number) {
     setLoadingBalance(true);
     try {
-      if (isNative(selectedToken)) {
-        const account = walletState.activeAccount.value;
+      if (isNative(token)) {
+        const account = walletState.activeAccount();
         const res = await sendMessage({
           type: "GET_BALANCE",
           address: account.address as Address,
-          chainId: network.id,
+          chainId: networkId,
         });
         if (res.ok && res.data) {
           setBalance(res.data.balance);
@@ -60,11 +67,11 @@ export function Send() {
       } else {
         const res = await sendMessage({
           type: "GET_TOKEN_BALANCES",
-          tokens: [selectedToken.address as Address],
+          tokens: [token.address as Address],
         });
         if (res.ok && res.data) {
-          const raw = BigInt(res.data.balances[selectedToken.address as string] ?? "0");
-          const formatted = (Number(raw) / 10 ** selectedToken.decimals).toString();
+          const raw = BigInt(res.data.balances[token.address as string] ?? "0");
+          const formatted = (Number(raw) / 10 ** token.decimals).toString();
           setBalance(formatted);
         }
       }
@@ -73,12 +80,17 @@ export function Send() {
     } finally {
       setLoadingBalance(false);
     }
-  }, [selectedToken, network.id]);
+  }
 
-  useEffect(() => {
-    setBalance(null);
-    fetchBalance();
-  }, [fetchBalance]);
+  createEffect(
+    on(
+      () => [selectedToken(), walletState.activeNetwork().id] as const,
+      ([token, networkId]) => {
+        setBalance(null);
+        fetchTokenBalance(token, networkId);
+      },
+    ),
+  );
 
   const handlePaste = async () => {
     try {
@@ -90,53 +102,57 @@ export function Send() {
   };
 
   const handleMax = () => {
-    setAmount(rawBalance.replace(/,/g, ""));
+    setAmount(rawBalance().replace(/,/g, ""));
   };
 
   const handleSelectToken = (token: Token) => {
-    setSelectedToken(token);
-    setShowTokenPicker(false);
-    setAmount("");
+    batch(() => {
+      setSelectedToken(token);
+      setShowTokenPicker(false);
+      setAmount("");
+    });
   };
 
   const handleReview = async () => {
     setError(null);
 
-    if (!isAddress(to)) {
+    if (!isAddress(to())) {
       setError("Invalid recipient address");
       return;
     }
-    if (numericAmount <= 0) {
+    if (numericAmount() <= 0) {
       setError("Enter a valid amount");
       return;
     }
-    if (insufficientBalance) {
+    if (insufficientBalance()) {
       setError("Insufficient balance");
       return;
     }
 
     setSubmitting(true);
     try {
-      const cleanAmount = amount.replace(/,/g, "");
-      if (isNative(selectedToken)) {
-        const account = walletState.activeAccount.value;
+      const cleanAmount = amount().replace(/,/g, "");
+      if (isNative(selectedToken())) {
+        const account = walletState.activeAccount();
         await sendMessage({
           type: "RPC_REQUEST",
           id: crypto.randomUUID(),
           method: "eth_sendTransaction",
-          params: [{ from: account.address, to, value: numberToHex(parseEther(cleanAmount)) }],
+          params: [
+            { from: account.address, to: to(), value: numberToHex(parseEther(cleanAmount)) },
+          ],
           origin: POPUP_ORIGIN,
         });
       } else {
         await sendMessage({
           type: "SEND_TOKEN",
-          tokenAddress: selectedToken.address as Address,
-          to: to as Address,
+          tokenAddress: selectedToken().address as Address,
+          to: to() as Address,
           amount: cleanAmount,
-          decimals: selectedToken.decimals,
+          decimals: selectedToken().decimals,
         });
       }
-      route("/approve", true);
+      navigate("/approve", { replace: true });
     } catch (e) {
       setError(toErrorMessage(e));
       setSubmitting(false);
@@ -153,76 +169,83 @@ export function Send() {
           <span class="block text-sm font-medium text-text-secondary mb-1.5">Token</span>
           <button
             type="button"
-            onClick={() => setShowTokenPicker(!showTokenPicker)}
+            onClick={() => setShowTokenPicker(!showTokenPicker())}
             class="w-full flex items-center justify-between px-3 py-2.5 bg-surface rounded-[var(--radius-card)] ring-1 ring-transparent hover:ring-accent/30 transition-shadow cursor-pointer"
           >
             <div class="flex items-center gap-2.5">
-              {isNative(selectedToken) ? (
-                <ChainIcon chainId={network.id} size={28} />
-              ) : (
-                <TokenImage
-                  address={selectedToken.address}
-                  chainId={network.id}
-                  symbol={selectedToken.symbol}
-                  color={selectedToken.color}
-                  size={28}
-                />
-              )}
+              <Show
+                when={isNative(selectedToken())}
+                fallback={
+                  <TokenImage
+                    address={selectedToken().address}
+                    chainId={walletState.activeNetwork().id}
+                    symbol={selectedToken().symbol}
+                    color={selectedToken().color}
+                    size={28}
+                  />
+                }
+              >
+                <ChainIcon chainId={walletState.activeNetwork().id} size={28} />
+              </Show>
               <div class="text-left">
-                <span class="text-sm font-medium text-text-primary">{selectedToken.symbol}</span>
-                <span class="text-xs text-text-tertiary ml-1.5">{selectedToken.name}</span>
+                <span class="text-sm font-medium text-text-primary">{selectedToken().symbol}</span>
+                <span class="text-xs text-text-tertiary ml-1.5">{selectedToken().name}</span>
               </div>
             </div>
             <ChevronDown
               size={16}
-              class={`text-text-tertiary transition-transform ${showTokenPicker ? "rotate-180" : ""}`}
+              class={`text-text-tertiary transition-transform ${showTokenPicker() ? "rotate-180" : ""}`}
             />
           </button>
-          {showTokenPicker && (
+          <Show when={showTokenPicker()}>
             <Card class="mt-1.5 !p-0 overflow-hidden">
-              {tokens.map((token) => (
-                <button
-                  key={token.symbol}
-                  type="button"
-                  onClick={() => handleSelectToken(token)}
-                  class={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-base/50 transition-colors cursor-pointer text-left ${
-                    token.symbol === selectedToken.symbol ? "bg-accent-light" : ""
-                  }`}
-                >
-                  {isNative(token) ? (
-                    <ChainIcon chainId={network.id} size={24} />
-                  ) : (
-                    <TokenImage
-                      address={token.address}
-                      chainId={network.id}
-                      symbol={token.symbol}
-                      color={token.color}
-                      size={24}
-                    />
-                  )}
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-text-primary">{token.symbol}</p>
-                  </div>
-                  <span class="text-xs font-mono text-text-secondary">
-                    <FormattedTokenValue value={token.balance} />
-                  </span>
-                </button>
-              ))}
+              <For each={walletState.tokens()}>
+                {(token) => (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectToken(token)}
+                    class={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-base/50 transition-colors cursor-pointer text-left ${
+                      token.symbol === selectedToken().symbol ? "bg-accent-light" : ""
+                    }`}
+                  >
+                    <Show
+                      when={isNative(token)}
+                      fallback={
+                        <TokenImage
+                          address={token.address}
+                          chainId={walletState.activeNetwork().id}
+                          symbol={token.symbol}
+                          color={token.color}
+                          size={24}
+                        />
+                      }
+                    >
+                      <ChainIcon chainId={walletState.activeNetwork().id} size={24} />
+                    </Show>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-text-primary">{token.symbol}</p>
+                    </div>
+                    <span class="text-xs font-mono text-text-secondary">
+                      <FormattedTokenValue value={token.balance} />
+                    </span>
+                  </button>
+                )}
+              </For>
             </Card>
-          )}
+          </Show>
         </div>
 
         {/* Recipient */}
         <Input
           label="To"
           placeholder="0x..."
-          value={to}
+          value={to()}
           onInput={(v) => {
             setTo(v);
             setError(null);
           }}
           mono
-          error={to.length > 0 && !addressValid ? "Invalid address" : undefined}
+          error={to().length > 0 && !addressValid() ? "Invalid address" : undefined}
           rightSlot={
             <button
               type="button"
@@ -246,11 +269,12 @@ export function Send() {
               <span class="text-text-tertiary">
                 Bal:{" "}
                 <span class="font-mono">
-                  {loadingBalance ? (
+                  <Show
+                    when={loadingBalance()}
+                    fallback={<FormattedTokenValue value={rawBalance()} />}
+                  >
                     <Skeleton width={48} height={12} class="inline-block align-middle" />
-                  ) : (
-                    <FormattedTokenValue value={rawBalance} />
-                  )}
+                  </Show>
                 </span>
               </span>
               <span class="font-semibold text-accent hover:text-accent-hover transition-colors">
@@ -260,26 +284,28 @@ export function Send() {
           </div>
           <Input
             placeholder="0.0"
-            value={amount}
+            value={amount()}
             onInput={(v) => {
               setAmount(v);
               setError(null);
             }}
             mono
-            error={insufficientBalance ? "Insufficient balance" : undefined}
+            error={insufficientBalance() ? "Insufficient balance" : undefined}
             rightSlot={
               <span class="text-xs font-medium text-text-secondary bg-base px-2 py-0.5 rounded-md">
-                {selectedToken.symbol}
+                {selectedToken().symbol}
               </span>
             }
           />
         </div>
 
-        {error && <Banner variant="danger">{error}</Banner>}
+        <Show when={error()}>
+          <Banner variant="danger">{error()}</Banner>
+        </Show>
       </div>
 
       <div class="px-4 py-4">
-        <Button onClick={handleReview} disabled={!canSubmit} loading={submitting} size="lg">
+        <Button onClick={handleReview} disabled={!canSubmit()} loading={submitting()} size="lg">
           Review Transaction
         </Button>
       </div>

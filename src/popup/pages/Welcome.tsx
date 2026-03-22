@@ -1,17 +1,18 @@
 import { sendMessage } from "@shared/messages";
-import { Fingerprint } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { Fingerprint } from "lucide-solid";
+import { createSignal, onMount, Show } from "solid-js";
 import lionIcon from "../../icons/icon.generated.svg";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 
 export function Welcome() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [keychainAvailable, setKeychainAvailable] = useState<boolean | null>(null);
+  const navigate = useNavigate();
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal("");
+  const [keychainAvailable, setKeychainAvailable] = createSignal<boolean | null>(null);
 
-  useEffect(() => {
+  onMount(() => {
     sendMessage({ type: "CHECK_KEYCHAIN_AVAILABLE" }).then((res) => {
       if (res.ok && res.data?.available) {
         setKeychainAvailable(true);
@@ -22,7 +23,7 @@ export function Welcome() {
         }
       }
     });
-  }, []);
+  });
 
   const handleCreateKeychain = async () => {
     setLoading(true);
@@ -34,12 +35,12 @@ export function Welcome() {
       return;
     }
     sessionStorage.setItem("onboarding_mnemonic", res.data.mnemonic);
-    route("/seed-phrase");
+    navigate("/seed-phrase");
   };
 
   const handleCreatePassword = () => {
     sessionStorage.setItem("onboarding_vault_preferred", "true");
-    route("/set-password");
+    navigate("/set-password");
   };
 
   return (
@@ -52,35 +53,36 @@ export function Welcome() {
       <h1 class="text-xl font-bold text-text-primary mb-1">Lion Wallet</h1>
       <p class="text-sm text-text-secondary mb-10">Your keys. Your crypto.</p>
 
-      {error && (
+      <Show when={error()}>
         <div class="w-full mb-4">
-          <Banner variant="danger">{error}</Banner>
+          <Banner variant="danger">{error()}</Banner>
         </div>
-      )}
+      </Show>
 
       <div class="w-full space-y-3">
-        {keychainAvailable ? (
-          <>
-            <Button onClick={handleCreateKeychain} size="lg" loading={loading}>
-              <span class="inline-flex items-center gap-1.5">
-                <Fingerprint size={18} />
-                Create with Touch ID
-              </span>
+        <Show
+          when={keychainAvailable()}
+          fallback={
+            <Button onClick={() => navigate("/set-password")} size="lg">
+              Create New Wallet
             </Button>
-            <button
-              type="button"
-              onClick={handleCreatePassword}
-              class="w-full text-center text-xs text-text-tertiary hover:text-accent transition-colors cursor-pointer py-1"
-            >
-              Use password instead
-            </button>
-          </>
-        ) : (
-          <Button onClick={() => route("/set-password")} size="lg">
-            Create New Wallet
+          }
+        >
+          <Button onClick={handleCreateKeychain} size="lg" loading={loading()}>
+            <span class="inline-flex items-center gap-1.5">
+              <Fingerprint size={18} />
+              Create with Touch ID
+            </span>
           </Button>
-        )}
-        <Button variant="secondary" onClick={() => route("/import")} size="lg">
+          <button
+            type="button"
+            onClick={handleCreatePassword}
+            class="w-full text-center text-xs text-text-tertiary hover:text-accent transition-colors cursor-pointer py-1"
+          >
+            Use password instead
+          </button>
+        </Show>
+        <Button variant="secondary" onClick={() => navigate("/import")} size="lg">
           Import Existing
         </Button>
       </div>

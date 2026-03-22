@@ -1,5 +1,4 @@
-import { Gauge, Rocket, Zap } from "lucide-preact";
-import type { RefObject } from "preact";
+import { Gauge, Rocket, Zap } from "lucide-solid";
 
 export const GAS_ICONS = { slow: Gauge, normal: Zap, fast: Rocket } as const;
 export const GAS_LABELS = { slow: "Slow", normal: "Normal", fast: "Fast" } as const;
@@ -13,9 +12,8 @@ export function formatGasCost(ethCost: string, nativeUsdPrice: number | null | u
   return `${eth.toFixed(6)} ETH`;
 }
 
-export function scrollEndIntoView(ref: RefObject<HTMLElement | null>) {
+export function scrollEndIntoView(el: HTMLElement | undefined | null) {
   requestAnimationFrame(() => {
-    const el = ref.current;
     if (!el) return;
     const container = el.closest(".overflow-y-auto");
     if (!container) return;

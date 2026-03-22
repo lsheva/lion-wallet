@@ -1,4 +1,5 @@
-import { Fuel } from "lucide-preact";
+import { Fuel } from "lucide-solid";
+import { Show } from "solid-js";
 import type { Token } from "../store";
 import { ChainIcon } from "./ChainIcon";
 import { FormattedTokenValue } from "./FormattedTokenValue";
@@ -19,28 +20,31 @@ function splitNameForGasLabel(name: string): { before: string; last: string } {
   return { before: t.slice(0, i + 1), last: t.slice(i + 1) };
 }
 
-export function TokenRow({ token, chainId, onClick }: TokenRowProps) {
-  const isNative = !token.address;
-  const gasNameParts = isNative ? splitNameForGasLabel(token.name) : null;
+export function TokenRow(props: TokenRowProps) {
+  const isNative = !props.token.address;
+  const gasNameParts = isNative ? splitNameForGasLabel(props.token.name) : null;
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={props.onClick}
       class="flex items-center w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
     >
       <div class="shrink-0 flex items-center justify-center w-8 h-8">
-        {isNative ? (
-          <ChainIcon chainId={chainId} size={32} />
-        ) : (
-          <TokenImage
-            address={token.address}
-            chainId={chainId}
-            symbol={token.symbol}
-            color={token.color}
-            size={32}
-          />
-        )}
+        <Show
+          when={isNative}
+          fallback={
+            <TokenImage
+              address={props.token.address}
+              chainId={props.chainId}
+              symbol={props.token.symbol}
+              color={props.token.color}
+              size={32}
+            />
+          }
+        >
+          <ChainIcon chainId={props.chainId} size={32} />
+        </Show>
       </div>
       <div class="ml-2 flex-1 min-w-0">
         <p class="text-sm font-medium text-text-primary leading-snug min-w-0 m-0">
@@ -62,16 +66,18 @@ export function TokenRow({ token, chainId, onClick }: TokenRowProps) {
               </span>
             </>
           ) : (
-            <span class="break-words [overflow-wrap:anywhere]">{token.name}</span>
+            <span class="break-words [overflow-wrap:anywhere]">{props.token.name}</span>
           )}
         </p>
       </div>
       <div class="text-right shrink-0 ml-2">
         <p class="text-sm font-mono font-medium text-text-primary">
-          <FormattedTokenValue value={token.balance} />{" "}
-          <span class="text-text-secondary text-xs">{token.symbol}</span>
+          <FormattedTokenValue value={props.token.balance} />{" "}
+          <span class="text-text-secondary text-xs">{props.token.symbol}</span>
         </p>
-        {token.usdValue && <p class="text-xs text-text-secondary">{token.usdValue}</p>}
+        <Show when={props.token.usdValue}>
+          <p class="text-xs text-text-secondary">{props.token.usdValue}</p>
+        </Show>
       </div>
     </button>
   );

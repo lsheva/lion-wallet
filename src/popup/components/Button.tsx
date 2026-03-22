@@ -1,11 +1,11 @@
-import type { ComponentChildren } from "preact";
+import { type JSX, mergeProps, Show } from "solid-js";
 import { Spinner } from "./Spinner";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 interface ButtonProps {
-  children: ComponentChildren;
+  children: JSX.Element;
   variant?: Variant;
   size?: Size;
   loading?: boolean;
@@ -29,22 +29,24 @@ const sizeStyles: Record<Size, string> = {
   lg: "px-5 py-3 text-base font-medium",
 };
 
-export function Button({
-  children,
-  variant = "primary",
-  size = "md",
-  loading = false,
-  disabled = false,
-  fullWidth = true,
-  onClick,
-  class: cls = "",
-  type = "button",
-}: ButtonProps) {
+export function Button(rawProps: ButtonProps) {
+  const props = mergeProps(
+    {
+      variant: "primary" as Variant,
+      size: "md" as Size,
+      loading: false,
+      disabled: false,
+      fullWidth: true,
+      type: "button" as const,
+      class: "",
+    },
+    rawProps,
+  );
   return (
     <button
-      type={type}
-      disabled={disabled || loading}
-      onClick={onClick}
+      type={props.type}
+      disabled={props.disabled || props.loading}
+      onClick={props.onClick}
       class={`
         inline-flex items-center justify-center gap-2
         rounded-[var(--radius-btn)] font-medium
@@ -52,14 +54,16 @@ export function Button({
         active:scale-[0.97]
         disabled:opacity-50 disabled:pointer-events-none
         cursor-pointer
-        ${variantStyles[variant]}
-        ${sizeStyles[size]}
-        ${fullWidth ? "w-full" : ""}
-        ${cls}
+        ${variantStyles[props.variant]}
+        ${sizeStyles[props.size]}
+        ${props.fullWidth ? "w-full" : ""}
+        ${props.class}
       `}
     >
-      {loading && <Spinner size="sm" />}
-      {children}
+      <Show when={props.loading}>
+        <Spinner size="sm" />
+      </Show>
+      {props.children}
     </button>
   );
 }

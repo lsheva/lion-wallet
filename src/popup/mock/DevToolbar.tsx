@@ -1,7 +1,7 @@
 import type { ApprovalData } from "@shared/types";
-import { useState } from "preact/hooks";
-import { route } from "preact-router";
-import { pendingApprovalData } from "../App";
+import { useNavigate } from "@solidjs/router";
+import { createSignal, For, Show } from "solid-js";
+import { setPendingApprovalData } from "../App";
 import {
   MOCK_ACCOUNTS,
   MOCK_SEED_PHRASE,
@@ -9,7 +9,7 @@ import {
   MOCK_TX_REQUEST,
   MOCK_TYPED_DATA_REQUEST,
 } from "./data";
-import { type WalletView, storageMode, walletState } from "./state";
+import { setStorageMode, storageMode, type WalletView, walletState } from "./state";
 
 interface NavItem {
   label: string;
@@ -24,36 +24,37 @@ function mockApproval(method: string, extra: Record<string, unknown> = {}): Appr
       id: crypto.randomUUID(),
       method,
       params: [],
-      origin: extra.origin as string ?? "app.uniswap.org",
+      origin: (extra.origin as string) ?? "app.uniswap.org",
       timestamp: Date.now(),
       chainId: 1,
     },
-    gasPresets: method.includes("send") || method.includes("sign")
-      ? {
-          slow: {
-            gasLimit: "195000",
-            maxFeePerGas: "25000000000",
-            maxPriorityFeePerGas: "1000000000",
-            estimatedCostWei: "4875000000000000",
-            estimatedCostEth: "0.004875",
-          },
-          normal: {
-            gasLimit: "195000",
-            maxFeePerGas: "32000000000",
-            maxPriorityFeePerGas: "1500000000",
-            estimatedCostWei: "6240000000000000",
-            estimatedCostEth: "0.00624",
-          },
-          fast: {
-            gasLimit: "195000",
-            maxFeePerGas: "45000000000",
-            maxPriorityFeePerGas: "2500000000",
-            estimatedCostWei: "8775000000000000",
-            estimatedCostEth: "0.008775",
-          },
-          baseFeeGwei: "24",
-        }
-      : null,
+    gasPresets:
+      method.includes("send") || method.includes("sign")
+        ? {
+            slow: {
+              gasLimit: "195000",
+              maxFeePerGas: "25000000000",
+              maxPriorityFeePerGas: "1000000000",
+              estimatedCostWei: "4875000000000000",
+              estimatedCostEth: "0.004875",
+            },
+            normal: {
+              gasLimit: "195000",
+              maxFeePerGas: "32000000000",
+              maxPriorityFeePerGas: "1500000000",
+              estimatedCostWei: "6240000000000000",
+              estimatedCostEth: "0.00624",
+            },
+            fast: {
+              gasLimit: "195000",
+              maxFeePerGas: "45000000000",
+              maxPriorityFeePerGas: "2500000000",
+              estimatedCostWei: "8775000000000000",
+              estimatedCostEth: "0.008775",
+            },
+            baseFeeGwei: "24",
+          }
+        : null,
     account: {
       name: MOCK_ACCOUNTS[0]!.name,
       address: MOCK_ACCOUNTS[0]!.address as `0x${string}`,
@@ -61,7 +62,7 @@ function mockApproval(method: string, extra: Record<string, unknown> = {}): Appr
       index: 0,
     },
     queueSize: 1,
-    storageMode: storageMode.value,
+    storageMode: storageMode(),
     ...extra,
   };
 }
@@ -111,11 +112,13 @@ const GROUPS: Array<{ name: string; items: NavItem[] }> = [
         path: "/approve",
         view: "approval",
         setup: () => {
-          pendingApprovalData.value = mockApproval("eth_sendTransaction", {
-            decoded: MOCK_TX_REQUEST.decoded,
-            transfers: MOCK_TX_REQUEST.transfers,
-            nativeUsdPrice: 2385,
-          });
+          setPendingApprovalData(
+            mockApproval("eth_sendTransaction", {
+              decoded: MOCK_TX_REQUEST.decoded,
+              transfers: MOCK_TX_REQUEST.transfers,
+              nativeUsdPrice: 2385,
+            }),
+          );
         },
       },
       {
@@ -123,9 +126,11 @@ const GROUPS: Array<{ name: string; items: NavItem[] }> = [
         path: "/approve",
         view: "approval",
         setup: () => {
-          pendingApprovalData.value = mockApproval("personal_sign", {
-            origin: MOCK_SIGN_REQUEST.origin,
-          });
+          setPendingApprovalData(
+            mockApproval("personal_sign", {
+              origin: MOCK_SIGN_REQUEST.origin,
+            }),
+          );
         },
       },
       {
@@ -133,9 +138,11 @@ const GROUPS: Array<{ name: string; items: NavItem[] }> = [
         path: "/approve",
         view: "approval",
         setup: () => {
-          pendingApprovalData.value = mockApproval("eth_signTypedData_v4", {
-            origin: MOCK_TYPED_DATA_REQUEST.origin,
-          });
+          setPendingApprovalData(
+            mockApproval("eth_signTypedData_v4", {
+              origin: MOCK_TYPED_DATA_REQUEST.origin,
+            }),
+          );
         },
       },
       {
@@ -193,63 +200,63 @@ const GROUPS: Array<{ name: string; items: NavItem[] }> = [
 ];
 
 export function DevToolbar() {
-  const [expanded, setExpanded] = useState(false);
-  const mode = storageMode.value;
+  const [expanded, setExpanded] = createSignal(false);
+  const navigate = useNavigate();
 
   return (
-    <div
-      class="fixed bottom-0 left-1/2 -translate-x-1/2 z-50"
-      style={{ width: 360 }}
-    >
+    <div class="fixed bottom-0 left-1/2 -translate-x-1/2 z-50" style={{ width: "360px" }}>
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setExpanded(!expanded())}
         class="absolute -top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[9px] text-white/60 bg-[#1C1C1E]/80 rounded-t cursor-pointer hover:text-white/90"
       >
-        {expanded ? "▼ Dev" : "▲ Dev"}
+        {expanded() ? "▼ Dev" : "▲ Dev"}
       </button>
 
-      {expanded && (
+      <Show when={expanded()}>
         <div class="bg-[#1C1C1E]/90 backdrop-blur rounded-t-lg px-2 py-1.5 space-y-1">
-          {GROUPS.map((group) => (
-            <div key={group.name} class="flex flex-wrap items-center gap-0.5">
-              <span class="text-[8px] text-white/40 uppercase tracking-wider w-full">
-                {group.name}
-              </span>
-              {group.items.map((item, i) => (
-                <button
-                  type="button"
-                  key={`${item.path}-${i}`}
-                  onClick={() => {
-                    item.setup?.();
-                    walletState.setView(item.view);
-                    route(item.path, true);
-                  }}
-                  class="px-1.5 py-0.5 text-[10px] text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          ))}
+          <For each={GROUPS}>
+            {(group) => (
+              <div class="flex flex-wrap items-center gap-0.5">
+                <span class="text-[8px] text-white/40 uppercase tracking-wider w-full">
+                  {group.name}
+                </span>
+                <For each={group.items}>
+                  {(item) => (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        item.setup?.();
+                        walletState.setView(item.view);
+                        navigate(item.path, { replace: true });
+                      }}
+                      class="px-1.5 py-0.5 text-[10px] text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      {item.label}
+                    </button>
+                  )}
+                </For>
+              </div>
+            )}
+          </For>
           <div class="flex items-center gap-2 pt-0.5 border-t border-white/10">
             <span class="text-[8px] text-white/40 uppercase tracking-wider">Auth</span>
             <button
               type="button"
               onClick={() => {
-                storageMode.value = mode === "keychain" ? "vault" : "keychain";
+                setStorageMode(storageMode() === "keychain" ? "vault" : "keychain");
               }}
               class={`px-1.5 py-0.5 text-[10px] rounded transition-colors cursor-pointer ${
-                mode === "keychain"
+                storageMode() === "keychain"
                   ? "bg-green-500/20 text-green-400"
                   : "bg-amber-500/20 text-amber-400"
               }`}
             >
-              {mode === "keychain" ? "Touch ID" : "Password"}
+              {storageMode() === "keychain" ? "Touch ID" : "Password"}
             </button>
           </div>
         </div>
-      )}
+      </Show>
     </div>
   );
 }

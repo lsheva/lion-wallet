@@ -1,5 +1,5 @@
 import { sendMessage } from "@shared/messages";
-import { useEffect, useState } from "preact/hooks";
+import { createResource, createSignal, Show } from "solid-js";
 import type { Address } from "viem";
 
 interface TokenImageProps {
@@ -12,66 +12,65 @@ interface TokenImageProps {
 
 const imageCache = new Map<string, string | null>();
 
-export function TokenImage({ address, chainId, symbol, color, size }: TokenImageProps) {
-  const [url, setUrl] = useState<string | null | undefined>(() => {
-    if (!address) return undefined;
-    const key = `${chainId}:${address.toLowerCase()}`;
-    return imageCache.has(key) ? imageCache.get(key) : undefined;
+async function fetchTokenImage(source: {
+  address: string;
+  chainId: number;
+}): Promise<string | null> {
+  const key = `${source.chainId}:${source.address.toLowerCase()}`;
+  if (imageCache.has(key)) return imageCache.get(key)!;
+
+  const res = await sendMessage({
+    type: "GET_TOKEN_IMAGE",
+    address: source.address as Address,
+    chainId: source.chainId,
   });
-  const [failed, setFailed] = useState(false);
+  const url = res.ok ? res.data.url : null;
+  imageCache.set(key, url);
+  return url;
+}
 
-  useEffect(() => {
-    if (!address) return;
-    const key = `${chainId}:${address.toLowerCase()}`;
+export function TokenImage(props: TokenImageProps) {
+  const [failed, setFailed] = createSignal(false);
 
-    if (imageCache.has(key)) {
-      setUrl(imageCache.get(key));
-      return;
-    }
-
-    let cancelled = false;
-    sendMessage({
-      type: "GET_TOKEN_IMAGE",
-      address: address as Address,
-      chainId,
-    }).then((res) => {
-      if (cancelled) return;
-      const imageUrl = res.ok ? res.data.url : null;
-      imageCache.set(key, imageUrl);
-      setUrl(imageUrl);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address, chainId]);
-
-  if (url && !failed) {
-    return (
-      <img
-        src={url}
-        alt={symbol}
-        width={size}
-        height={size}
-        loading="lazy"
-        class="rounded-full animate-fade-in"
-        style={{ width: size, height: size }}
-        onError={() => setFailed(true)}
-      />
-    );
-  }
+  const [url] = createResource(
+    () => (props.address ? { address: props.address, chainId: props.chainId } : undefined),
+    fetchTokenImage,
+    {
+      initialValue: (() => {
+        if (!props.address) return null;
+        const key = `${props.chainId}:${props.address.toLowerCase()}`;
+        return imageCache.has(key) ? imageCache.get(key)! : null;
+      })(),
+    },
+  );
 
   return (
-    <div
-      class="rounded-full flex items-center justify-center text-white font-bold shrink-0"
-      style={{
-        backgroundColor: color,
-        width: size,
-        height: size,
-        fontSize: Math.max(size * 0.35, 10),
-      }}
+    <Show
+      when={url() && !failed()}
+      fallback={
+        <div
+          class="rounded-full flex items-center justify-center text-white font-bold shrink-0"
+          style={{
+            "background-color": props.color,
+            width: `${props.size}px`,
+            height: `${props.size}px`,
+            "font-size": `${Math.max(props.size * 0.35, 10)}px`,
+          }}
+        >
+          {props.symbol.slice(0, 1)}
+        </div>
+      }
     >
-      {symbol.slice(0, 1)}
-    </div>
+      <img
+        src={url()!}
+        alt={props.symbol}
+        width={props.size}
+        height={props.size}
+        loading="lazy"
+        class="rounded-full animate-fade-in"
+        style={{ width: `${props.size}px`, height: `${props.size}px` }}
+        onError={() => setFailed(true)}
+      />
+    </Show>
   );
 }

@@ -1,8 +1,8 @@
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { Clipboard, Fingerprint } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { Clipboard, Fingerprint } from "lucide-solid";
+import { createSignal, onMount, Show } from "solid-js";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
@@ -16,27 +16,28 @@ const TABS = [
 ];
 
 export function ImportWallet() {
-  const [tab, setTab] = useState("mnemonic");
-  const [mnemonic, setMnemonic] = useState("");
-  const [privateKey, setPrivateKey] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [keychainAvailable, setKeychainAvailable] = useState<boolean | null>(null);
-  const [preferPassword, setPreferPassword] = useState(false);
+  const navigate = useNavigate();
+  const [tab, setTab] = createSignal("mnemonic");
+  const [mnemonic, setMnemonic] = createSignal("");
+  const [privateKey, setPrivateKey] = createSignal("");
+  const [password, setPassword] = createSignal("");
+  const [error, setError] = createSignal("");
+  const [loading, setLoading] = createSignal(false);
+  const [keychainAvailable, setKeychainAvailable] = createSignal<boolean | null>(null);
+  const [preferPassword, setPreferPassword] = createSignal(false);
 
-  useEffect(() => {
+  onMount(() => {
     sendMessage({ type: "CHECK_KEYCHAIN_AVAILABLE" }).then((res) => {
       setKeychainAvailable(res.ok && res.data?.available === true);
     });
-  }, []);
+  });
 
-  const usePassword = keychainAvailable === false || preferPassword;
+  const usePassword = () => keychainAvailable() === false || preferPassword();
 
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      if (tab === "mnemonic") setMnemonic(text);
+      if (tab() === "mnemonic") setMnemonic(text);
       else setPrivateKey(text);
     } catch {
       setError("Clipboard access denied — please paste manually");
@@ -44,20 +45,20 @@ export function ImportWallet() {
   };
 
   const handleImport = async () => {
-    if (tab === "mnemonic") {
-      const words = mnemonic.trim().split(/\s+/);
+    if (tab() === "mnemonic") {
+      const words = mnemonic().trim().split(/\s+/);
       if (words.length !== 12 && words.length !== 24) {
         setError("Enter a valid 12 or 24 word recovery phrase");
         return;
       }
     } else {
-      if (!/^0x[0-9a-fA-F]{64}$/.test(privateKey.trim())) {
+      if (!/^0x[0-9a-fA-F]{64}$/.test(privateKey().trim())) {
         setError("Enter a valid private key (0x + 64 hex characters)");
         return;
       }
     }
 
-    if (usePassword && password.length < 4) {
+    if (usePassword() && password().length < 4) {
       setError("Password must be at least 4 characters");
       return;
     }
@@ -67,16 +68,16 @@ export function ImportWallet() {
 
     try {
       const res =
-        tab === "mnemonic"
+        tab() === "mnemonic"
           ? await sendMessage({
               type: "IMPORT_WALLET",
-              mnemonic: mnemonic.trim(),
-              ...(usePassword ? { password } : {}),
+              mnemonic: mnemonic().trim(),
+              ...(usePassword() ? { password: password() } : {}),
             })
           : await sendMessage({
               type: "IMPORT_PRIVATE_KEY",
-              privateKey: privateKey.trim() as `0x${string}`,
-              ...(usePassword ? { password } : {}),
+              privateKey: privateKey().trim() as `0x${string}`,
+              ...(usePassword() ? { password: password() } : {}),
             });
 
       if (!res.ok) {
@@ -86,7 +87,7 @@ export function ImportWallet() {
       }
 
       await refreshAll();
-      route("/api-key-setup");
+      navigate("/api-key-setup");
     } catch (e) {
       setError(toErrorMessage(e));
       setLoading(false);
@@ -100,18 +101,42 @@ export function ImportWallet() {
       <div class="flex-1 px-4 pt-4 space-y-4 overflow-y-auto">
         <Tabs
           items={TABS}
-          active={tab}
+          active={tab()}
           onChange={(id) => {
             setTab(id);
             setError("");
           }}
         />
 
-        {tab === "mnemonic" ? (
+        <Show
+          when={tab() === "mnemonic"}
+          fallback={
+            <Input
+              label="Private Key"
+              placeholder="0x..."
+              value={privateKey()}
+              onInput={(v) => {
+                setPrivateKey(v);
+                setError("");
+              }}
+              mono
+              autoFocus
+              rightSlot={
+                <button
+                  type="button"
+                  onClick={handlePaste}
+                  class="text-text-tertiary hover:text-accent transition-colors cursor-pointer"
+                >
+                  <Clipboard size={16} />
+                </button>
+              }
+            />
+          }
+        >
           <Input
             label="Recovery Phrase"
             placeholder="Enter your 12 or 24 word recovery phrase..."
-            value={mnemonic}
+            value={mnemonic()}
             onInput={(v) => {
               setMnemonic(v);
               setError("");
@@ -121,76 +146,52 @@ export function ImportWallet() {
             mono
             autoFocus
           />
-        ) : (
+        </Show>
+
+        <Show when={usePassword()}>
+          <Show when={preferPassword() && keychainAvailable()}>
+            <Banner variant="warning">
+              Touch ID protects your keys with hardware-backed security. A password is less secure.
+            </Banner>
+          </Show>
           <Input
-            label="Private Key"
-            placeholder="0x..."
-            value={privateKey}
+            label="Password"
+            type="password"
+            placeholder="Set a password to encrypt your wallet"
+            value={password()}
             onInput={(v) => {
-              setPrivateKey(v);
+              setPassword(v);
               setError("");
             }}
-            mono
-            autoFocus
-            rightSlot={
-              <button
-                type="button"
-                onClick={handlePaste}
-                class="text-text-tertiary hover:text-accent transition-colors cursor-pointer"
-              >
-                <Clipboard size={16} />
-              </button>
-            }
           />
-        )}
+        </Show>
 
-        {usePassword && (
-          <>
-            {preferPassword && keychainAvailable && (
-              <Banner variant="warning">
-                Touch ID protects your keys with hardware-backed security. A password is less
-                secure.
-              </Banner>
-            )}
-            <Input
-              label="Password"
-              type="password"
-              placeholder="Set a password to encrypt your wallet"
-              value={password}
-              onInput={(v) => {
-                setPassword(v);
-                setError("");
-              }}
-            />
-          </>
-        )}
-
-        {keychainAvailable && (
+        <Show when={keychainAvailable()}>
           <button
             type="button"
             onClick={() => {
-              setPreferPassword(!preferPassword);
+              setPreferPassword(!preferPassword());
               setError("");
             }}
             class="text-xs text-text-tertiary hover:text-accent transition-colors cursor-pointer"
           >
-            {preferPassword ? "Use Touch ID instead" : "Use password instead"}
+            {preferPassword() ? "Use Touch ID instead" : "Use password instead"}
           </button>
-        )}
+        </Show>
 
-        {error && <Banner variant="danger">{error}</Banner>}
+        <Show when={error()}>
+          <Banner variant="danger">{error()}</Banner>
+        </Show>
       </div>
 
       <div class="px-4 py-4">
-        <Button onClick={handleImport} size="lg" loading={loading}>
-          {!usePassword ? (
+        <Button onClick={handleImport} size="lg" loading={loading()}>
+          <Show when={!usePassword()} fallback="Import">
             <span class="inline-flex items-center gap-1.5">
               <Fingerprint size={18} />
               Import
             </span>
-          ) : (
-            "Import"
-          )}
+          </Show>
         </Button>
       </div>
     </div>

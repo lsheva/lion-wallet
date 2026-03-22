@@ -215,9 +215,19 @@ export const MOCK_ACTIVITY: Array<{
   method: string;
   fn: string;
   block: number;
-  transfers: Array<{ token: string; symbol: string; amount: string; decimals: number; dir: "in" | "out" }>;
+  transfers: Array<{
+    token: string;
+    symbol: string;
+    amount: string;
+    decimals: number;
+    dir: "in" | "out";
+  }>;
   decoded: DecodedCall | null;
-  events: Array<{ name: string; args: Array<{ name: string; type: string; value: string }>; contract: string }>;
+  events: Array<{
+    name: string;
+    args: Array<{ name: string; type: string; value: string }>;
+    contract: string;
+  }>;
 }> = [
   {
     hash: "0xabc123def456789012345678901234567890123456789012345678901234abcd",
@@ -229,9 +239,7 @@ export const MOCK_ACTIVITY: Array<{
     method: "0x5ae401dc",
     fn: "",
     block: 19500000,
-    transfers: [
-      { token: "USDC", symbol: "USDC", amount: "1180000000", decimals: 6, dir: "in" },
-    ],
+    transfers: [{ token: "USDC", symbol: "USDC", amount: "1180000000", decimals: 6, dir: "in" }],
     decoded: {
       contractName: "SwapRouter02",
       functionName: "exactInputSingle",
@@ -266,9 +274,7 @@ export const MOCK_ACTIVITY: Array<{
     method: "0xa9059cbb",
     fn: "",
     block: 19498000,
-    transfers: [
-      { token: "USDC", symbol: "USDC", amount: "500000000", decimals: 6, dir: "out" },
-    ],
+    transfers: [{ token: "USDC", symbol: "USDC", amount: "500000000", decimals: 6, dir: "out" }],
     decoded: {
       functionName: "transfer",
       args: [
@@ -291,9 +297,7 @@ export const MOCK_ACTIVITY: Array<{
     transfers: [],
     decoded: {
       functionName: "swapExactETHForTokens",
-      args: [
-        { name: "amountOutMin", type: "uint256", value: "0" },
-      ],
+      args: [{ name: "amountOutMin", type: "uint256", value: "0" }],
     },
     events: [],
   },

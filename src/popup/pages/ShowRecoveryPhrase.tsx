@@ -1,6 +1,6 @@
 import { sendMessage } from "@shared/messages";
-import { Eye, EyeOff, Fingerprint } from "lucide-preact";
-import { useState } from "preact/hooks";
+import { Eye, EyeOff, Fingerprint } from "lucide-solid";
+import { createSignal, For, Show } from "solid-js";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { CopyButton } from "../components/CopyButton";
@@ -9,17 +9,16 @@ import { Input } from "../components/Input";
 import { walletState } from "../store";
 
 export function ShowRecoveryPhrase() {
-  const [password, setPassword] = useState("");
-  const [revealed, setRevealed] = useState(false);
-  const [blurred, setBlurred] = useState(true);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [words, setWords] = useState<string[]>([]);
-  const storageMode = walletState.storageMode.value;
-  const isVault = storageMode === "vault";
+  const [password, setPassword] = createSignal("");
+  const [revealed, setRevealed] = createSignal(false);
+  const [blurred, setBlurred] = createSignal(true);
+  const [error, setError] = createSignal("");
+  const [loading, setLoading] = createSignal(false);
+  const [words, setWords] = createSignal<string[]>([]);
+  const isVault = () => walletState.storageMode() === "vault";
 
   const handleReveal = async () => {
-    if (isVault && password.length < 4) {
+    if (isVault() && password().length < 4) {
       setError("Incorrect password");
       return;
     }
@@ -28,7 +27,7 @@ export function ShowRecoveryPhrase() {
 
     const res = await sendMessage({
       type: "EXPORT_MNEMONIC",
-      ...(isVault ? { password } : {}),
+      ...(isVault() ? { password: password() } : {}),
     });
 
     setLoading(false);
@@ -51,63 +50,70 @@ export function ShowRecoveryPhrase() {
           Never share your recovery phrase. Anyone with these words can steal your funds.
         </Banner>
 
-        {!revealed ? (
-          <>
-            {isVault && (
-              <Input
-                label="Enter password to continue"
-                type="password"
-                placeholder="Password"
-                value={password}
-                onInput={(v) => {
-                  setPassword(v);
-                  setError("");
-                }}
-                error={error || undefined}
-                autoFocus
-              />
-            )}
-            {!isVault && error && <Banner variant="danger">{error}</Banner>}
-            <Button onClick={handleReveal} size="lg" loading={loading}>
-              {isVault ? (
-                "Reveal Recovery Phrase"
-              ) : (
-                <span class="inline-flex items-center gap-1.5">
-                  <Fingerprint size={16} />
+        <Show
+          when={revealed()}
+          fallback={
+            <>
+              <Show when={isVault()}>
+                <Input
+                  label="Enter password to continue"
+                  type="password"
+                  placeholder="Password"
+                  value={password()}
+                  onInput={(v) => {
+                    setPassword(v);
+                    setError("");
+                  }}
+                  error={error() || undefined}
+                  autoFocus
+                />
+              </Show>
+              <Show when={!isVault() && error()}>
+                <Banner variant="danger">{error()}</Banner>
+              </Show>
+              <Button onClick={handleReveal} size="lg" loading={loading()}>
+                <Show
+                  when={isVault()}
+                  fallback={
+                    <span class="inline-flex items-center gap-1.5">
+                      <Fingerprint size={16} />
+                      Reveal Recovery Phrase
+                    </span>
+                  }
+                >
                   Reveal Recovery Phrase
-                </span>
-              )}
-            </Button>
-          </>
-        ) : (
+                </Show>
+              </Button>
+            </>
+          }
+        >
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <button
                 type="button"
-                onClick={() => setBlurred(!blurred)}
+                onClick={() => setBlurred(!blurred())}
                 class="flex items-center gap-1.5 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
               >
-                {blurred ? <Eye size={14} /> : <EyeOff size={14} />}
-                {blurred ? "Show words" : "Hide words"}
+                {blurred() ? <Eye size={14} /> : <EyeOff size={14} />}
+                {blurred() ? "Show words" : "Hide words"}
               </button>
-              <CopyButton text={words.join(" ")} size={14} />
+              <CopyButton text={words().join(" ")} size={14} />
             </div>
 
             <div
-              class={`grid grid-cols-3 gap-2 transition-all duration-200 ${blurred ? "blur-md select-none" : ""}`}
+              class={`grid grid-cols-3 gap-2 transition-all duration-200 ${blurred() ? "blur-md select-none" : ""}`}
             >
-              {words.map((word, i) => (
-                <div
-                  key={i}
-                  class="flex items-center gap-1.5 bg-surface rounded-[var(--radius-chip)] px-2.5 py-2 shadow-sm"
-                >
-                  <span class="text-xs text-text-tertiary w-4 text-right">{i + 1}</span>
-                  <span class="font-mono text-sm text-text-primary">{word}</span>
-                </div>
-              ))}
+              <For each={words()}>
+                {(word, i) => (
+                  <div class="flex items-center gap-1.5 bg-surface rounded-[var(--radius-chip)] px-2.5 py-2 shadow-sm">
+                    <span class="text-xs text-text-tertiary w-4 text-right">{i() + 1}</span>
+                    <span class="font-mono text-sm text-text-primary">{word}</span>
+                  </div>
+                )}
+              </For>
             </div>
           </div>
-        )}
+        </Show>
       </div>
     </div>
   );

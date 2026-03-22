@@ -1,7 +1,7 @@
 import { formatUsd } from "@shared/format";
-import { ArrowDownLeft, ArrowUpRight, Plus, Settings } from "lucide-preact";
-import { useEffect, useRef, useState } from "preact/hooks";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { ArrowDownLeft, ArrowUpRight, Plus, Settings } from "lucide-solid";
+import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { AccountSwitcher } from "../components/AccountSwitcher";
 import { ActivitySection } from "../components/ActivitySection";
 import { NetworkBadge } from "../components/NetworkBadge";
@@ -25,19 +25,21 @@ function balanceUsdTotal(ethBalance: string, nativeUsdPerUnit: number | null): s
 }
 
 export function Home() {
-  const account = walletState.activeAccount.value;
-  const network = walletState.activeNetwork.value;
-  const [showAddToken, setShowAddToken] = useState(false);
-  const usdTotal = balanceUsdTotal(walletState.ethBalance.value, walletState.nativeUsdPrice.value);
-  const lastFetchRef = useRef(0);
+  const navigate = useNavigate();
+  const [showAddToken, setShowAddToken] = createSignal(false);
+  let lastFetch = 0;
 
-  useEffect(() => {
+  const usdTotal = createMemo(() =>
+    balanceUsdTotal(walletState.ethBalance(), walletState.nativeUsdPrice()),
+  );
+
+  onMount(() => {
     const now = Date.now();
-    if (now - lastFetchRef.current < STALE_MS) return;
-    lastFetchRef.current = now;
+    if (now - lastFetch < STALE_MS) return;
+    lastFetch = now;
     refreshAll();
     fetchActivity().catch(() => {});
-  }, []);
+  });
 
   return (
     <div class="flex flex-col h-[600px]">
@@ -46,7 +48,7 @@ export function Home() {
         <NetworkBadge />
         <button
           type="button"
-          onClick={() => route("/settings", true)}
+          onClick={() => navigate("/settings", { replace: true })}
           aria-label="Settings"
           class="p-1.5 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
         >
@@ -56,7 +58,7 @@ export function Home() {
 
       {/* Outside scroll so account menu stacks above list; avoids overflow clip */}
       <div class="shrink-0 px-4 pt-3 pb-3">
-        <AccountSwitcher usdTotal={usdTotal} />
+        <AccountSwitcher usdTotal={usdTotal()} />
       </div>
 
       <div class="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-4">
@@ -64,7 +66,7 @@ export function Home() {
         <div class="flex gap-3 shrink-0">
           <button
             type="button"
-            onClick={() => route("/send", true)}
+            onClick={() => navigate("/send", { replace: true })}
             class="flex-1 flex items-center justify-center py-2.5 bg-accent text-accent-foreground rounded-full font-medium text-sm hover:bg-accent-hover transition-colors cursor-pointer active:scale-[0.97]"
           >
             <span class="inline-flex items-center gap-1.5 -translate-x-1">
@@ -74,7 +76,7 @@ export function Home() {
           </button>
           <button
             type="button"
-            onClick={() => route("/receive", true)}
+            onClick={() => navigate("/receive", { replace: true })}
             class="flex-1 flex items-center justify-center py-2.5 bg-surface text-text-primary rounded-full font-medium text-sm shadow-sm hover:bg-divider transition-colors cursor-pointer active:scale-[0.97]"
           >
             <span class="inline-flex items-center gap-1.5 -translate-x-1">
@@ -100,26 +102,31 @@ export function Home() {
             </button>
           </div>
           <div class="divide-y divide-divider">
-            {walletState.tokens.value.length > 0 ? (
-              walletState.tokens.value.map((token) => (
-                <TokenRow key={token.symbol} token={token} chainId={network.id} />
-              ))
-            ) : (
-              <>
-                <TokenRowSkeleton />
-                <TokenRowSkeleton />
-                <TokenRowSkeleton />
-              </>
-            )}
+            <Show
+              when={walletState.tokens().length > 0}
+              fallback={
+                <>
+                  <TokenRowSkeleton />
+                  <TokenRowSkeleton />
+                  <TokenRowSkeleton />
+                </>
+              }
+            >
+              <For each={walletState.tokens()}>
+                {(token) => <TokenRow token={token} chainId={walletState.activeNetwork().id} />}
+              </For>
+            </Show>
           </div>
         </div>
 
         {/* Activity */}
-        <ActivitySection account={account} />
+        <ActivitySection account={walletState.activeAccount()} />
       </div>
 
-      {showNetworkSelector.value && <NetworkSelector />}
-      <AddToken open={showAddToken} onClose={() => setShowAddToken(false)} />
+      <Show when={showNetworkSelector()}>
+        <NetworkSelector />
+      </Show>
+      <AddToken open={showAddToken()} onClose={() => setShowAddToken(false)} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { mergeProps } from "solid-js";
 import { AVATAR_PALETTE } from "../theme";
 
 interface IdenticonProps {
@@ -41,6 +42,7 @@ function marbleSvg(name: string, sz: number): string {
   return `<svg viewBox="0 0 ${S} ${S}" fill="none" xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}"><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="${S}" height="${S}"><rect width="${S}" height="${S}" rx="${S / 2}" fill="#fff"/></mask><g mask="url(#m)"><rect width="${S}" height="${S}" fill="${a.color}"/><filter id="${fId}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB" x="0" y="0" width="${S}" height="${S}"><feGaussianBlur stdDeviation="7" edgeMode="duplicate" result="blur"/></filter><g filter="url(#${fId})">${ellipse(a)}${ellipse(b)}${ellipse(c)}</g></g></svg>`;
 }
 
-export function Identicon({ address, size = 40 }: IdenticonProps) {
-  return <div dangerouslySetInnerHTML={{ __html: marbleSvg(address, size) }} />;
+export function Identicon(rawProps: IdenticonProps) {
+  const props = mergeProps({ size: 40 }, rawProps);
+  return <div innerHTML={marbleSvg(props.address, props.size)} />;
 }

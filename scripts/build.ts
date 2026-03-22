@@ -1,5 +1,5 @@
-import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { build, type RolldownOutput } from "rolldown";
 import { type Rollup, build as viteBuild } from "vite";
 import { analyzeRolldown, analyzeVite, formatReport, formatSummaryLine } from "./bundle-sizes.ts";
@@ -75,10 +75,7 @@ const [bgResult, contentResult, inpageResult] = await Promise.all([
   }),
 ]);
 
-cpSync(
-  isChrome ? "src/manifest.chrome.json" : "src/manifest.json",
-  "dist/manifest.json",
-);
+cpSync(isChrome ? "src/manifest.chrome.json" : "src/manifest.json", "dist/manifest.json");
 
 if (!existsSync("src/icons/generated")) {
   await import("./icons.ts");

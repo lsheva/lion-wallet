@@ -1,13 +1,13 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import preact from "@preact/preset-vite";
+import solid from "vite-plugin-solid";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [preact(), tailwindcss()],
+  plugins: [solid(), tailwindcss()],
   root: "src/popup",
   resolve: {
     alias: {

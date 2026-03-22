@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { createEffect, createSignal, on, onCleanup } from "solid-js";
 import { closePopup, pendingQueueSize, routeToNextApprovalOrClose } from "../App";
 
 /**
@@ -7,33 +7,34 @@ import { closePopup, pendingQueueSize, routeToNextApprovalOrClose } from "../App
  */
 export function useAutoCloseQueue(opts: { skip?: boolean } = {}) {
   const isDev = import.meta.env.DEV;
-  const queueSize = pendingQueueSize.value;
-  const [autoCloseIn, setAutoCloseIn] = useState<number | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const [autoCloseIn, setAutoCloseIn] = createSignal<number | null>(null);
+  let timer: ReturnType<typeof setInterval> | undefined;
 
-  useEffect(() => {
-    if (isDev || opts.skip || queueSize <= 0) return;
-    setAutoCloseIn(5);
-    let seconds = 5;
-    timerRef.current = setInterval(() => {
-      seconds--;
-      setAutoCloseIn(seconds);
-      if (seconds <= 0) {
-        clearInterval(timerRef.current);
-        routeToNextApprovalOrClose(closePopup);
-      }
-    }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [isDev, opts.skip, queueSize]);
+  createEffect(
+    on(pendingQueueSize, (qSize) => {
+      if (isDev || opts.skip || qSize <= 0) return;
+      setAutoCloseIn(5);
+      let seconds = 5;
+      timer = setInterval(() => {
+        seconds--;
+        setAutoCloseIn(seconds);
+        if (seconds <= 0) {
+          clearInterval(timer);
+          routeToNextApprovalOrClose(closePopup);
+        }
+      }, 1000);
+      onCleanup(() => clearInterval(timer));
+    }),
+  );
 
   const dismiss = () => {
-    clearInterval(timerRef.current);
-    if (queueSize > 0) {
+    clearInterval(timer);
+    if (pendingQueueSize() > 0) {
       routeToNextApprovalOrClose(closePopup);
     } else {
       closePopup();
     }
   };
 
-  return { autoCloseIn, queueSize, dismiss };
+  return { autoCloseIn, queueSize: pendingQueueSize, dismiss };
 }

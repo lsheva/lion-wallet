@@ -1,3 +1,5 @@
+import { For, mergeProps } from "solid-js";
+
 interface SkeletonProps {
   variant?: "text" | "circle" | "card";
   width?: string | number;
@@ -5,32 +7,32 @@ interface SkeletonProps {
   class?: string;
 }
 
-export function Skeleton({
-  variant = "text",
-  width,
-  height,
-  class: cls = "",
-}: SkeletonProps) {
-  const style: Record<string, string | number> = {};
-  if (width) style.width = typeof width === "number" ? `${width}px` : width;
-  if (height) style.height = typeof height === "number" ? `${height}px` : height;
+export function Skeleton(rawProps: SkeletonProps) {
+  const props = mergeProps({ variant: "text" as const, class: "" }, rawProps);
 
-  const base = "animate-shimmer";
-  const shape =
-    variant === "circle"
+  const style = () => {
+    const s: Record<string, string | number> = {};
+    if (props.width) s.width = typeof props.width === "number" ? `${props.width}px` : props.width;
+    if (props.height)
+      s.height = typeof props.height === "number" ? `${props.height}px` : props.height;
+    return s;
+  };
+
+  const shape = () =>
+    props.variant === "circle"
       ? "rounded-full"
-      : variant === "card"
+      : props.variant === "card"
         ? "rounded-[var(--radius-card)] w-full"
         : "rounded-md";
 
-  const defaults =
-    variant === "text" && !height
+  const defaults = () =>
+    props.variant === "text" && !props.height
       ? "h-3.5"
-      : variant === "circle" && !width
+      : props.variant === "circle" && !props.width
         ? "w-8 h-8"
         : "";
 
-  return <div class={`${base} ${shape} ${defaults} ${cls}`} style={style} />;
+  return <div class={`animate-shimmer ${shape()} ${defaults()} ${props.class}`} style={style()} />;
 }
 
 export function TokenRowSkeleton() {
@@ -69,9 +71,7 @@ export function BalanceSkeleton() {
 export function GasPresetsSkeleton() {
   return (
     <div class="grid grid-cols-3 gap-2">
-      {[0, 1, 2].map((i) => (
-        <Skeleton key={i} variant="card" height={56} />
-      ))}
+      <For each={[0, 1, 2]}>{() => <Skeleton variant="card" height={56} />}</For>
     </div>
   );
 }

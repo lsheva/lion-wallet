@@ -1,19 +1,21 @@
-import { ArrowLeft } from "lucide-preact";
-import type { ComponentChildren } from "preact";
-import { route } from "preact-router";
+import { useNavigate } from "@solidjs/router";
+import { ArrowLeft } from "lucide-solid";
+import { type JSX, Show } from "solid-js";
 
 interface HeaderProps {
   title: string;
   onBack?: (() => void) | string;
-  right?: ComponentChildren;
+  right?: JSX.Element;
 }
 
-export function Header({ title, onBack, right }: HeaderProps) {
+export function Header(props: HeaderProps) {
+  const navigate = useNavigate();
+
   const handleBack = () => {
-    if (typeof onBack === "string") {
-      route(onBack, true);
-    } else if (onBack) {
-      onBack();
+    if (typeof props.onBack === "string") {
+      navigate(props.onBack, { replace: true });
+    } else if (props.onBack) {
+      props.onBack();
     } else {
       history.back();
     }
@@ -22,7 +24,7 @@ export function Header({ title, onBack, right }: HeaderProps) {
   return (
     <div class="flex items-center h-12 px-4 bg-base sticky top-0 z-10">
       <div class="w-10">
-        {onBack !== undefined && (
+        <Show when={props.onBack !== undefined}>
           <button
             type="button"
             onClick={handleBack}
@@ -31,10 +33,12 @@ export function Header({ title, onBack, right }: HeaderProps) {
           >
             <ArrowLeft size={20} />
           </button>
-        )}
+        </Show>
       </div>
-      <h1 class="flex-1 text-center text-base font-semibold text-text-primary truncate">{title}</h1>
-      <div class="w-10 flex justify-end">{right}</div>
+      <h1 class="flex-1 text-center text-base font-semibold text-text-primary truncate">
+        {props.title}
+      </h1>
+      <div class="w-10 flex justify-end">{props.right}</div>
     </div>
   );
 }
