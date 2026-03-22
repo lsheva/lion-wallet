@@ -17,6 +17,43 @@ export type { ActivityItem, TokenInfo as Token };
 
 const DEFAULT_COLOR = "#8E8E93";
 
+const POPULAR_CHAIN_IDS = new Set([
+  1,     // Ethereum
+  8453,  // Base
+  42161, // Arbitrum One
+  137,   // Polygon
+  10,    // OP Mainnet
+  56,    // BNB Smart Chain
+  43114, // Avalanche
+]);
+
+const NETWORK_IDS_KEY = "userNetworkIds";
+
+function loadSavedNetworkIds(): number[] | null {
+  try {
+    const raw = localStorage.getItem(NETWORK_IDS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveNetworkIds(chains: ChainMeta[]): void {
+  localStorage.setItem(NETWORK_IDS_KEY, JSON.stringify(chains.map((c) => c.id)));
+}
+
+function buildInitialNetworks(): ChainMeta[] {
+  const saved = loadSavedNetworkIds();
+  if (saved) {
+    const byId = new Map(CHAINS.map((c) => [c.id, c]));
+    const known = saved.map((id) => byId.get(id)).filter(Boolean) as ChainMeta[];
+    return known.length > 0 ? known : CHAINS.filter((c) => POPULAR_CHAIN_IDS.has(c.id));
+  }
+  return CHAINS.filter((c) => POPULAR_CHAIN_IDS.has(c.id));
+}
+
+export const ALL_CHAINS = CHAINS;
+
 export const [accounts, setAccounts] = createSignal<SerializedAccount[]>([]);
 export const [activeAccountIndex, setActiveAccountIndex] = createSignal(0);
 export const [activeNetworkId, setActiveNetworkId] = createSignal(1);
@@ -25,8 +62,13 @@ export const [ethBalance, setEthBalance] = createSignal("0");
 /** Per-unit native token USD price; `0` on testnets; `null` if unavailable. */
 export const [nativeUsdPrice, setNativeUsdPrice] = createSignal<number | null>(null);
 export const [tokens, setTokens] = createSignal<TokenInfo[]>([]);
-export const [networks, setNetworks] = createSignal<ChainMeta[]>(CHAINS);
+export const [networks, setRawNetworks] = createSignal<ChainMeta[]>(buildInitialNetworks());
 export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">("vault");
+
+export function setNetworks(chains: ChainMeta[]): void {
+  setRawNetworks(chains);
+  saveNetworkIds(chains);
+}
 
 const derived = createRoot(() => {
   const activeAccount = createMemo(
@@ -92,37 +134,23 @@ export async function fetchBalance(): Promise<void> {
   const chainId = untrack(activeNetworkId);
   const address = account.address as Address;
 
-  const res = await sendMessage({
-    type: "GET_BALANCE",
-    address,
-    chainId,
-  });
-  if (res.ok && res.data) {
-    batch(() => {
-      setEthBalance(res.data.balance);
-      setNativeUsdPrice(res.data.nativeUsdPrice);
-      setTokens([buildNativeToken()]);
-    });
+  const [balRes, discoveredRes] = await Promise.all([
+    sendMessage({ type: "GET_BALANCE", address, chainId }),
+    sendMessage({ type: "GET_DISCOVERED_TOKENS", chainId, walletAddress: address }).catch(() => null),
+  ]);
+
+  if (balRes.ok && balRes.data) {
+    setEthBalance(balRes.data.balance);
+    setNativeUsdPrice(balRes.data.nativeUsdPrice);
   }
 
-  loadDiscoveredTokens(chainId, address);
-
-  sendMessage({ type: "SCAN_TOKENS", chainId, address }).catch(() => {});
-}
-
-async function loadDiscoveredTokens(chainId: number, walletAddress?: Address): Promise<void> {
-  const addr = walletAddress ?? (untrack(activeAccount).address as Address);
-  try {
-    const res = await sendMessage({ type: "GET_DISCOVERED_TOKENS", chainId, walletAddress: addr });
-    if (!res.ok || !res.data?.tokens?.length) return;
-
-    const discovered: StoredToken[] = res.data.tokens;
+  let erc20Tokens: TokenInfo[] = [];
+  if (discoveredRes?.ok && discoveredRes.data?.tokens?.length) {
+    const discovered: StoredToken[] = discoveredRes.data.tokens;
     const tokenAddresses = discovered.map((t) => t.address as Address);
-
-    const balRes = await sendMessage({ type: "GET_TOKEN_BALANCES", tokens: tokenAddresses });
-    const balances: Record<string, string> = balRes.ok && balRes.data ? balRes.data.balances : {};
-
-    const erc20Tokens: TokenInfo[] = discovered.map((t) => ({
+    const tokBalRes = await sendMessage({ type: "GET_TOKEN_BALANCES", tokens: tokenAddresses });
+    const balances: Record<string, string> = tokBalRes.ok && tokBalRes.data ? tokBalRes.data.balances : {};
+    erc20Tokens = discovered.map((t) => ({
       symbol: t.symbol,
       name: t.name,
       address: t.address as Address,
@@ -131,14 +159,11 @@ async function loadDiscoveredTokens(chainId: number, walletAddress?: Address): P
       color: chainColor(chainId),
       source: t.source,
     }));
-
-    batch(() => {
-      const native = untrack(tokens).find((t) => !t.address);
-      setTokens([...(native ? [native] : [buildNativeToken()]), ...erc20Tokens]);
-    });
-  } catch {
-    /* non-critical — keep native-only list */
   }
+
+  setTokens([buildNativeToken(), ...erc20Tokens]);
+
+  sendMessage({ type: "SCAN_TOKENS", chainId, address }).catch(() => {});
 }
 
 function formatBalance(raw: string, decimals: number): string {

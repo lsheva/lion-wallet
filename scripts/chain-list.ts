@@ -96,5 +96,5 @@ export default [
   { chain: c.inkSepolia, icon: "ink" },
   { chain: c.hemiSepolia, icon: "hemi" },
   // ── Local dev ──
-  { chain: c.hardhat },
+  { chain: { ...c.hardhat, testnet: true } },
 ] satisfies { chain: import("viem").Chain; color?: string; icon?: string; alchemy?: string }[];

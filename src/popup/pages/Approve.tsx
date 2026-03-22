@@ -11,7 +11,6 @@ import {
   routeToNextApprovalOrClose,
   setPendingApprovalData,
 } from "../App";
-import { DevApprove } from "../components/approve/DevApprove";
 import { SignContent } from "../components/approve/SignContent";
 import { TxContent } from "../components/approve/TxContent";
 import { BottomActions } from "../components/BottomActions";
@@ -182,10 +181,7 @@ export function Approve() {
             </div>
           </div>
         </Match>
-        <Match when={isDev}>
-          <DevApprove />
-        </Match>
-        <Match when={!loading() && !isDev}>
+        <Match when={!loading()}>
           <Show
             when={data()}
             fallback={
