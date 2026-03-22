@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
     inputs:
       bump:
@@ -46,27 +47,46 @@ jobs:
       - name: Resolve version tag
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=v$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+          TAG="v$(node -p 'require(\"./package.json\").version')"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          # On push-to-main, check if this version is already tagged
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            if git rev-parse "$TAG" >/dev/null 2>&1; then
+              echo "Tag $TAG already exists, skipping release"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "New version detected, creating tag $TAG"
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git tag "$TAG"
+              git push origin "$TAG"
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+            fi
           else
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Write Chrome extension signing key
+        if: steps.version.outputs.skip != 'true'
         run: echo "$CHROME_EXTENSION_PEM" > chrome-extension.pem
         env:
           CHROME_EXTENSION_PEM: ${{ secrets.CHROME_EXTENSION_PEM }}
 
       - name: Generate Chrome extension ID and patch manifests
+        if: steps.version.outputs.skip != 'true'
         run: bash scripts/gen-chrome-key.sh
 
       - name: Build extension
+        if: steps.version.outputs.skip != 'true'
         run: pnpm build:ext
 
       - name: Build Chrome extension
+        if: steps.version.outputs.skip != 'true'
         run: pnpm build:chrome:ext
 
       - name: Build Safari app (unsigned)
+        if: steps.version.outputs.skip != 'true'
         run: |
           xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj \
             -scheme LionWallet \
@@ -76,12 +96,14 @@ jobs:
             -derivedDataPath build/safari
 
       - name: Package installers
+        if: steps.version.outputs.skip != 'true'
         run: |
           bash scripts/build-installer.sh \
             --package-only \
             --app-dir=build/safari/Build/Products/Release/LionWallet.app
 
       - name: Create GitHub Release
+        if: steps.version.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
