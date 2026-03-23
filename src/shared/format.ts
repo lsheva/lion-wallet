@@ -15,6 +15,9 @@ export interface TokenValueDisplay {
 }
 
 export function getTokenValueDisplay(value: string | number): TokenValueDisplay {
+  if (typeof value === "string" && !/\d/.test(value)) {
+    return { pieces: [{ kind: "text", text: value || "0" }] };
+  }
   const num = typeof value === "string" ? parseFloat(value.replace(/,/g, "")) : value;
 
   if (Number.isNaN(num) || num === 0) {

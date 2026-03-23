@@ -9,7 +9,7 @@ import type {
   TokenInfo,
 } from "@shared/types";
 import { batch, createMemo, createRoot, createSignal, untrack } from "solid-js";
-import type { Address } from "viem";
+import { type Address, zeroAddress } from "viem";
 import { formatUnits } from "viem/utils";
 import { CHAIN_COLOR_BY_ID } from "./chain-ui.generated";
 
@@ -18,12 +18,12 @@ export type { ActivityItem, TokenInfo as Token };
 const DEFAULT_COLOR = "#8E8E93";
 
 const POPULAR_CHAIN_IDS = new Set([
-  1,     // Ethereum
-  8453,  // Base
+  1, // Ethereum
+  8453, // Base
   42161, // Arbitrum One
-  137,   // Polygon
-  10,    // OP Mainnet
-  56,    // BNB Smart Chain
+  137, // Polygon
+  10, // OP Mainnet
+  56, // BNB Smart Chain
   43114, // Avalanche
 ]);
 
@@ -130,13 +130,40 @@ export async function fetchState(): Promise<void> {
 
 export async function fetchBalance(): Promise<void> {
   const account = untrack(activeAccount);
-  if (!account.address || account.address === "0x0000000000000000000000000000000000000000") return;
+  if (!account.address || account.address === zeroAddress) return;
   const chainId = untrack(activeNetworkId);
   const address = account.address as Address;
 
-  const [balRes, discoveredRes] = await Promise.all([
+  // Phase 1: show cached token list immediately (storage read, no RPC)
+  const discoveredRes = await sendMessage({
+    type: "GET_DISCOVERED_TOKENS",
+    chainId,
+    walletAddress: address,
+  }).catch(() => null);
+
+  const discovered: StoredToken[] =
+    discoveredRes?.ok && discoveredRes.data?.tokens?.length ? discoveredRes.data.tokens : [];
+
+  if (discovered.length > 0) {
+    const cached: TokenInfo[] = discovered.map((t) => ({
+      symbol: t.symbol,
+      name: t.name,
+      address: t.address as Address,
+      decimals: t.decimals,
+      balance: t.lastBalance ? formatBalance(t.lastBalance, t.decimals) : "\u2014",
+      color: chainColor(chainId),
+      source: t.source,
+    }));
+    setTokens([buildNativeToken(), ...cached]);
+  }
+
+  // Phase 2: fetch real balances (native + ERC-20 in parallel)
+  const tokenAddresses = discovered.map((t) => t.address as Address);
+  const [balRes, tokBalRes] = await Promise.all([
     sendMessage({ type: "GET_BALANCE", address, chainId }),
-    sendMessage({ type: "GET_DISCOVERED_TOKENS", chainId, walletAddress: address }).catch(() => null),
+    tokenAddresses.length > 0
+      ? sendMessage({ type: "GET_TOKEN_BALANCES", tokens: tokenAddresses })
+      : null,
   ]);
 
   if (balRes.ok && balRes.data) {
@@ -144,26 +171,55 @@ export async function fetchBalance(): Promise<void> {
     setNativeUsdPrice(balRes.data.nativeUsdPrice);
   }
 
-  let erc20Tokens: TokenInfo[] = [];
-  if (discoveredRes?.ok && discoveredRes.data?.tokens?.length) {
-    const discovered: StoredToken[] = discoveredRes.data.tokens;
-    const tokenAddresses = discovered.map((t) => t.address as Address);
-    const tokBalRes = await sendMessage({ type: "GET_TOKEN_BALANCES", tokens: tokenAddresses });
-    const balances: Record<string, string> = tokBalRes.ok && tokBalRes.data ? tokBalRes.data.balances : {};
-    erc20Tokens = discovered.map((t) => ({
-      symbol: t.symbol,
-      name: t.name,
-      address: t.address as Address,
-      decimals: t.decimals,
-      balance: formatBalance(balances[t.address as Address] ?? "0", t.decimals),
-      color: chainColor(chainId),
-      source: t.source,
-    }));
-  }
+  const balances: Record<string, string> =
+    tokBalRes?.ok && tokBalRes.data ? tokBalRes.data.balances : {};
+  const erc20Tokens: TokenInfo[] = discovered.map((t) => ({
+    symbol: t.symbol,
+    name: t.name,
+    address: t.address as Address,
+    decimals: t.decimals,
+    balance: formatBalance(balances[t.address as Address] ?? "0", t.decimals),
+    color: chainColor(chainId),
+    source: t.source,
+  }));
 
   setTokens([buildNativeToken(), ...erc20Tokens]);
 
-  sendMessage({ type: "SCAN_TOKENS", chainId, address }).catch(() => {});
+  // Phase 3: scan for new tokens; if any found, fetch their balances and append
+  try {
+    const scanRes = await sendMessage({ type: "SCAN_TOKENS", chainId, address });
+    if (scanRes.ok && scanRes.data?.found > 0) {
+      const freshRes = await sendMessage({
+        type: "GET_DISCOVERED_TOKENS",
+        chainId,
+        walletAddress: address,
+      }).catch(() => null);
+      if (freshRes?.ok && freshRes.data?.tokens?.length) {
+        const existingAddrs = new Set(discovered.map((d) => d.address));
+        const newTokens: StoredToken[] = freshRes.data.tokens.filter(
+          (t: StoredToken) => !existingAddrs.has(t.address),
+        );
+        if (newTokens.length > 0) {
+          const newAddresses = newTokens.map((t) => t.address as Address);
+          const newBalRes = await sendMessage({ type: "GET_TOKEN_BALANCES", tokens: newAddresses });
+          const newBals: Record<string, string> =
+            newBalRes.ok && newBalRes.data ? newBalRes.data.balances : {};
+          const additions: TokenInfo[] = newTokens.map((t) => ({
+            symbol: t.symbol,
+            name: t.name,
+            address: t.address as Address,
+            decimals: t.decimals,
+            balance: formatBalance(newBals[t.address as Address] ?? "0", t.decimals),
+            color: chainColor(chainId),
+            source: t.source,
+          }));
+          setTokens((prev) => [...prev, ...additions]);
+        }
+      }
+    }
+  } catch {
+    /* non-critical */
+  }
 }
 
 function formatBalance(raw: string, decimals: number): string {
@@ -184,7 +240,12 @@ export async function hideToken(tokenAddress: Address): Promise<void> {
   const chainId = untrack(activeNetworkId);
   const walletAddress = untrack(activeAccount).address as Address;
   try {
-    await sendMessage({ type: "HIDE_DISCOVERED_TOKEN", chainId, walletAddress, address: tokenAddress });
+    await sendMessage({
+      type: "HIDE_DISCOVERED_TOKEN",
+      chainId,
+      walletAddress,
+      address: tokenAddress,
+    });
     setTokens(untrack(tokens).filter((t) => t.address !== tokenAddress));
   } catch {
     /* non-critical */
@@ -252,7 +313,10 @@ export const walletState = {
       setActivity([]);
       setActivitySource(null);
       setActivityHasMore(false);
+      setEthBalance("\u2014");
+      setNativeUsdPrice(null);
     });
+    setTokens([buildNativeToken()]);
     try {
       await sendMessage({ type: "SWITCH_NETWORK", chainId: id });
     } catch (e) {

@@ -127,6 +127,23 @@ export async function unhideToken(
   }
 }
 
+export async function updateTokenBalances(
+  chainId: number,
+  walletAddress: string,
+  balances: Record<string, string>,
+): Promise<void> {
+  const data = await store.load();
+  let changed = false;
+  for (const [addr, raw] of Object.entries(balances)) {
+    const k = key(chainId, walletAddress, addr);
+    if (data[k] && data[k].lastBalance !== raw) {
+      data[k].lastBalance = raw;
+      changed = true;
+    }
+  }
+  if (changed) await store.persist();
+}
+
 export async function clearTokenStore(): Promise<void> {
   await store.clearStorage();
   await scanTsStore.clearStorage();

@@ -154,6 +154,8 @@ export interface StoredToken {
   source: "manual" | "activity" | "scan";
   hidden?: boolean;
   addedAt: number;
+  /** Raw `balanceOf` result cached from the last successful fetch. */
+  lastBalance?: string;
 }
 
 export interface ApprovalData {

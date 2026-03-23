@@ -4,6 +4,7 @@ import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits }
 import { erc20Abi } from "../../shared/abis";
 import type { MessageResponse } from "../../shared/messages";
 import type { SerializedAccount, WalletState } from "../../shared/types";
+import { updateTokenBalances } from "../token-store";
 import { broadcastEvent } from "../broadcast";
 import { fetchNativePrice } from "../etherscan";
 import * as keychain from "../keychain";
@@ -296,6 +297,9 @@ export async function handleGetTokenBalances(tokens: Address[]): Promise<Message
   for (const [i, token] of tokens.entries()) {
     balances[token] = String(results[i]);
   }
+
+  updateTokenBalances(chainId, account.address, balances).catch(() => {});
+
   return { ok: true, data: { balances } };
 }
 
