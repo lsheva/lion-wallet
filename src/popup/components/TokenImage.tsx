@@ -1,5 +1,5 @@
 import { sendMessage } from "@shared/messages";
-import { createEffect, createSignal, on, Switch, Match } from "solid-js";
+import { createEffect, createSignal, Match, on, Switch } from "solid-js";
 import type { Address } from "viem";
 
 interface TokenImageProps {
@@ -73,14 +73,11 @@ export function TokenImage(props: TokenImageProps) {
   return (
     <Switch>
       <Match when={state() === "loading"}>
-        <div
-          class="rounded-full shrink-0 animate-shimmer"
-          style={{ width: sz(), height: sz() }}
-        />
+        <div class="rounded-full shrink-0 animate-shimmer" style={{ width: sz(), height: sz() }} />
       </Match>
       <Match when={state() === "loaded"}>
         <img
-          src={dataUrl()!}
+          src={dataUrl() ?? ""}
           alt={props.symbol}
           width={props.size}
           height={props.size}

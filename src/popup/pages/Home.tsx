@@ -1,6 +1,13 @@
 import { formatUsd } from "@shared/format";
 import { useNavigate } from "@solidjs/router";
-import { ArrowDownLeft, ArrowUpRight, LoaderCircle, Plus, Settings, SlidersHorizontal } from "lucide-solid";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  LoaderCircle,
+  Plus,
+  Settings,
+  SlidersHorizontal,
+} from "lucide-solid";
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import type { Address } from "viem";
 import { AccountSwitcher } from "../components/AccountSwitcher";
@@ -8,7 +15,14 @@ import { ActivitySection } from "../components/ActivitySection";
 import { NetworkBadge } from "../components/NetworkBadge";
 import { TokenRowSkeleton } from "../components/Skeleton";
 import { TokenRow } from "../components/TokenRow";
-import { fetchActivity, hideToken, parseUsdValue, refreshAll, showNetworkSelector, walletState } from "../store";
+import {
+  fetchActivity,
+  hideToken,
+  parseUsdValue,
+  refreshAll,
+  showNetworkSelector,
+  walletState,
+} from "../store";
 import { AddToken } from "./AddToken";
 import { NetworkSelector } from "./NetworkSelector";
 
@@ -44,7 +58,7 @@ export function Home() {
     return [...native, ...erc20];
   });
 
-  const hasHideableTokens = createMemo(() =>
+  const _hasHideableTokens = createMemo(() =>
     sortedTokens().some((t) => t.address && canHideToken(t)),
   );
 

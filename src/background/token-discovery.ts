@@ -90,11 +90,7 @@ async function scanViaAlchemy(address: string, chainId: number): Promise<number>
 
 // ── Etherscan: account?action=tokentx ───────────────────────────────
 
-async function scanViaEtherscan(
-  address: string,
-  chainId: number,
-  apiKey: string,
-): Promise<number> {
+async function scanViaEtherscan(address: string, chainId: number, apiKey: string): Promise<number> {
   try {
     const url = new URL(ETHERSCAN_BASE_URL);
     url.searchParams.set("chainid", String(chainId));

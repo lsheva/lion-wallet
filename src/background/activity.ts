@@ -377,9 +377,11 @@ async function enrichWithDecoding(
   attachTransfers(items, rawByTxIndex, tokenMeta, userAddress);
 
   if (transferTokens.size > 0) {
-    addDiscoveredTokens(chainId, userAddress, [...transferTokens], tokenMeta, "activity").catch((e) => {
-      bgLog("[activity] addDiscoveredTokens failed:", e);
-    });
+    addDiscoveredTokens(chainId, userAddress, [...transferTokens], tokenMeta, "activity").catch(
+      (e) => {
+        bgLog("[activity] addDiscoveredTokens failed:", e);
+      },
+    );
   }
 
   const withTransfers = items.filter((i) => i.transfers.length > 0).length;
@@ -699,10 +701,7 @@ async function enrichHashes(
 
 // ── Extended token discovery (fire-and-forget) ──────────────────────
 
-async function discoverTokensFromRpcExtended(
-  address: string,
-  chainId: number,
-): Promise<void> {
+async function discoverTokensFromRpcExtended(address: string, chainId: number): Promise<void> {
   try {
     const client = getPublicClient(chainId);
     const latest = await getBlockNumber(client);

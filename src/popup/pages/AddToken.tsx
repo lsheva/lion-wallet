@@ -72,7 +72,12 @@ export function AddToken(props: AddTokenProps) {
     if (!d) return;
     const trimmed = address().trim() as Address;
     const chainId = walletState.activeNetworkId();
-    await sendMessage({ type: "ADD_MANUAL_TOKEN", address: trimmed, chainId, walletAddress: walletState.activeAccount().address as Address });
+    await sendMessage({
+      type: "ADD_MANUAL_TOKEN",
+      address: trimmed,
+      chainId,
+      walletAddress: walletState.activeAccount().address as Address,
+    });
     await fetchBalance();
     handleClose();
   };

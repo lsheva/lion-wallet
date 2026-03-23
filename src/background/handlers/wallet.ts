@@ -4,10 +4,8 @@ import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits }
 import { erc20Abi } from "../../shared/abis";
 import type { MessageResponse } from "../../shared/messages";
 import type { SerializedAccount, WalletState } from "../../shared/types";
-import { updateTokenBalances } from "../token-store";
 import { broadcastEvent } from "../broadcast";
 import { fetchNativePrice } from "../etherscan";
-import { fetchNativePriceCoinGecko, fetchTokenPrice } from "../prices";
 import * as keychain from "../keychain";
 import { bgLog } from "../log";
 import {
@@ -16,7 +14,9 @@ import {
   getPublicClient,
   setActiveNetworkId,
 } from "../networks";
+import { fetchNativePriceCoinGecko, fetchTokenPrice } from "../prices";
 import { fetchTokenMeta } from "../token-meta";
+import { updateTokenBalances } from "../token-store";
 import {
   clearVault,
   decryptVault,

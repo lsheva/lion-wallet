@@ -52,7 +52,10 @@ function evictIfNeeded(cache: Record<string, CachedImage>): void {
   if (entries.length <= MAX_ENTRIES) return;
   entries.sort((a, b) => a[1].ts - b[1].ts);
   const toRemove = entries.length - MAX_ENTRIES;
-  for (let i = 0; i < toRemove; i++) delete cache[entries[i]![0]];
+  for (let i = 0; i < toRemove; i++) {
+    const key = entries[i]?.[0];
+    if (key) delete cache[key];
+  }
 }
 
 export async function getTokenImage(chainId: number, address: string): Promise<string | null> {

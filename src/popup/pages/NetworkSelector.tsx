@@ -151,12 +151,7 @@ export function NetworkSelector() {
     <Modal open={showNetworkSelector()} onClose={closeModal} title={title()}>
       <Show when={view() === "select"}>
         <div class="px-4 pt-3 pb-2">
-          <Input
-            placeholder="Search networks..."
-            value={search()}
-            onInput={setSearch}
-            autoFocus
-          />
+          <Input placeholder="Search networks..." value={search()} onInput={setSearch} autoFocus />
         </div>
 
         <NetworkGroup
@@ -224,9 +219,7 @@ export function NetworkSelector() {
           <Show
             when={availableChains().length > 0}
             fallback={
-              <div class="px-4 py-6 text-center text-sm text-text-tertiary">
-                No chains found
-              </div>
+              <div class="px-4 py-6 text-center text-sm text-text-tertiary">No chains found</div>
             }
           >
             <div class="px-4 pt-2 pb-1">

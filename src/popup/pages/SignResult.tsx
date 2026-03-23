@@ -50,7 +50,7 @@ export function SignResult(props: SignResultProps) {
         <Card class="w-full mb-6">
           <div class="flex items-center justify-between mb-1.5">
             <p class="text-xs text-text-secondary">Signature</p>
-            <CopyButton text={signature!} size={14} />
+            <CopyButton text={signature ?? ""} size={14} />
           </div>
           <p class="font-mono text-[10px] text-text-primary leading-relaxed break-all">
             {signature}

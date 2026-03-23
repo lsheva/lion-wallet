@@ -48,7 +48,9 @@ async function fetchCoinGeckoPrice(
       const val = data[addr];
       if (val?.usd != null) return [addr, val.usd];
       return null;
-    } catch { /* individual failure is non-critical */ }
+    } catch {
+      /* individual failure is non-critical */
+    }
   }
   return null;
 }
@@ -125,7 +127,9 @@ export async function fetchNativePriceCoinGecko(chainId: number): Promise<number
       if (!resp.ok) return null;
       const data = (await resp.json()) as Record<string, { usd?: number }>;
       return data[coinId]?.usd ?? null;
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }
   return null;
 }

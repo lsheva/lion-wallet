@@ -42,8 +42,10 @@ export function TxContent(props: TxContentProps) {
 
   const txParams = () => props.data.approval.params[0] as TransactionParams;
   const currentGas = () => props.data.gasPresets?.[props.gasSpeed];
-  const hasCalldata = () =>
-    !!(txParams().data && txParams().data !== "0x" && txParams().data!.length >= 10);
+  const hasCalldata = () => {
+    const d = txParams().data;
+    return !!(d && d !== "0x" && d.length >= 10);
+  };
   const showEtherscanHint = () =>
     hasCalldata() && !props.data.hasEtherscanKey && props.data.decodedVia !== "etherscan";
   const showAlchemyHint = () =>
@@ -67,7 +69,7 @@ export function TxContent(props: TxContentProps) {
       </Show>
 
       <Show when={props.data.transfers && props.data.transfers.length > 0}>
-        <TransfersCard transfers={props.data.transfers!} />
+        <TransfersCard transfers={props.data.transfers ?? []} />
       </Show>
 
       <Show when={showAlchemyHint()}>
@@ -103,7 +105,7 @@ export function TxContent(props: TxContentProps) {
               <div class="grid grid-cols-3 gap-2">
                 <For each={["slow", "normal", "fast"] as GasSpeed[]}>
                   {(speed) => {
-                    const estimate = () => props.data.gasPresets![speed];
+                    const estimate = () => props.data.gasPresets?.[speed];
                     const Icon = GAS_ICONS[speed];
                     const active = () => props.gasSpeed === speed;
                     return (
@@ -123,7 +125,10 @@ export function TxContent(props: TxContentProps) {
                           {GAS_LABELS[speed]}
                         </span>
                         <span class="font-mono text-[10px] text-text-tertiary">
-                          {formatGasCost(estimate().estimatedCostEth, props.data.nativeUsdPrice)}
+                          {formatGasCost(
+                            estimate()?.estimatedCostEth ?? "0",
+                            props.data.nativeUsdPrice,
+                          )}
                         </span>
                       </button>
                     );
@@ -139,24 +144,27 @@ export function TxContent(props: TxContentProps) {
                 <div class="flex justify-between">
                   <span class="text-text-secondary">Estimated fee</span>
                   <span class="font-mono font-medium text-text-primary inline-flex items-baseline gap-0.5 flex-wrap justify-end">
-                    <FormattedTokenValue value={currentGas()!.estimatedCostEth} />
+                    <FormattedTokenValue value={currentGas()?.estimatedCostEth ?? "0"} />
                     <span>ETH</span>
                   </span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-text-secondary">Gas Limit</span>
-                  <span class="font-mono text-text-primary">{currentGas()!.gasLimit}</span>
+                  <span class="font-mono text-text-primary">{currentGas()?.gasLimit}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-text-secondary">Max Fee</span>
                   <span class="font-mono text-text-primary">
-                    {parseFloat(formatGwei(BigInt(currentGas()!.maxFeePerGas))).toFixed(2)} gwei
+                    {parseFloat(formatGwei(BigInt(currentGas()?.maxFeePerGas ?? "0"))).toFixed(2)}{" "}
+                    gwei
                   </span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-text-secondary">Priority Fee</span>
                   <span class="font-mono text-text-primary">
-                    {parseFloat(formatGwei(BigInt(currentGas()!.maxPriorityFeePerGas))).toFixed(2)}{" "}
+                    {parseFloat(
+                      formatGwei(BigInt(currentGas()?.maxPriorityFeePerGas ?? "0")),
+                    ).toFixed(2)}{" "}
                     gwei
                   </span>
                 </div>
@@ -164,7 +172,7 @@ export function TxContent(props: TxContentProps) {
                   <div class="flex justify-between">
                     <span class="text-text-secondary">Base Fee</span>
                     <span class="font-mono text-text-primary">
-                      {parseFloat(props.data.gasPresets!.baseFeeGwei).toFixed(2)} gwei
+                      {parseFloat(props.data.gasPresets?.baseFeeGwei ?? "0").toFixed(2)} gwei
                     </span>
                   </div>
                 </Show>
@@ -192,7 +200,7 @@ export function TxContent(props: TxContentProps) {
                         {txParams().data}
                       </pre>
                       <div class="absolute top-1 right-1">
-                        <CopyButton text={txParams().data!} size={12} />
+                        <CopyButton text={txParams().data ?? ""} size={12} />
                       </div>
                     </div>
                   </Show>

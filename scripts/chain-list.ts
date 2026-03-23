@@ -2,13 +2,43 @@ import * as c from "viem/chains";
 
 export default [
   // ── Mainnets (by popularity / TVL) ──
-  { chain: c.mainnet, color: "#627EEA", icon: "ethereum", alchemy: "eth-mainnet", trust: "ethereum" },
+  {
+    chain: c.mainnet,
+    color: "#627EEA",
+    icon: "ethereum",
+    alchemy: "eth-mainnet",
+    trust: "ethereum",
+  },
   { chain: c.bsc, color: "#F0B90B", icon: "binance-smart-chain", trust: "smartchain" },
-  { chain: c.arbitrum, color: "#28A0F0", icon: "arbitrum-one", alchemy: "arb-mainnet", trust: "arbitrum" },
+  {
+    chain: c.arbitrum,
+    color: "#28A0F0",
+    icon: "arbitrum-one",
+    alchemy: "arb-mainnet",
+    trust: "arbitrum",
+  },
   { chain: c.base, color: "#0052FF", icon: "base", alchemy: "base-mainnet", trust: "base" },
-  { chain: c.polygon, color: "#8247E5", icon: "polygon", alchemy: "polygon-mainnet", trust: "polygon" },
-  { chain: c.optimism, color: "#FF0420", icon: "optimism", alchemy: "opt-mainnet", trust: "optimism" },
-  { chain: c.avalanche, color: "#E84142", icon: "avalanche", alchemy: "avax-mainnet", trust: "avalanchec" },
+  {
+    chain: c.polygon,
+    color: "#8247E5",
+    icon: "polygon",
+    alchemy: "polygon-mainnet",
+    trust: "polygon",
+  },
+  {
+    chain: c.optimism,
+    color: "#FF0420",
+    icon: "optimism",
+    alchemy: "opt-mainnet",
+    trust: "optimism",
+  },
+  {
+    chain: c.avalanche,
+    color: "#E84142",
+    icon: "avalanche",
+    alchemy: "avax-mainnet",
+    trust: "avalanchec",
+  },
   { chain: c.blast, color: "#FCFC03", icon: "blast", alchemy: "blast-mainnet" },
   { chain: c.linea, color: "#61DFFF", icon: "linea", alchemy: "linea-mainnet" },
   { chain: c.scroll, color: "#FFEEDA", icon: "scroll", alchemy: "scroll-mainnet" },
@@ -97,4 +127,10 @@ export default [
   { chain: c.hemiSepolia, icon: "hemi" },
   // ── Local dev ──
   { chain: { ...c.hardhat, testnet: true } },
-] satisfies { chain: import("viem").Chain; color?: string; icon?: string; alchemy?: string; trust?: string }[];
+] satisfies {
+  chain: import("viem").Chain;
+  color?: string;
+  icon?: string;
+  alchemy?: string;
+  trust?: string;
+}[];

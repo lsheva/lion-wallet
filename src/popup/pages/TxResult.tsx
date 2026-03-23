@@ -201,11 +201,11 @@ export function TxResult(props: TxResultProps) {
             <div class="space-y-3">
               <div>
                 <p class="text-xs text-text-secondary mb-1">Transaction Hash</p>
-                <AddressDisplay address={txHash!} />
+                <AddressDisplay address={txHash ?? ""} />
               </div>
               <Show when={txExplorerUrl()}>
                 <a
-                  href={txExplorerUrl()!}
+                  href={txExplorerUrl() ?? ""}
                   target="_blank"
                   rel="noopener noreferrer"
                   class="flex items-center gap-1.5 text-xs text-accent hover:text-accent-hover transition-colors"

@@ -61,12 +61,22 @@ function loadNativeBalanceCache(chainId: number, address: string): NativeBalance
   }
 }
 
-function saveNativeBalanceCache(chainId: number, address: string, balance: string, usdPrice: number | null): void {
+function saveNativeBalanceCache(
+  chainId: number,
+  address: string,
+  balance: string,
+  usdPrice: number | null,
+): void {
   try {
     const all = JSON.parse(localStorage.getItem(NATIVE_BALANCE_KEY) ?? "{}");
-    all[nativeBalanceCacheKey(chainId, address)] = { balance, usdPrice } satisfies NativeBalanceCache;
+    all[nativeBalanceCacheKey(chainId, address)] = {
+      balance,
+      usdPrice,
+    } satisfies NativeBalanceCache;
     localStorage.setItem(NATIVE_BALANCE_KEY, JSON.stringify(all));
-  } catch { /* non-critical */ }
+  } catch {
+    /* non-critical */
+  }
 }
 
 const TOKEN_PRICES_KEY = "tokenPricesCache";
@@ -85,7 +95,9 @@ function saveTokenPrices(chainId: number, prices: Record<string, number>): void 
     const all = JSON.parse(localStorage.getItem(TOKEN_PRICES_KEY) ?? "{}");
     all[chainId] = { ...(all[chainId] ?? {}), ...prices };
     localStorage.setItem(TOKEN_PRICES_KEY, JSON.stringify(all));
-  } catch { /* non-critical */ }
+  } catch {
+    /* non-critical */
+  }
 }
 
 function tokenUsdValue(balance: string, price: number | undefined): string | undefined {
@@ -95,7 +107,12 @@ function tokenUsdValue(balance: string, price: number | undefined): string | und
   return formatUsd(bal * price);
 }
 
-function buildErc20Token(t: StoredToken, balance: string, chainId: number, price: number | undefined): TokenInfo {
+function buildErc20Token(
+  t: StoredToken,
+  balance: string,
+  chainId: number,
+  price: number | undefined,
+): TokenInfo {
   return {
     symbol: t.symbol,
     name: t.name,
