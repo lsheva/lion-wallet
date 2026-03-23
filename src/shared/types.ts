@@ -28,6 +28,7 @@ export interface ChainMeta {
   rpcUrl?: string;
   blockExplorerUrl?: string;
   alchemySlug?: string;
+  trustSlug?: string;
 }
 
 export interface WalletState {

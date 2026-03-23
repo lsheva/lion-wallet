@@ -1,5 +1,5 @@
 import { sendMessage } from "@shared/messages";
-import { createResource, createSignal, Show } from "solid-js";
+import { createEffect, createSignal, on, Switch, Match } from "solid-js";
 import type { Address } from "viem";
 
 interface TokenImageProps {
@@ -10,19 +10,19 @@ interface TokenImageProps {
   size: number;
 }
 
+type ImageState = "loading" | "loaded" | "miss";
+
 const imageCache = new Map<string, string | null>();
 
-async function fetchTokenImage(source: {
-  address: string;
-  chainId: number;
-}): Promise<string | null> {
-  const key = `${source.chainId}:${source.address.toLowerCase()}`;
-  if (imageCache.has(key)) return imageCache.get(key)!;
+async function fetchTokenImage(chainId: number, address: string): Promise<string | null> {
+  const key = `${chainId}:${address.toLowerCase()}`;
+  const cached = imageCache.get(key);
+  if (cached !== undefined) return cached;
 
   const res = await sendMessage({
     type: "GET_TOKEN_IMAGE",
-    address: source.address as Address,
-    chainId: source.chainId,
+    address: address as Address,
+    chainId,
   });
   const url = res.ok ? res.data.url : null;
   imageCache.set(key, url);
@@ -30,47 +30,78 @@ async function fetchTokenImage(source: {
 }
 
 export function TokenImage(props: TokenImageProps) {
-  const [failed, setFailed] = createSignal(false);
+  const [dataUrl, setDataUrl] = createSignal<string | null>(null);
+  const [state, setState] = createSignal<ImageState>("loading");
 
-  const [url] = createResource(
-    () => (props.address ? { address: props.address, chainId: props.chainId } : undefined),
-    fetchTokenImage,
-    {
-      initialValue: (() => {
-        if (!props.address) return null;
-        const key = `${props.chainId}:${props.address.toLowerCase()}`;
-        return imageCache.has(key) ? imageCache.get(key)! : null;
-      })(),
-    },
+  createEffect(
+    on(
+      () => [props.address, props.chainId] as const,
+      ([address, chainId]) => {
+        if (!address) {
+          setState("miss");
+          return;
+        }
+
+        const key = `${chainId}:${address.toLowerCase()}`;
+        const cached = imageCache.get(key);
+        if (cached !== undefined) {
+          if (cached) {
+            setDataUrl(cached);
+            setState("loaded");
+          } else {
+            setState("miss");
+          }
+          return;
+        }
+
+        setState("loading");
+        fetchTokenImage(chainId, address).then((url) => {
+          if (url) {
+            setDataUrl(url);
+            setState("loaded");
+          } else {
+            setState("miss");
+          }
+        });
+      },
+    ),
   );
 
+  const sz = () => `${props.size}px`;
+  const fontSize = () => `${Math.max(props.size * 0.35, 10)}px`;
+
   return (
-    <Show
-      when={url() && !failed()}
-      fallback={
+    <Switch>
+      <Match when={state() === "loading"}>
         <div
-          class="rounded-full flex items-center justify-center text-white font-bold shrink-0"
+          class="rounded-full shrink-0 animate-shimmer"
+          style={{ width: sz(), height: sz() }}
+        />
+      </Match>
+      <Match when={state() === "loaded"}>
+        <img
+          src={dataUrl()!}
+          alt={props.symbol}
+          width={props.size}
+          height={props.size}
+          class="rounded-full shrink-0"
+          style={{ width: sz(), height: sz() }}
+          onError={() => setState("miss")}
+        />
+      </Match>
+      <Match when={state() === "miss"}>
+        <div
+          class="rounded-full shrink-0 flex items-center justify-center text-white font-bold"
           style={{
             "background-color": props.color,
-            width: `${props.size}px`,
-            height: `${props.size}px`,
-            "font-size": `${Math.max(props.size * 0.35, 10)}px`,
+            width: sz(),
+            height: sz(),
+            "font-size": fontSize(),
           }}
         >
           {props.symbol.slice(0, 1)}
         </div>
-      }
-    >
-      <img
-        src={url()!}
-        alt={props.symbol}
-        width={props.size}
-        height={props.size}
-        loading="lazy"
-        class="rounded-full animate-fade-in"
-        style={{ width: `${props.size}px`, height: `${props.size}px` }}
-        onError={() => setFailed(true)}
-      />
-    </Show>
+      </Match>
+    </Switch>
   );
 }

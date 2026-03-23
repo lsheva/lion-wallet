@@ -14,7 +14,7 @@ for (const { chain } of list) {
   if (match) viemName.set(chain.id, match[0]);
 }
 
-function minimal(chain: Chain, alchemy?: string) {
+function minimal(chain: Chain, alchemy?: string, trust?: string) {
   const o: Record<string, unknown> = {
     id: chain.id,
     name: chain.name,
@@ -24,6 +24,7 @@ function minimal(chain: Chain, alchemy?: string) {
   if (chain.rpcUrls?.default?.http?.[0]) o.rpcUrl = chain.rpcUrls.default.http[0];
   if (chain.blockExplorers?.default?.url) o.blockExplorerUrl = chain.blockExplorers.default.url;
   if (alchemy) o.alchemySlug = alchemy;
+  if (trust) o.trustSlug = trust;
   return o;
 }
 
@@ -31,9 +32,9 @@ function minimal(chain: Chain, alchemy?: string) {
 
 const chains: string[] = [];
 
-for (const { chain, alchemy } of list) {
+for (const { chain, alchemy, trust } of list) {
   const _key = viemName.get(chain.id) ?? `chain${chain.id}`;
-  chains.push(`  ${JSON.stringify(minimal(chain, alchemy))},`);
+  chains.push(`  ${JSON.stringify(minimal(chain, alchemy, trust))},`);
 }
 
 const shared = `// @generated — do not edit. Regenerate with \`pnpm gen:chains\`

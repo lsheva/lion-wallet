@@ -1,82 +1,78 @@
+import { CHAIN_BY_ID } from "@shared/constants";
 import { getAddress } from "viem/utils";
 
-const CACHE_NAME = "token-logos";
-const MAX_ENTRIES = 500;
+const STORAGE_KEY = "tokenLogos";
+const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 1 month
 const MISS_RETRY_MS = 24 * 60 * 60 * 1000;
-const MISS_HEADER = "x-miss";
-const LRU_KEY = "tokenLogosLru";
+const MAX_ENTRIES = 500;
 
-const CHAIN_SLUG: Record<number, string> = {
-  1: "ethereum",
-  137: "polygon",
-  42161: "arbitrum",
-  10: "optimism",
-  8453: "base",
-  56: "smartchain",
-  43114: "avalanchec",
-  250: "fantom",
-  100: "xdai",
-  324: "zksync",
-};
-
-function cdnUrl(chainId: number, address: string): string | null {
-  const slug = CHAIN_SLUG[chainId];
-  if (!slug) return null;
-  const checksummed = getAddress(address as `0x${string}`);
-  return `https://raw.githubusercontent.com/niconiahi/trustwallet-assets/master/blockchains/${slug}/assets/${checksummed}/logo.png`;
+interface CachedImage {
+  dataUrl: string | null; // null = miss sentinel
+  ts: number;
 }
 
-async function loadLru(): Promise<string[]> {
+function cdnUrl(chainId: number, address: string): string | null {
+  const slug = CHAIN_BY_ID.get(chainId)?.trustSlug;
+  if (!slug) return null;
+  const checksummed = getAddress(address as `0x${string}`);
+  return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${slug}/assets/${checksummed}/logo.png`;
+}
+
+function cacheKey(chainId: number, address: string): string {
+  return `${chainId}:${address.toLowerCase()}`;
+}
+
+async function loadCache(): Promise<Record<string, CachedImage>> {
   try {
-    const stored = await browser.storage.local.get(LRU_KEY);
-    return Array.isArray(stored[LRU_KEY]) ? stored[LRU_KEY] : [];
+    const stored = await browser.storage.local.get(STORAGE_KEY);
+    return (stored[STORAGE_KEY] as Record<string, CachedImage>) ?? {};
   } catch {
-    return [];
+    return {};
   }
 }
 
-async function saveLru(lru: string[]): Promise<void> {
+async function saveCache(cache: Record<string, CachedImage>): Promise<void> {
   try {
-    await browser.storage.local.set({ [LRU_KEY]: lru });
+    await browser.storage.local.set({ [STORAGE_KEY]: cache });
   } catch {
     /* non-critical */
   }
 }
 
-async function touchLru(url: string): Promise<void> {
-  const lru = await loadLru();
-  const idx = lru.indexOf(url);
-  if (idx !== -1) lru.splice(idx, 1);
-  lru.push(url);
-  await saveLru(lru);
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `data:${blob.type || "image/png"};base64,${btoa(binary)}`;
 }
 
-async function evictIfNeeded(cache: Cache): Promise<void> {
-  const lru = await loadLru();
-  if (lru.length <= MAX_ENTRIES) return;
-
-  const toEvict = lru.splice(0, lru.length - MAX_ENTRIES);
-  await Promise.all(toEvict.map((url) => cache.delete(url)));
-  await saveLru(lru);
+function evictIfNeeded(cache: Record<string, CachedImage>): void {
+  const entries = Object.entries(cache);
+  if (entries.length <= MAX_ENTRIES) return;
+  entries.sort((a, b) => a[1].ts - b[1].ts);
+  const toRemove = entries.length - MAX_ENTRIES;
+  for (let i = 0; i < toRemove; i++) delete cache[entries[i]![0]];
 }
 
 export async function getTokenImage(chainId: number, address: string): Promise<string | null> {
   const url = cdnUrl(chainId, address);
   if (!url) return null;
 
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(url);
+  const key = cacheKey(chainId, address);
+  const cache = await loadCache();
+  const entry = cache[key];
+  const now = Date.now();
 
-  if (cached) {
-    const isMiss = cached.headers.get(MISS_HEADER);
-    if (isMiss) {
-      const ts = Number(cached.headers.get("x-miss-ts") ?? "0");
-      if (Date.now() - ts < MISS_RETRY_MS) return null;
-      await cache.delete(url);
-    } else {
-      await touchLru(url);
-      return url;
+  if (entry) {
+    if (entry.dataUrl === null) {
+      if (now - entry.ts < MISS_RETRY_MS) return null;
+    } else if (now - entry.ts < TTL_MS) {
+      entry.ts = now;
+      await saveCache(cache);
+      return entry.dataUrl;
     }
+    delete cache[key];
   }
 
   try {
@@ -84,54 +80,23 @@ export async function getTokenImage(chainId: number, address: string): Promise<s
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const blob = await response.blob();
-    const cacheResponse = new Response(blob, {
-      headers: { "Content-Type": blob.type },
-    });
-    await cache.put(url, cacheResponse);
-    await touchLru(url);
-    await evictIfNeeded(cache);
-    return url;
+    const dataUrl = await blobToDataUrl(blob);
+
+    cache[key] = { dataUrl, ts: now };
+    evictIfNeeded(cache);
+    await saveCache(cache);
+    return dataUrl;
   } catch {
-    const missResponse = new Response("", {
-      headers: {
-        [MISS_HEADER]: "1",
-        "x-miss-ts": String(Date.now()),
-      },
-    });
-    await cache.put(url, missResponse);
+    cache[key] = { dataUrl: null, ts: now };
+    await saveCache(cache);
     return null;
   }
 }
 
-export async function getTokenImageCached(
-  chainId: number,
-  address: string,
-): Promise<string | null> {
-  const url = cdnUrl(chainId, address);
-  if (!url) return null;
-
+export async function clearTokenImageCache(): Promise<void> {
   try {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(url);
-    if (cached && !cached.headers.get(MISS_HEADER)) return url;
+    await browser.storage.local.remove(STORAGE_KEY);
   } catch {
-    /* cache API not available */
+    /* non-critical */
   }
-  return null;
-}
-
-export async function prefetchTokenImages(
-  tokens: Array<{ chainId: number; address: string }>,
-): Promise<void> {
-  const CONCURRENCY = 4;
-  const queue = [...tokens];
-
-  async function worker(): Promise<void> {
-    while (queue.length > 0) {
-      const token = queue.shift();
-      if (token) await getTokenImage(token.chainId, token.address);
-    }
-  }
-
-  await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
 }

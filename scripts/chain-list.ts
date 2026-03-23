@@ -2,22 +2,22 @@ import * as c from "viem/chains";
 
 export default [
   // ── Mainnets (by popularity / TVL) ──
-  { chain: c.mainnet, color: "#627EEA", icon: "ethereum", alchemy: "eth-mainnet" },
-  { chain: c.bsc, color: "#F0B90B", icon: "binance-smart-chain" },
-  { chain: c.arbitrum, color: "#28A0F0", icon: "arbitrum-one", alchemy: "arb-mainnet" },
-  { chain: c.base, color: "#0052FF", icon: "base", alchemy: "base-mainnet" },
-  { chain: c.polygon, color: "#8247E5", icon: "polygon", alchemy: "polygon-mainnet" },
-  { chain: c.optimism, color: "#FF0420", icon: "optimism", alchemy: "opt-mainnet" },
-  { chain: c.avalanche, color: "#E84142", icon: "avalanche", alchemy: "avax-mainnet" },
+  { chain: c.mainnet, color: "#627EEA", icon: "ethereum", alchemy: "eth-mainnet", trust: "ethereum" },
+  { chain: c.bsc, color: "#F0B90B", icon: "binance-smart-chain", trust: "smartchain" },
+  { chain: c.arbitrum, color: "#28A0F0", icon: "arbitrum-one", alchemy: "arb-mainnet", trust: "arbitrum" },
+  { chain: c.base, color: "#0052FF", icon: "base", alchemy: "base-mainnet", trust: "base" },
+  { chain: c.polygon, color: "#8247E5", icon: "polygon", alchemy: "polygon-mainnet", trust: "polygon" },
+  { chain: c.optimism, color: "#FF0420", icon: "optimism", alchemy: "opt-mainnet", trust: "optimism" },
+  { chain: c.avalanche, color: "#E84142", icon: "avalanche", alchemy: "avax-mainnet", trust: "avalanchec" },
   { chain: c.blast, color: "#FCFC03", icon: "blast", alchemy: "blast-mainnet" },
   { chain: c.linea, color: "#61DFFF", icon: "linea", alchemy: "linea-mainnet" },
   { chain: c.scroll, color: "#FFEEDA", icon: "scroll", alchemy: "scroll-mainnet" },
-  { chain: c.zkSync, color: "#8C8DFC", icon: "zksync", alchemy: "zksync-mainnet" },
+  { chain: c.zkSync, color: "#8C8DFC", icon: "zksync", alchemy: "zksync-mainnet", trust: "zksync" },
   { chain: c.manta, color: "#15B5E0", icon: "manta-pacific" },
   { chain: c.mantle, color: "#000000", icon: "mantle", alchemy: "mantle-mainnet" },
   { chain: c.celo, color: "#FCFF52", icon: "celo", alchemy: "celo-mainnet" },
-  { chain: c.gnosis, color: "#04795B", icon: "gnosis", alchemy: "gnosis-mainnet" },
-  { chain: c.fantom, color: "#1969FF", icon: "fantom", alchemy: "fantom-mainnet" },
+  { chain: c.gnosis, color: "#04795B", icon: "gnosis", alchemy: "gnosis-mainnet", trust: "xdai" },
+  { chain: c.fantom, color: "#1969FF", icon: "fantom", alchemy: "fantom-mainnet", trust: "fantom" },
   {
     chain: c.polygonZkEvm,
     color: "#7B3FE4",
@@ -97,4 +97,4 @@ export default [
   { chain: c.hemiSepolia, icon: "hemi" },
   // ── Local dev ──
   { chain: { ...c.hardhat, testnet: true } },
-] satisfies { chain: import("viem").Chain; color?: string; icon?: string; alchemy?: string }[];
+] satisfies { chain: import("viem").Chain; color?: string; icon?: string; alchemy?: string; trust?: string }[];

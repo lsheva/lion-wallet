@@ -21,7 +21,8 @@
   "host_permissions": [
     "https://api.etherscan.io/*",
     "https://www.4byte.directory/*",
-    "https://api.coingecko.com/*"
+    "https://api.coingecko.com/*",
+    "https://raw.githubusercontent.com/*"
   ],
   "action": {
     "default_popup": "popup/index.html",
