@@ -1,15 +1,15 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 257.9 kB │ gzip: 82.0 kB
+  output: 260.3 kB │ gzip: 82.7 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  248.7 kB  58.5%
+  (project)  252.5 kB  58.8%
     └ src/shared/chains.generated.ts  21.7 kB
     └ src/popup/pages/Settings.tsx  21.7 kB
     └ src/popup/pages/NetworkSelector.tsx  15.7 kB
-  solid-js  52.7 kB  12.4%
+  solid-js  52.7 kB  12.3%
     └ node_modules/solid-js/dist/solid.js  32.4 kB
     └ node_modules/solid-js/web/dist/web.js  20.3 kB
-  @web3icons/core  49.8 kB  11.7%
+  @web3icons/core  49.8 kB  11.6%
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/mantle.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/sei-network.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/metis-andromeda.svg.js  2.0 kB
@@ -17,9 +17,9 @@
     └ node_modules/@solidjs/router/dist/routing.js  9.3 kB
     └ node_modules/@solidjs/router/dist/utils.js  4.1 kB
     └ node_modules/@solidjs/router/dist/routers/components.jsx  4.1 kB
-  lucide-solid  20.9 kB  4.9%
+  lucide-solid  21.5 kB  5.0%
     └ node_modules/lucide-solid/dist/source/Icon.jsx  2.3 kB
-  uqr  19.4 kB  4.6%
+  uqr  19.4 kB  4.5%
     └ node_modules/uqr/dist/index.mjs  19.4 kB
   viem  8.3 kB  1.9%
     └ node_modules/viem/_esm/errors/base.js  2.3 kB
@@ -29,13 +29,13 @@
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 288.4 kB │ gzip: 91.9 kB
+  output: 289.6 kB │ gzip: 92.2 kB
 ──────────────────────────────────────────────────────────────────────────────────
-  viem  245.4 kB  46.5%
+  viem  247.6 kB  46.8%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.8 kB
-  (project)  122.2 kB  23.2%
+  (project)  121.9 kB  23.0%
     └ src/background/activity.ts  23.8 kB
     └ src/shared/chains.generated.ts  22.8 kB
     └ src/background/handlers/wallet.ts  8.3 kB

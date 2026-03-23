@@ -2,8 +2,8 @@ import { POPUP_ORIGIN } from "@shared/constants";
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import { useNavigate } from "@solidjs/router";
-import { ChevronDown, Clipboard } from "lucide-solid";
-import { batch, createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
+import { BookUser, ChevronDown } from "lucide-solid";
+import { batch, createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js";
 import type { Address } from "viem";
 import { numberToHex, parseEther } from "viem/utils";
 
@@ -19,7 +19,7 @@ import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Skeleton } from "../components/Skeleton";
 import { TokenImage } from "../components/TokenImage";
-import { type Token, walletState } from "../store";
+import { accounts, activeAccountIndex, type Token, walletState } from "../store";
 
 const isNative = (token: Token) => !token.address;
 
@@ -34,8 +34,21 @@ export function Send() {
   const [error, setError] = createSignal<string | null>(null);
   const [balance, setBalance] = createSignal<string | null>(null);
   const [loadingBalance, setLoadingBalance] = createSignal(false);
+  const [showAddressPicker, setShowAddressPicker] = createSignal(false);
+  let addressPickerRef: HTMLDivElement | undefined;
+
+  const onClickOutside = (e: MouseEvent) => {
+    if (showAddressPicker() && addressPickerRef && !addressPickerRef.contains(e.target as Node)) {
+      setShowAddressPicker(false);
+    }
+  };
+  document.addEventListener("pointerdown", onClickOutside);
+  onCleanup(() => document.removeEventListener("pointerdown", onClickOutside));
 
   const addressValid = createMemo(() => to().length === 0 || isAddress(to()));
+  const selectedRecipientAccount = createMemo(() =>
+    accounts().find((a) => a.address.toLowerCase() === to().toLowerCase()),
+  );
   const rawBalance = createMemo(() => balance() ?? selectedToken().balance);
   const numericBalance = createMemo(() => parseFloat(rawBalance().replace(/,/g, "")));
   const numericAmount = createMemo(() => parseFloat(amount().replace(/,/g, "") || "0"));
@@ -92,18 +105,17 @@ export function Send() {
     ),
   );
 
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      setTo(text.trim());
-    } catch {
-      // clipboard permission denied
-    }
-  };
-
   const handleMax = () => {
     setAmount(rawBalance().replace(/,/g, ""));
   };
+
+  const handleSelectAddress = (address: string) => {
+    setTo(address);
+    setShowAddressPicker(false);
+    setError(null);
+  };
+
+  const truncateAddress = (addr: string) => `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 
   const handleSelectToken = (token: Token) => {
     batch(() => {
@@ -236,26 +248,78 @@ export function Send() {
         </div>
 
         {/* Recipient */}
-        <Input
-          label="To"
-          placeholder="0x..."
-          value={to()}
-          onInput={(v) => {
-            setTo(v);
-            setError(null);
-          }}
-          mono
-          error={to().length > 0 && !addressValid() ? "Invalid address" : undefined}
-          rightSlot={
-            <button
-              type="button"
-              onClick={handlePaste}
-              class="text-text-tertiary hover:text-accent transition-colors cursor-pointer"
+        <div>
+          <span class="block text-sm font-medium text-text-secondary mb-1.5">To</span>
+          <div class="relative" ref={addressPickerRef}>
+            <div
+              class={`bg-surface rounded-[var(--radius-card)] ring-1 transition-shadow duration-150 ${
+                to().length > 0 && !addressValid()
+                  ? "ring-danger"
+                  : "ring-transparent focus-within:ring-accent/40 focus-within:ring-2"
+              }`}
             >
-              <Clipboard size={16} />
-            </button>
-          }
-        />
+              <div class="relative">
+                <input
+                  class={`w-full bg-transparent px-3 py-2.5 text-text-primary text-[11px] font-mono placeholder:text-text-tertiary outline-none rounded-[var(--radius-card)] ${
+                    accounts().length > 1 ? "pr-8" : ""
+                  }`}
+                  type="text"
+                  placeholder="0x..."
+                  value={to()}
+                  onInput={(e) => {
+                    setTo(e.currentTarget.value);
+                    setError(null);
+                    setShowAddressPicker(false);
+                  }}
+                />
+                <Show when={accounts().length > 1}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddressPicker(!showAddressPicker())}
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-accent transition-colors cursor-pointer"
+                  >
+                    <BookUser size={16} />
+                  </button>
+                </Show>
+              </div>
+            </div>
+            <Show when={showAddressPicker()}>
+              <div class="absolute left-0 right-0 top-full mt-1 z-20 bg-elevated rounded-[var(--radius-card)] ring-1 ring-divider shadow-lg overflow-y-auto max-h-[160px]">
+              <For each={accounts()}>
+                {(account, i) => (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectAddress(account.address)}
+                    class={`w-full flex items-center justify-between px-3 py-2 hover:bg-base/50 transition-colors cursor-pointer text-left ${
+                      account.address.toLowerCase() === to().toLowerCase()
+                        ? "bg-accent-light"
+                        : ""
+                    }`}
+                  >
+                    <span class="text-sm font-medium text-text-primary truncate">
+                      {account.name}
+                      <Show when={i() === activeAccountIndex()}>
+                        <span class="text-[11px] text-text-tertiary ml-1">(sender)</span>
+                      </Show>
+                    </span>
+                    <span class="text-[11px] font-mono text-text-secondary ml-2 shrink-0">
+                      {truncateAddress(account.address)}
+                    </span>
+                  </button>
+                )}
+              </For>
+              </div>
+            </Show>
+          </div>
+          <Show when={selectedRecipientAccount() && addressValid()}>
+            <p class="text-xs text-text-tertiary mt-1">
+              Sending to: <span class="font-medium">{selectedRecipientAccount()?.name}</span>
+            </p>
+          </Show>
+          <Show when={to().length > 0 && !addressValid()}>
+            <p class="text-xs text-danger mt-1.5">Invalid address</p>
+          </Show>
+        </div>
 
         {/* Amount */}
         <div>

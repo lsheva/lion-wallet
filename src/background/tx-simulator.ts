@@ -1,8 +1,15 @@
-import type { Address } from "viem";
+import { type Address, erc20Abi, toEventSelector } from "viem";
 import { decodeFunctionData, formatUnits } from "viem/utils";
 import type { TokenTransfer, TransactionParams } from "../shared/types";
-import { getPublicClient } from "./networks";
+import { getNetworkConfig, getPublicClient } from "./networks";
 import { fetchTokenMeta } from "./token-meta";
+
+const NATIVE_COLOR = "#627EEA";
+
+function nativeCurrency(chainId: number) {
+  const net = getNetworkConfig(chainId);
+  return net?.nativeCurrency ?? { symbol: "unknown", name: "Unknown", decimals: 18 };
+}
 
 function deterministicColor(address: string): string {
   let hash = 0;
@@ -73,7 +80,7 @@ async function simulateViaTrace(
     );
 
     if (callResult.logs) {
-      const transferTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+      const transferTopic = toEventSelector("Transfer(address,address,uint256)");
 
       for (const logEntry of callResult.logs) {
         if (logEntry.topics[0] !== transferTopic || logEntry.topics.length < 3) continue;
@@ -86,6 +93,18 @@ async function simulateViaTrace(
 
         const amount = BigInt(logEntry.data || "0x0");
         const tokenAddr = logEntry.address.toLowerCase();
+
+        if (tokenAddr === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
+          const native = nativeCurrency(chainId);
+          transfers.unshift({
+            direction: from === accountLower ? "out" : "in",
+            symbol: native.symbol,
+            name: native.name,
+            amount: formatUnits(amount, native.decimals),
+            color: NATIVE_COLOR,
+          });
+          continue;
+        }
 
         const meta = await fetchTokenMeta(chainId, tokenAddr);
 
@@ -100,19 +119,6 @@ async function simulateViaTrace(
       }
     }
 
-    if (txParams.value && txParams.value !== "0x0" && txParams.value !== "0x") {
-      const val = BigInt(txParams.value);
-      if (val > 0n) {
-        transfers.unshift({
-          direction: "out",
-          symbol: "ETH",
-          name: "Ethereum",
-          amount: formatUnits(val, 18),
-          color: "#627EEA",
-        });
-      }
-    }
-
     return transfers.length > 0 ? transfers : null;
   } catch (e) {
     log.push(`sim: eth_simulateV1 failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -121,40 +127,6 @@ async function simulateViaTrace(
 }
 
 // Token metadata is resolved via the shared token-meta module (fetchTokenMeta)
-
-const ERC20_TRANSFER_ABI = [
-  {
-    type: "function",
-    name: "transfer",
-    inputs: [
-      { name: "to", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [{ type: "bool" }],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "transferFrom",
-    inputs: [
-      { name: "from", type: "address" },
-      { name: "to", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [{ type: "bool" }],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "approve",
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [{ type: "bool" }],
-    stateMutability: "nonpayable",
-  },
-] as const;
 
 async function fallbackErc20Parse(
   txParams: TransactionParams,
@@ -167,13 +139,14 @@ async function fallbackErc20Parse(
   if (txParams.value && txParams.value !== "0x0" && txParams.value !== "0x") {
     const val = BigInt(txParams.value);
     if (val > 0n) {
-      log.push(`sim-fallback: native value=${formatUnits(val, 18)}`);
+      const native = nativeCurrency(chainId);
+      log.push(`sim-fallback: native value=${formatUnits(val, native.decimals)}`);
       transfers.push({
         direction: "out",
-        symbol: "ETH",
-        name: "Ethereum",
-        amount: formatUnits(val, 18),
-        color: "#627EEA",
+        symbol: native.symbol,
+        name: native.name,
+        amount: formatUnits(val, native.decimals),
+        color: NATIVE_COLOR,
       });
     }
   } else {
@@ -183,7 +156,7 @@ async function fallbackErc20Parse(
   if (txParams.data && txParams.data.length >= 10) {
     try {
       const { functionName, args } = decodeFunctionData({
-        abi: ERC20_TRANSFER_ABI,
+        abi: erc20Abi,
         data: txParams.data,
       });
 

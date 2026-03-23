@@ -5,7 +5,13 @@ import type { ParentProps } from "solid-js";
 import { createSignal, lazy, Show } from "solid-js";
 
 import { DevToolbar } from "./mock/DevToolbar";
-import { activeNetworkId, fetchState, setActivity, setActivityHasMore, setActivitySource } from "./store";
+import {
+  activeNetworkId,
+  fetchState,
+  setActivity,
+  setActivityHasMore,
+  setActivitySource,
+} from "./store";
 
 const ApiKeySetup = lazy(() =>
   import("./pages/ApiKeySetup").then((m) => ({ default: m.ApiKeySetup })),
@@ -77,6 +83,8 @@ try {
     if (m.type === "PENDING_COUNT" && typeof m.count === "number") {
       setPendingQueueSize(m.count);
     } else if (m.type === "BG_LOG" && m.args) {
+      // biome-ignore lint/suspicious/noConsole: this IS the logging utility
+      console.log("BG_LOG", m.args);
     } else if (m.type === "ACTIVITY_UPDATED" && m.items) {
       if (m.chainId != null && m.chainId !== activeNetworkId()) return;
       setActivity(m.items);
