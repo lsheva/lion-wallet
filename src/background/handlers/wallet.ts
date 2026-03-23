@@ -7,6 +7,7 @@ import type { SerializedAccount, WalletState } from "../../shared/types";
 import { updateTokenBalances } from "../token-store";
 import { broadcastEvent } from "../broadcast";
 import { fetchNativePrice } from "../etherscan";
+import { fetchNativePriceCoinGecko, fetchTokenPrice } from "../prices";
 import * as keychain from "../keychain";
 import { bgLog } from "../log";
 import {
@@ -218,7 +219,9 @@ export async function handleGetBalance(
   const isTestnet = cfg?.testnet === true;
   const [balance, nativeUsdPrice] = await Promise.all([
     getBalance(client, { address }),
-    isTestnet ? Promise.resolve(0) : fetchNativePrice(chainId),
+    isTestnet
+      ? Promise.resolve(0)
+      : fetchNativePrice(chainId).then((p) => p ?? fetchNativePriceCoinGecko(chainId)),
   ]);
   return { ok: true, data: { balance: formatEther(balance), nativeUsdPrice } };
 }
@@ -301,6 +304,16 @@ export async function handleGetTokenBalances(tokens: Address[]): Promise<Message
   updateTokenBalances(chainId, account.address, balances).catch(() => {});
 
   return { ok: true, data: { balances } };
+}
+
+export async function handleGetTokenPrice(
+  address: Address,
+  chainId: number,
+): Promise<MessageResponse> {
+  const cfg = getNetworkConfig(chainId);
+  if (cfg?.testnet) return { ok: true, data: { price: null } };
+  const price = await fetchTokenPrice(chainId, address);
+  return { ok: true, data: { price } };
 }
 
 export async function handleGetTokenInfo(

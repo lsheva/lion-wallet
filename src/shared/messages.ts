@@ -37,6 +37,7 @@ export type MessageRequest =
   | { type: "GET_STORAGE_MODE" }
   | { type: "CHECK_KEYCHAIN_AVAILABLE" }
   | { type: "GET_TOKEN_BALANCES"; tokens: Address[] }
+  | { type: "GET_TOKEN_PRICE"; address: Address; chainId: number }
   | { type: "SEND_TOKEN"; tokenAddress: Address; to: Address; amount: string; decimals: number }
   | { type: "GET_ACTIVITY"; address: Address; chainId: number; loadMore?: boolean }
   | { type: "CLEAR_ACTIVITY_CACHE" }
@@ -76,6 +77,7 @@ export interface MessageDataMap {
   GET_STORAGE_MODE: { storageMode: "keychain" | "vault" };
   CHECK_KEYCHAIN_AVAILABLE: { available: boolean; error?: string };
   GET_TOKEN_BALANCES: { balances: Record<string, string> };
+  GET_TOKEN_PRICE: { price: number | null };
   SEND_TOKEN: undefined;
   GET_ACTIVITY: {
     items: ActivityItem[];

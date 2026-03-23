@@ -1,12 +1,14 @@
 import { truncateAddress } from "@shared/format";
-import { Check, ChevronDown } from "lucide-solid";
+import { Check, ChevronDown, LoaderCircle } from "lucide-solid";
 import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { fetchActivity, walletState } from "../store";
 import { AddressDisplay } from "./AddressDisplay";
 import { Identicon } from "./Identicon";
+import { BalanceSkeleton } from "./Skeleton";
 
 interface AccountSwitcherProps {
   usdTotal: string;
+  loading?: boolean;
 }
 
 export function AccountSwitcher(props: AccountSwitcherProps) {
@@ -91,6 +93,9 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
               <span class="truncate text-base font-semibold text-text-primary leading-tight">
                 {active().name}
               </span>
+              <Show when={props.loading}>
+                <LoaderCircle size={14} class="shrink-0 animate-spin text-text-tertiary" />
+              </Show>
               <Show when={multi()}>
                 <ChevronDown
                   size={16}
@@ -99,9 +104,11 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
                 />
               </Show>
             </span>
-            <span class="shrink-0 text-lg font-semibold text-text-primary tabular-nums tracking-tight leading-none">
-              {props.usdTotal}
-            </span>
+            <Show when={!props.loading || props.usdTotal !== "—"} fallback={<BalanceSkeleton />}>
+              <span class="shrink-0 text-lg font-semibold text-text-primary tabular-nums tracking-tight leading-none">
+                {props.usdTotal}
+              </span>
+            </Show>
           </div>
           <AddressDisplay address={active().address} class="justify-start" />
         </div>

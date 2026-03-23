@@ -34,6 +34,7 @@ import {
   handleGetState,
   handleGetTokenBalances,
   handleGetTokenInfo,
+  handleGetTokenPrice,
   handleImportPrivateKey,
   handleImportWallet,
   handleResetWallet,
@@ -109,6 +110,8 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleCheckKeychainAvailable();
     case "GET_TOKEN_BALANCES":
       return handleGetTokenBalances(message.tokens);
+    case "GET_TOKEN_PRICE":
+      return handleGetTokenPrice(message.address, message.chainId);
     case "SEND_TOKEN":
       return handleSendToken(message.tokenAddress, message.to, message.amount, message.decimals);
     case "GET_ACTIVITY":

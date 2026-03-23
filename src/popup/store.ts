@@ -27,6 +27,7 @@ const POPULAR_CHAIN_IDS = new Set([
   43114, // Avalanche
 ]);
 
+const NATIVE_BALANCE_KEY = "nativeBalanceCache";
 const NETWORK_IDS_KEY = "userNetworkIds";
 
 function loadSavedNetworkIds(): number[] | null {
@@ -40,6 +41,71 @@ function loadSavedNetworkIds(): number[] | null {
 
 function saveNetworkIds(chains: ChainMeta[]): void {
   localStorage.setItem(NETWORK_IDS_KEY, JSON.stringify(chains.map((c) => c.id)));
+}
+
+interface NativeBalanceCache {
+  balance: string;
+  usdPrice: number | null;
+}
+
+function nativeBalanceCacheKey(chainId: number, address: string): string {
+  return `${chainId}:${address.toLowerCase()}`;
+}
+
+function loadNativeBalanceCache(chainId: number, address: string): NativeBalanceCache | null {
+  try {
+    const all = JSON.parse(localStorage.getItem(NATIVE_BALANCE_KEY) ?? "{}");
+    return all[nativeBalanceCacheKey(chainId, address)] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function saveNativeBalanceCache(chainId: number, address: string, balance: string, usdPrice: number | null): void {
+  try {
+    const all = JSON.parse(localStorage.getItem(NATIVE_BALANCE_KEY) ?? "{}");
+    all[nativeBalanceCacheKey(chainId, address)] = { balance, usdPrice } satisfies NativeBalanceCache;
+    localStorage.setItem(NATIVE_BALANCE_KEY, JSON.stringify(all));
+  } catch { /* non-critical */ }
+}
+
+const TOKEN_PRICES_KEY = "tokenPricesCache";
+
+function loadTokenPrices(chainId: number): Record<string, number> {
+  try {
+    const all = JSON.parse(localStorage.getItem(TOKEN_PRICES_KEY) ?? "{}");
+    return all[chainId] ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function saveTokenPrices(chainId: number, prices: Record<string, number>): void {
+  try {
+    const all = JSON.parse(localStorage.getItem(TOKEN_PRICES_KEY) ?? "{}");
+    all[chainId] = { ...(all[chainId] ?? {}), ...prices };
+    localStorage.setItem(TOKEN_PRICES_KEY, JSON.stringify(all));
+  } catch { /* non-critical */ }
+}
+
+function tokenUsdValue(balance: string, price: number | undefined): string | undefined {
+  if (price == null) return undefined;
+  const bal = parseFloat(balance);
+  if (Number.isNaN(bal) || bal === 0) return formatUsd(0);
+  return formatUsd(bal * price);
+}
+
+function buildErc20Token(t: StoredToken, balance: string, chainId: number, price: number | undefined): TokenInfo {
+  return {
+    symbol: t.symbol,
+    name: t.name,
+    address: t.address as Address,
+    decimals: t.decimals,
+    balance,
+    color: chainColor(chainId),
+    source: t.source,
+    usdValue: tokenUsdValue(balance, price),
+  };
 }
 
 function buildInitialNetworks(): ChainMeta[] {
@@ -58,11 +124,11 @@ export const [accounts, setAccounts] = createSignal<SerializedAccount[]>([]);
 export const [activeAccountIndex, setActiveAccountIndex] = createSignal(0);
 export const [activeNetworkId, setActiveNetworkId] = createSignal(1);
 export const [showNetworkSelector, setShowNetworkSelector] = createSignal(false);
-export const [ethBalance, setEthBalance] = createSignal("0");
+export const [ethBalance, setEthBalance] = createSignal("—");
 /** Per-unit native token USD price; `0` on testnets; `null` if unavailable. */
 export const [nativeUsdPrice, setNativeUsdPrice] = createSignal<number | null>(null);
 export const [tokens, setTokens] = createSignal<TokenInfo[]>([]);
-export const [balanceLoading, setBalanceLoading] = createSignal(false);
+export const [balanceLoading, setBalanceLoading] = createSignal(true);
 export const [networks, setRawNetworks] = createSignal<ChainMeta[]>(buildInitialNetworks());
 export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">("vault");
 
@@ -136,6 +202,15 @@ export async function fetchBalance(): Promise<void> {
   const address = account.address as Address;
   setBalanceLoading(true);
 
+  // Phase 0: restore cached native balance from localStorage (no async, instant)
+  const cachedNative = loadNativeBalanceCache(chainId, address);
+  if (cachedNative) {
+    batch(() => {
+      setEthBalance(cachedNative.balance);
+      setNativeUsdPrice(cachedNative.usdPrice);
+    });
+  }
+
   // Phase 1: show cached token list immediately (storage read, no RPC)
   const discoveredRes = await sendMessage({
     type: "GET_DISCOVERED_TOKENS",
@@ -146,16 +221,13 @@ export async function fetchBalance(): Promise<void> {
   const discovered: StoredToken[] =
     discoveredRes?.ok && discoveredRes.data?.tokens?.length ? discoveredRes.data.tokens : [];
 
+  const cachedPrices = loadTokenPrices(chainId);
+
   if (discovered.length > 0) {
-    const cached: TokenInfo[] = discovered.map((t) => ({
-      symbol: t.symbol,
-      name: t.name,
-      address: t.address as Address,
-      decimals: t.decimals,
-      balance: t.lastBalance ? formatBalance(t.lastBalance, t.decimals) : "\u2014",
-      color: chainColor(chainId),
-      source: t.source,
-    }));
+    const cached: TokenInfo[] = discovered.map((t) => {
+      const balance = t.lastBalance ? formatBalance(t.lastBalance, t.decimals) : "—";
+      return buildErc20Token(t, balance, chainId, cachedPrices[t.address.toLowerCase()]);
+    });
     setTokens([buildNativeToken(), ...cached]);
   }
 
@@ -171,23 +243,22 @@ export async function fetchBalance(): Promise<void> {
   if (balRes.ok && balRes.data) {
     setEthBalance(balRes.data.balance);
     setNativeUsdPrice(balRes.data.nativeUsdPrice);
+    saveNativeBalanceCache(chainId, address, balRes.data.balance, balRes.data.nativeUsdPrice);
   }
 
   const balances: Record<string, string> =
     tokBalRes?.ok && tokBalRes.data ? tokBalRes.data.balances : {};
-  const erc20Tokens: TokenInfo[] = discovered.map((t) => ({
-    symbol: t.symbol,
-    name: t.name,
-    address: t.address as Address,
-    decimals: t.decimals,
-    balance: formatBalance(balances[t.address as Address] ?? "0", t.decimals),
-    color: chainColor(chainId),
-    source: t.source,
-  }));
+
+  const erc20Tokens: TokenInfo[] = discovered.map((t) => {
+    const balance = formatBalance(balances[t.address as Address] ?? "0", t.decimals);
+    return buildErc20Token(t, balance, chainId, cachedPrices[t.address.toLowerCase()]);
+  });
 
   setTokens([buildNativeToken(), ...erc20Tokens]);
 
-  // Phase 3: scan for new tokens; if any found, fetch their balances and append
+  // Phase 3+4 run concurrently: token scan (RPC) and USD prices (CoinGecko)
+  fetchTokenPrices(chainId);
+
   try {
     const scanRes = await sendMessage({ type: "SCAN_TOKENS", chainId, address });
     if (scanRes.ok && scanRes.data?.found > 0) {
@@ -206,15 +277,10 @@ export async function fetchBalance(): Promise<void> {
           const newBalRes = await sendMessage({ type: "GET_TOKEN_BALANCES", tokens: newAddresses });
           const newBals: Record<string, string> =
             newBalRes.ok && newBalRes.data ? newBalRes.data.balances : {};
-          const additions: TokenInfo[] = newTokens.map((t) => ({
-            symbol: t.symbol,
-            name: t.name,
-            address: t.address as Address,
-            decimals: t.decimals,
-            balance: formatBalance(newBals[t.address as Address] ?? "0", t.decimals),
-            color: chainColor(chainId),
-            source: t.source,
-          }));
+          const additions: TokenInfo[] = newTokens.map((t) => {
+            const balance = formatBalance(newBals[t.address as Address] ?? "0", t.decimals);
+            return buildErc20Token(t, balance, chainId, cachedPrices[t.address.toLowerCase()]);
+          });
           setTokens((prev) => [...prev, ...additions]);
         }
       }
@@ -223,6 +289,30 @@ export async function fetchBalance(): Promise<void> {
     /* non-critical */
   } finally {
     setBalanceLoading(false);
+  }
+}
+
+function fetchTokenPrices(chainId: number): void {
+  const current = untrack(tokens);
+  const erc20 = current.filter((t) => t.address);
+  if (erc20.length === 0) return;
+
+  for (const token of erc20) {
+    const addr = token.address as Address;
+    sendMessage({ type: "GET_TOKEN_PRICE", address: addr, chainId })
+      .then((res) => {
+        if (!res.ok || res.data.price == null) return;
+        const price = res.data.price;
+        saveTokenPrices(chainId, { [addr.toLowerCase()]: price });
+        setTokens((prev) =>
+          prev.map((t) =>
+            t.address?.toLowerCase() === addr.toLowerCase()
+              ? { ...t, usdValue: tokenUsdValue(t.balance, price) }
+              : t,
+          ),
+        );
+      })
+      .catch(() => {});
   }
 }
 
@@ -314,12 +404,13 @@ export const walletState = {
   async switchNetwork(id: number): Promise<void> {
     setActiveNetworkId(id);
     setShowNetworkSelector(false);
+    const cached = loadNativeBalanceCache(id, untrack(activeAccount).address);
     batch(() => {
       setActivity([]);
       setActivitySource(null);
       setActivityHasMore(false);
-      setEthBalance("\u2014");
-      setNativeUsdPrice(null);
+      setEthBalance(cached?.balance ?? "—");
+      setNativeUsdPrice(cached?.usdPrice ?? null);
     });
     setTokens([buildNativeToken()]);
     try {

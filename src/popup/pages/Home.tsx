@@ -80,7 +80,7 @@ export function Home() {
 
       {/* Outside scroll so account menu stacks above list; avoids overflow clip */}
       <div class="shrink-0 px-4 pt-3 pb-3">
-        <AccountSwitcher usdTotal={usdTotal()} />
+        <AccountSwitcher usdTotal={usdTotal()} loading={walletState.balanceLoading()} />
       </div>
 
       <div class="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-4">

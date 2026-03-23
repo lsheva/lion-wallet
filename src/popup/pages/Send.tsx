@@ -285,29 +285,29 @@ export function Send() {
             </div>
             <Show when={showAddressPicker()}>
               <div class="absolute left-0 right-0 top-full mt-1 z-20 bg-elevated rounded-[var(--radius-card)] ring-1 ring-divider shadow-lg overflow-y-auto max-h-[160px]">
-              <For each={accounts()}>
-                {(account, i) => (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectAddress(account.address)}
-                    class={`w-full flex items-center justify-between px-3 py-2 hover:bg-base/50 transition-colors cursor-pointer text-left ${
-                      account.address.toLowerCase() === to().toLowerCase()
-                        ? "bg-accent-light"
-                        : ""
-                    }`}
-                  >
-                    <span class="text-sm font-medium text-text-primary truncate">
-                      {account.name}
-                      <Show when={i() === activeAccountIndex()}>
-                        <span class="text-[11px] text-text-tertiary ml-1">(sender)</span>
-                      </Show>
-                    </span>
-                    <span class="text-[11px] font-mono text-text-secondary ml-2 shrink-0">
-                      {truncateAddress(account.address)}
-                    </span>
-                  </button>
-                )}
-              </For>
+                <For each={accounts()}>
+                  {(account, i) => (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAddress(account.address)}
+                      class={`w-full flex items-center justify-between px-3 py-2 hover:bg-base/50 transition-colors cursor-pointer text-left ${
+                        account.address.toLowerCase() === to().toLowerCase()
+                          ? "bg-accent-light"
+                          : ""
+                      }`}
+                    >
+                      <span class="text-sm font-medium text-text-primary truncate">
+                        {account.name}
+                        <Show when={i() === activeAccountIndex()}>
+                          <span class="text-[11px] text-text-tertiary ml-1">(sender)</span>
+                        </Show>
+                      </span>
+                      <span class="text-[11px] font-mono text-text-secondary ml-2 shrink-0">
+                        {truncateAddress(account.address)}
+                      </span>
+                    </button>
+                  )}
+                </For>
               </div>
             </Show>
           </div>

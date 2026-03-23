@@ -1,19 +1,19 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 260.3 kB │ gzip: 82.7 kB
+  output: 261.8 kB │ gzip: 83.2 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  252.5 kB  58.8%
+  (project)  255.7 kB  59.1%
     └ src/shared/chains.generated.ts  21.7 kB
     └ src/popup/pages/Settings.tsx  21.7 kB
     └ src/popup/pages/NetworkSelector.tsx  15.7 kB
-  solid-js  52.7 kB  12.3%
+  solid-js  52.7 kB  12.2%
     └ node_modules/solid-js/dist/solid.js  32.4 kB
     └ node_modules/solid-js/web/dist/web.js  20.3 kB
-  @web3icons/core  49.8 kB  11.6%
+  @web3icons/core  49.8 kB  11.5%
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/mantle.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/sei-network.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/metis-andromeda.svg.js  2.0 kB
-  @solidjs/router  25.6 kB  6.0%
+  @solidjs/router  25.6 kB  5.9%
     └ node_modules/@solidjs/router/dist/routing.js  9.3 kB
     └ node_modules/@solidjs/router/dist/utils.js  4.1 kB
     └ node_modules/@solidjs/router/dist/routers/components.jsx  4.1 kB
@@ -29,21 +29,21 @@
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 289.6 kB │ gzip: 92.2 kB
+  output: 290.4 kB │ gzip: 92.4 kB
 ──────────────────────────────────────────────────────────────────────────────────
-  viem  247.6 kB  46.8%
+  viem  247.6 kB  46.6%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.8 kB
-  (project)  121.9 kB  23.0%
+  (project)  123.5 kB  23.2%
     └ src/background/activity.ts  23.8 kB
     └ src/shared/chains.generated.ts  22.8 kB
-    └ src/background/handlers/wallet.ts  8.3 kB
-  @noble/curves  57.6 kB  10.9%
+    └ src/background/handlers/wallet.ts  8.6 kB
+  @noble/curves  57.6 kB  10.8%
     └ node_modules/@noble/curves/esm/abstract/weierstrass.js  26.1 kB
     └ node_modules/@noble/curves/esm/secp256k1.js  7.4 kB
     └ node_modules/@noble/curves/esm/abstract/modular.js  7.2 kB
-  @noble/hashes  32.6 kB  6.2%
+  @noble/hashes  32.6 kB  6.1%
     └ node_modules/@noble/hashes/esm/sha2.js  9.2 kB
     └ node_modules/@noble/hashes/esm/sha3.js  5.6 kB
     └ node_modules/@noble/hashes/esm/utils.js  5.2 kB
