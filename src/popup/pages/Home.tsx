@@ -1,6 +1,6 @@
 import { formatUsd } from "@shared/format";
 import { useNavigate } from "@solidjs/router";
-import { ArrowDownLeft, ArrowUpRight, Plus, Settings, SlidersHorizontal } from "lucide-solid";
+import { ArrowDownLeft, ArrowUpRight, LoaderCircle, Plus, Settings, SlidersHorizontal } from "lucide-solid";
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import type { Address } from "viem";
 import { AccountSwitcher } from "../components/AccountSwitcher";
@@ -111,8 +111,11 @@ export function Home() {
         {/* Tokens */}
         <div class="bg-surface rounded-2xl w-full shrink-0">
           <div class="flex items-center justify-between px-4 pt-3 pb-2">
-            <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+            <h3 class="flex items-center gap-1.5 text-xs font-semibold text-text-secondary uppercase tracking-wider">
               Tokens
+              <Show when={walletState.balanceLoading()}>
+                <LoaderCircle size={11} class="animate-spin text-text-tertiary" />
+              </Show>
             </h3>
             <button
               type="button"

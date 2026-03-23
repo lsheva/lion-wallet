@@ -1,8 +1,8 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 257.2 kB │ gzip: 81.7 kB
+  output: 257.4 kB │ gzip: 81.8 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  247.0 kB  58.3%
+  (project)  247.5 kB  58.4%
     └ src/popup/pages/Settings.tsx  21.7 kB
     └ src/shared/chains.generated.ts  21.5 kB
     └ src/popup/pages/NetworkSelector.tsx  15.7 kB
@@ -21,7 +21,7 @@
     └ node_modules/lucide-solid/dist/source/Icon.jsx  2.3 kB
   uqr  19.4 kB  4.6%
     └ node_modules/uqr/dist/index.mjs  19.4 kB
-  viem  8.3 kB  2.0%
+  viem  8.3 kB  1.9%
     └ node_modules/viem/_esm/errors/base.js  2.3 kB
     └ node_modules/viem/_esm/utils/unit/parseUnits.js  1.2 kB
     └ node_modules/viem/_esm/utils/data/pad.js  1.1 kB

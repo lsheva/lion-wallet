@@ -62,6 +62,7 @@ export const [ethBalance, setEthBalance] = createSignal("0");
 /** Per-unit native token USD price; `0` on testnets; `null` if unavailable. */
 export const [nativeUsdPrice, setNativeUsdPrice] = createSignal<number | null>(null);
 export const [tokens, setTokens] = createSignal<TokenInfo[]>([]);
+export const [balanceLoading, setBalanceLoading] = createSignal(false);
 export const [networks, setRawNetworks] = createSignal<ChainMeta[]>(buildInitialNetworks());
 export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">("vault");
 
@@ -99,7 +100,7 @@ export function chainColor(chainId: number): string {
 function nativeBalanceUsdString(): string | undefined {
   const rate = untrack(nativeUsdPrice);
   const bal = parseFloat(untrack(ethBalance));
-  if (Number.isNaN(bal) || rate == null) return undefined;
+  if (Number.isNaN(bal) || rate == null) return "\u2014";
   if (rate === 0) return formatUsd(0);
   if (rate > 0) return formatUsd(bal * rate);
   return undefined;
@@ -133,6 +134,7 @@ export async function fetchBalance(): Promise<void> {
   if (!account.address || account.address === zeroAddress) return;
   const chainId = untrack(activeNetworkId);
   const address = account.address as Address;
+  setBalanceLoading(true);
 
   // Phase 1: show cached token list immediately (storage read, no RPC)
   const discoveredRes = await sendMessage({
@@ -219,6 +221,8 @@ export async function fetchBalance(): Promise<void> {
     }
   } catch {
     /* non-critical */
+  } finally {
+    setBalanceLoading(false);
   }
 }
 
@@ -299,6 +303,7 @@ export const walletState = {
   networks,
   ethBalance,
   nativeUsdPrice,
+  balanceLoading,
   showNetworkSelector,
   storageMode,
   activity,
