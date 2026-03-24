@@ -1,8 +1,7 @@
 import type { Address, Hex } from "viem";
 import { getBalance, readContract } from "viem/actions";
 import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits } from "viem/utils";
-import { disperseAbi, erc20Abi, erc20ExtAbi } from "../../shared/abis";
-import { DISPERSE_ADDRESS } from "../../shared/constants";
+import { disperseAbi, erc20Abi, multicall3Abi } from "../../shared/abis";
 import type { MessageResponse } from "../../shared/messages";
 import type { MultiSendEntry, SerializedAccount, WalletState } from "../../shared/types";
 import { broadcastEvent } from "../broadcast";
@@ -382,63 +381,19 @@ export async function handleSendToken(
 
 // ── Multi-send via Disperse.app ──
 
-type ApprovalMethod = "permit" | "approve" | "increaseAllowance";
+import type { DecodedCall, TokenTransfer } from "../../shared/types";
 
-async function detectApprovalMethod(
-  chainId: number,
-  tokenAddress: Address,
-  owner: Address,
-): Promise<ApprovalMethod> {
-  const client = getPublicClient(chainId);
+const MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11" as Address;
 
-  // 1. Permit (EIP-2612) — preferred: gasless signature-based approval
-  try {
-    await readContract(client, {
-      address: tokenAddress,
-      abi: erc20ExtAbi,
-      functionName: "nonces",
-      args: [owner],
-    });
-    return "permit";
-  } catch {
-    /* no permit support */
-  }
-
-  // 2. Standard approve — works for the vast majority of tokens
-  // We assume approve is available (ERC-20 spec) unless we later detect otherwise
-  // 3. increaseAllowance — OpenZeppelin extension, fallback only
-  return "approve";
-}
-
-async function buildApprovalCalldata(
-  method: ApprovalMethod,
-  _tokenAddress: Address,
-  spender: Address,
-  amount: bigint,
-): Promise<Hex> {
-  switch (method) {
-    case "permit":
-      // Permit requires an EIP-712 signature which is not available during
-      // tx queuing. Fall back to approve; the permit detection is surfaced
-      // to the UI so a future iteration can sign-then-call atomically.
-      return encodeFunctionData({
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [spender, amount],
-      });
-    case "approve":
-      return encodeFunctionData({
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [spender, amount],
-      });
-    case "increaseAllowance":
-      return encodeFunctionData({
-        abi: erc20ExtAbi,
-        functionName: "increaseAllowance",
-        args: [spender, amount],
-      });
-  }
+function buildTransfers(entries: MultiSendEntry[]): TokenTransfer[] {
+  return entries.map((e) => ({
+    direction: "out" as const,
+    symbol: e.symbol,
+    name: e.tokenName,
+    amount: e.amount,
+    color: "#627EEA",
+    tokenAddress: e.tokenAddress,
+  }));
 }
 
 export async function handleMultiSend(entries: MultiSendEntry[]): Promise<MessageResponse> {
@@ -450,35 +405,9 @@ export async function handleMultiSend(entries: MultiSendEntry[]): Promise<Messag
 
   const chainId = await getActiveNetworkId();
   const network = getNetworkConfig(chainId);
-  if (!network?.hasDisperse) {
-    return { ok: false, error: "Multi-send is not supported on this network" };
-  }
-
   const { handleRpc } = await import("../rpc-handler");
-  const client = getPublicClient(chainId);
-  let queued = 0;
 
-  // ── Native ETH entries → single disperseEther call ──
   const nativeEntries = entries.filter((e) => !e.tokenAddress);
-  if (nativeEntries.length > 0) {
-    const recipients = nativeEntries.map((e) => e.to);
-    const values = nativeEntries.map((e) => parseUnits(e.amount, e.decimals));
-    const totalValue = values.reduce((sum, v) => sum + v, 0n);
-
-    const data = encodeFunctionData({
-      abi: disperseAbi,
-      functionName: "disperseEther",
-      args: [recipients, values],
-    });
-    await handleRpc(
-      "eth_sendTransaction",
-      [{ from: account.address, to: DISPERSE_ADDRESS, value: numberToHex(totalValue), data }],
-      { origin: "lion-wallet://popup" },
-    );
-    queued++;
-  }
-
-  // ── ERC-20 entries → group by token, one disperseTokenSimple per token ──
   const erc20ByToken = new Map<Address, MultiSendEntry[]>();
   for (const e of entries) {
     if (!e.tokenAddress) continue;
@@ -488,50 +417,195 @@ export async function handleMultiSend(entries: MultiSendEntry[]): Promise<Messag
     erc20ByToken.set(key, group);
   }
 
+  const disperseAddr = network?.disperseAddress as Address | undefined;
+  let queued = 0;
+
+  if (!disperseAddr) {
+    // ── Fallback: individual transactions (no Disperse on this chain) ──
+    for (const e of nativeEntries) {
+      await handleRpc(
+        "eth_sendTransaction",
+        [
+          {
+            from: account.address,
+            to: e.to,
+            value: numberToHex(parseUnits(e.amount, e.decimals)),
+          },
+        ],
+        { origin: "lion-wallet://popup" },
+      );
+      queued++;
+    }
+    for (const [tokenAddr, group] of erc20ByToken) {
+      for (const e of group) {
+        const data = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [e.to, parseUnits(e.amount, e.decimals)],
+        });
+        const decoded: DecodedCall = {
+          functionName: "transfer",
+          args: [
+            {
+              name: "to",
+              type: "address",
+              value: `${e.to.slice(0, 6)}…${e.to.slice(-4)}`,
+            },
+            { name: "amount", type: "uint256", value: `${e.amount} ${e.symbol}` },
+          ],
+        };
+        await handleRpc(
+          "eth_sendTransaction",
+          [{ from: account.address, to: tokenAddr, data }],
+          {
+            origin: "lion-wallet://popup",
+            extras: { prefilled: { decoded, transfers: buildTransfers([e]) } },
+          },
+        );
+        queued++;
+      }
+    }
+    return { ok: true, data: { queued } };
+  }
+
+  // ── Disperse path ──
+  const client = getPublicClient(chainId);
+
+  // 1. Native ETH → disperseEther (queued separately)
+  if (nativeEntries.length > 0) {
+    const firstNative = nativeEntries[0]!;
+    const recipients = nativeEntries.map((e) => e.to);
+    const values = nativeEntries.map((e) => parseUnits(e.amount, e.decimals));
+    const totalValue = values.reduce((sum, v) => sum + v, 0n);
+
+    const data = encodeFunctionData({
+      abi: disperseAbi,
+      functionName: "disperseEther",
+      args: [recipients, values],
+    });
+    const decoded: DecodedCall = {
+      contractName: "Disperse",
+      functionName: "disperseEther",
+      args: [
+        { name: "recipients", type: "address[]", value: `${recipients.length} addresses` },
+        { name: "total", type: "uint256", value: formatUnits(totalValue, firstNative.decimals) },
+      ],
+    };
+    await handleRpc(
+      "eth_sendTransaction",
+      [{ from: account.address, to: disperseAddr, value: numberToHex(totalValue), data }],
+      {
+        origin: "lion-wallet://popup",
+        extras: { prefilled: { decoded, transfers: buildTransfers(nativeEntries) } },
+      },
+    );
+    queued++;
+  }
+
+  // 2. ERC-20: queue one approve per token, then batch all disperse calls
+  type DisperseCall = { target: Address; allowFailure: false; callData: `0x${string}` };
+  const disperseCalls: DisperseCall[] = [];
+  const allErc20Transfers: MultiSendEntry[] = [];
+
   for (const [tokenAddr, group] of erc20ByToken) {
+    const first = group[0]!;
     const recipients = group.map((e) => e.to);
     const values = group.map((e) => parseUnits(e.amount, e.decimals));
     const totalNeeded = values.reduce((sum, v) => sum + v, 0n);
 
-    // Check existing allowance
     let currentAllowance = 0n;
     try {
       currentAllowance = (await readContract(client, {
         address: tokenAddr,
         abi: erc20Abi,
         functionName: "allowance",
-        args: [account.address, DISPERSE_ADDRESS],
+        args: [account.address, disperseAddr],
       })) as bigint;
     } catch {
       /* assume 0 */
     }
 
     if (currentAllowance < totalNeeded) {
-      const method = await detectApprovalMethod(chainId, tokenAddr, account.address);
-      const approveData = await buildApprovalCalldata(
-        method,
-        tokenAddr,
-        DISPERSE_ADDRESS,
-        totalNeeded,
-      );
+      const approveData = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [disperseAddr, totalNeeded],
+      });
+      const approveDecoded: DecodedCall = {
+        functionName: "approve",
+        args: [
+          { name: "spender", type: "address", value: "Disperse" },
+          {
+            name: "amount",
+            type: "uint256",
+            value: `${formatUnits(totalNeeded, first.decimals)} ${first.symbol}`,
+          },
+        ],
+      };
       await handleRpc(
         "eth_sendTransaction",
         [{ from: account.address, to: tokenAddr, data: approveData }],
-        { origin: "lion-wallet://popup" },
+        { origin: "lion-wallet://popup", extras: { prefilled: { decoded: approveDecoded } } },
       );
       queued++;
     }
 
-    // Queue the disperseTokenSimple call
-    const disperseData = encodeFunctionData({
+    const disperseCalldata = encodeFunctionData({
       abi: disperseAbi,
       functionName: "disperseTokenSimple",
       args: [tokenAddr, recipients, values],
     });
+    disperseCalls.push({
+      target: disperseAddr,
+      allowFailure: false as const,
+      callData: disperseCalldata as `0x${string}`,
+    });
+    allErc20Transfers.push(...group);
+  }
+
+  // 3. Queue disperse calls — direct for single token, multicall3 for multiple
+  if (disperseCalls.length === 1) {
+    const call = disperseCalls[0]!;
+    const tokenAddr = [...erc20ByToken.keys()][0]!;
+    const group = erc20ByToken.get(tokenAddr)!;
+    const first = group[0]!;
+    const decoded: DecodedCall = {
+      contractName: "Disperse",
+      functionName: "disperseTokenSimple",
+      args: [
+        { name: "token", type: "address", value: `${first.symbol} (${tokenAddr.slice(0, 10)}…)` },
+        { name: "recipients", type: "address[]", value: `${group.length} addresses` },
+      ],
+    };
     await handleRpc(
       "eth_sendTransaction",
-      [{ from: account.address, to: DISPERSE_ADDRESS, data: disperseData }],
-      { origin: "lion-wallet://popup" },
+      [{ from: account.address, to: disperseAddr, data: call.callData }],
+      {
+        origin: "lion-wallet://popup",
+        extras: { prefilled: { decoded, transfers: buildTransfers(group) } },
+      },
+    );
+    queued++;
+  } else if (disperseCalls.length > 1) {
+    const multicallData = encodeFunctionData({
+      abi: multicall3Abi,
+      functionName: "aggregate3",
+      args: [disperseCalls],
+    });
+    const decoded: DecodedCall = {
+      contractName: "Multicall3",
+      functionName: "aggregate3",
+      args: [
+        { name: "calls", type: "tuple[]", value: `${disperseCalls.length} Disperse calls` },
+      ],
+    };
+    await handleRpc(
+      "eth_sendTransaction",
+      [{ from: account.address, to: MULTICALL3, data: multicallData }],
+      {
+        origin: "lion-wallet://popup",
+        extras: { prefilled: { decoded, transfers: buildTransfers(allErc20Transfers) } },
+      },
     );
     queued++;
   }

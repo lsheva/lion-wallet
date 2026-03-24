@@ -33,7 +33,7 @@ function emptyRow(token: Token): SendRow {
 export function MultiSend() {
   const navigate = useNavigate();
 
-  const disperseSupported = createMemo(() => walletState.activeNetwork().hasDisperse === true);
+  const disperseSupported = createMemo(() => !!walletState.activeNetwork().disperseAddress);
 
   const defaultToken = () => walletState.tokens()[0] as Token;
   const [rows, setRows] = createSignal<SendRow[]>([
@@ -93,6 +93,8 @@ export function MultiSend() {
         tokenAddress: row.token.address as Address | undefined,
         amount: row.amount.replace(/,/g, ""),
         decimals: row.token.decimals,
+        symbol: row.token.symbol,
+        tokenName: row.token.name,
       }));
 
       const res = await sendMessage({ type: "MULTI_SEND", entries });

@@ -10,7 +10,6 @@ import { ConfirmSeed } from "./pages/ConfirmSeed";
 import { ExportPrivateKey } from "./pages/ExportPrivateKey";
 import { Home } from "./pages/Home";
 import { ImportWallet } from "./pages/ImportWallet";
-import { MultiSend } from "./pages/MultiSend";
 import { Receive } from "./pages/Receive";
 import { Result } from "./pages/Result";
 import { SeedPhrase } from "./pages/SeedPhrase";
@@ -132,7 +131,6 @@ export function App() {
       <Route path="/api-key-setup" component={ApiKeySetup} />
       <Route path="/home" component={Home} />
       <Route path="/send" component={Send} />
-      <Route path="/multi-send" component={MultiSend} />
       <Route path="/receive" component={Receive} />
       <Route path="/approve" component={Approve} />
       <Route path="/result" component={Result} />

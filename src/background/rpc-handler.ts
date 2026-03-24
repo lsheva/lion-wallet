@@ -2,7 +2,7 @@ import { toErrorMessage } from "@shared/format";
 import type { Hex } from "viem";
 import { numberToHex } from "viem/utils";
 import { POPUP_ORIGIN } from "../shared/constants";
-import { createPendingApproval } from "./approval";
+import { createPendingApproval, type PendingApprovalExtras } from "./approval";
 import {
   getActiveNetworkId,
   getNetworkConfig,
@@ -19,6 +19,7 @@ export interface RpcError {
 
 interface RpcContext {
   origin: string;
+  extras?: PendingApprovalExtras;
 }
 
 type RpcResult = { result: unknown } | { error: RpcError };
@@ -160,7 +161,13 @@ export async function handleRpc(
       }
 
       const chainId = await getActiveNetworkId();
-      const { promise } = createPendingApproval(method, params ?? [], ctx.origin, chainId);
+      const { promise } = createPendingApproval(
+        method,
+        params ?? [],
+        ctx.origin,
+        chainId,
+        ctx.extras,
+      );
 
       if (isPopup) {
         return ok({ pending: true });

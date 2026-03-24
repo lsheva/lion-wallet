@@ -14,7 +14,7 @@ for (const { chain } of list) {
   if (match) viemName.set(chain.id, match[0]);
 }
 
-function minimal(chain: Chain, alchemy?: string, trust?: string, disperse?: boolean) {
+function minimal(chain: Chain, alchemy?: string, trust?: string, disperse?: string) {
   const o: Record<string, unknown> = {
     id: chain.id,
     name: chain.name,
@@ -25,7 +25,7 @@ function minimal(chain: Chain, alchemy?: string, trust?: string, disperse?: bool
   if (chain.blockExplorers?.default?.url) o.blockExplorerUrl = chain.blockExplorers.default.url;
   if (alchemy) o.alchemySlug = alchemy;
   if (trust) o.trustSlug = trust;
-  if (disperse) o.hasDisperse = true;
+  if (disperse) o.disperseAddress = disperse;
   return o;
 }
 

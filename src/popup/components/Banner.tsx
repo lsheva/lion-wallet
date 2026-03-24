@@ -10,7 +10,7 @@ interface BannerProps {
 }
 
 const variantConfig: Record<BannerVariant, { bg: string; text: string; icon: typeof Info }> = {
-  info: { bg: "bg-accent-light", text: "text-accent", icon: Info },
+  info: { bg: "bg-info-bg", text: "text-info-text", icon: Info },
   warning: { bg: "bg-warning-bg", text: "text-warning-text", icon: AlertTriangle },
   danger: { bg: "bg-danger-bg", text: "text-danger", icon: AlertCircle },
 };

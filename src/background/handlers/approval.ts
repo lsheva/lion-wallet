@@ -206,6 +206,13 @@ export async function handleEnrichApproval(id: string): Promise<MessageResponse>
 
   if (isTxMethod) {
     const txParams = pending.params[0] as TransactionParams;
+
+    // Use pre-filled enrichment when available (e.g. multi-send queued txs)
+    if (pending.prefilled) {
+      decoded = pending.prefilled.decoded ?? null;
+      transfers = pending.prefilled.transfers ?? null;
+    }
+
     _debug.push(
       `method=${pending.method} to=${txParams.to} data=${txParams.data?.slice(0, 20) ?? "none"} value=${txParams.value ?? "none"} chainId=${pending.chainId}`,
     );
@@ -217,51 +224,58 @@ export async function handleEnrichApproval(id: string): Promise<MessageResponse>
       _debug.push(`gas: FAIL ${toErrorMessage(e)}`);
     }
 
-    try {
-      const [decodeResult, simResult] = await Promise.allSettled([
-        decodeTx(txParams, pending.chainId, _debug),
-        simulateTx(txParams, pending.chainId, activeAccount?.address ?? ("0x" as Address), _debug),
-      ]);
+    if (!pending.prefilled) {
+      try {
+        const [decodeResult, simResult] = await Promise.allSettled([
+          decodeTx(txParams, pending.chainId, _debug),
+          simulateTx(
+            txParams,
+            pending.chainId,
+            activeAccount?.address ?? ("0x" as Address),
+            _debug,
+          ),
+        ]);
 
-      if (decodeResult.status === "fulfilled") {
-        decoded = decodeResult.value.decoded;
-        decodedVia = decodeResult.value.via;
-      }
-
-      let simTransfers: import("../../shared/types").TokenTransfer[] = [];
-      if (simResult.status === "fulfilled" && simResult.value) {
-        simTransfers = simResult.value.transfers;
-        simulatedVia = simResult.value.via;
-      }
-
-      const network = getNetworkConfig(pending.chainId);
-      const nativeSymbol = network?.nativeCurrency.symbol ?? "ETH";
-
-      const tokenAddresses = simTransfers
-        .map((t) => t.tokenAddress)
-        .filter((a): a is string => !!a);
-
-      const priceMap = await fetchPrices(nativeSymbol, pending.chainId, tokenAddresses);
-
-      nativeUsdPrice = priceMap.get("native") ?? null;
-
-      for (const t of simTransfers) {
-        if (t.usdValue) continue;
-        let price: number | undefined;
-        if (!t.tokenAddress) {
-          price = nativeUsdPrice ?? undefined;
-        } else {
-          price = priceMap.get(t.tokenAddress.toLowerCase());
+        if (decodeResult.status === "fulfilled") {
+          decoded = decodeResult.value.decoded;
+          decodedVia = decodeResult.value.via;
         }
-        if (price != null) {
-          const val = parseFloat(t.amount) * price;
-          t.usdValue = `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        }
-      }
 
-      transfers = simTransfers.length > 0 ? simTransfers : null;
-    } catch (e) {
-      _debug.push(`decode/sim CATCH: ${toErrorMessage(e)}`);
+        let simTransfers: import("../../shared/types").TokenTransfer[] = [];
+        if (simResult.status === "fulfilled" && simResult.value) {
+          simTransfers = simResult.value.transfers;
+          simulatedVia = simResult.value.via;
+        }
+
+        const network = getNetworkConfig(pending.chainId);
+        const nativeSymbol = network?.nativeCurrency.symbol ?? "ETH";
+
+        const tokenAddresses = simTransfers
+          .map((t) => t.tokenAddress)
+          .filter((a): a is string => !!a);
+
+        const priceMap = await fetchPrices(nativeSymbol, pending.chainId, tokenAddresses);
+
+        nativeUsdPrice = priceMap.get("native") ?? null;
+
+        for (const t of simTransfers) {
+          if (t.usdValue) continue;
+          let price: number | undefined;
+          if (!t.tokenAddress) {
+            price = nativeUsdPrice ?? undefined;
+          } else {
+            price = priceMap.get(t.tokenAddress.toLowerCase());
+          }
+          if (price != null) {
+            const val = parseFloat(t.amount) * price;
+            t.usdValue = `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          }
+        }
+
+        transfers = simTransfers.length > 0 ? simTransfers : null;
+      } catch (e) {
+        _debug.push(`decode/sim CATCH: ${toErrorMessage(e)}`);
+      }
     }
   }
 
@@ -309,3 +323,4 @@ export async function handleEstimateGas(
     return { ok: false, error: toErrorMessage(e) };
   }
 }
+

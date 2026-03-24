@@ -26,6 +26,8 @@
   --color-warning: #ea580c;
 
   /* Banners (avoid hard-coded hex in components) */
+  --color-info-bg: #fefce8;
+  --color-info-text: #a16207;
   --color-warning-bg: #fff7ed;
   --color-warning-text: #c2410c;
   --color-danger-bg: #fef2f2;
@@ -99,6 +101,8 @@
       --color-danger-hover: #dc2626;
       --color-warning: #f97316;
 
+      --color-info-bg: #2d2510;
+      --color-info-text: #fbbf24;
       --color-warning-bg: #451a03;
       --color-warning-text: #fb923c;
       --color-danger-bg: #450a0a;
@@ -127,6 +131,8 @@
     --color-danger-hover: #dc2626;
     --color-warning: #f97316;
 
+    --color-info-bg: #2d2510;
+    --color-info-text: #fbbf24;
     --color-warning-bg: #451a03;
     --color-warning-text: #fb923c;
     --color-danger-bg: #450a0a;

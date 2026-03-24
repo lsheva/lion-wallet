@@ -29,7 +29,7 @@ export interface ChainMeta {
   blockExplorerUrl?: string;
   alchemySlug?: string;
   trustSlug?: string;
-  hasDisperse?: boolean;
+  disperseAddress?: Address;
 }
 
 export interface MultiSendEntry {
@@ -38,6 +38,8 @@ export interface MultiSendEntry {
   tokenAddress?: Address;
   amount: string;
   decimals: number;
+  symbol: string;
+  tokenName: string;
 }
 
 export interface WalletState {
@@ -89,6 +91,18 @@ export interface TransactionParams {
   nonce?: Hex;
 }
 
+export interface PermitData {
+  tokenAddress: Address;
+  spender: Address;
+  value: string;
+  /** Unix seconds; 0 = use default (10 min from now). */
+  deadline?: number;
+  /** Token name for the EIP-712 domain. */
+  tokenName: string;
+  /** Token nonce for the permit signer. */
+  nonce: string;
+}
+
 export interface PendingApproval {
   id: string;
   method: string;
@@ -96,6 +110,15 @@ export interface PendingApproval {
   origin: string;
   timestamp: number;
   chainId: number;
+  /** When set, executeApproval signs the EIP-712 permit and sends
+   *  token.permit() on-chain instead of using the normal tx flow. */
+  permitData?: PermitData;
+  /** Pre-filled enrichment so the Approve UI can show transfers
+   *  without waiting for on-chain simulation. */
+  prefilled?: {
+    decoded?: DecodedCall | null;
+    transfers?: TokenTransfer[] | null;
+  };
 }
 
 export interface ApprovalResult {

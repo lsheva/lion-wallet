@@ -1,4 +1,4 @@
-import type { PendingApproval } from "../shared/types";
+import type { DecodedCall, PendingApproval, TokenTransfer } from "../shared/types";
 import type { RpcError } from "./rpc-handler";
 
 interface PendingEntry {
@@ -10,17 +10,33 @@ interface PendingEntry {
 const pendingQueue = new Map<string, PendingEntry>();
 let idCounter = 0;
 
+export interface PendingApprovalExtras {
+  prefilled?: {
+    decoded?: DecodedCall | null;
+    transfers?: TokenTransfer[] | null;
+  };
+}
+
 export function createPendingApproval(
   method: string,
   params: unknown[],
   origin: string,
   chainId: number,
+  extras?: PendingApprovalExtras,
 ): { id: string; promise: Promise<{ result: string } | { error: RpcError }> } {
   const id = `approval-${++idCounter}-${Date.now()}`;
 
   const promise = new Promise<{ result: string } | { error: RpcError }>((resolve) => {
     pendingQueue.set(id, {
-      approval: { id, method, params, origin, timestamp: Date.now(), chainId },
+      approval: {
+        id,
+        method,
+        params,
+        origin,
+        timestamp: Date.now(),
+        chainId,
+        ...(extras?.prefilled ? { prefilled: extras.prefilled } : {}),
+      },
       resolve: (result: string) => resolve({ result }),
       reject: (error: RpcError) => resolve({ error }),
     });
