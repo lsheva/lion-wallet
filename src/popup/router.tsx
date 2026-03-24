@@ -1,4 +1,4 @@
-import { type Component, type JSX, type ParentProps, createSignal } from "solid-js";
+import { type Component, createSignal, type JSX, type ParentProps } from "solid-js";
 import { Dynamic } from "solid-js/web";
 
 function hashPath(): string {

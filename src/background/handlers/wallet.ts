@@ -1,9 +1,10 @@
 import type { Address, Hex } from "viem";
 import { getBalance, readContract } from "viem/actions";
 import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits } from "viem/utils";
-import { erc20Abi } from "../../shared/abis";
+import { disperseAbi, erc20Abi, erc20ExtAbi } from "../../shared/abis";
+import { DISPERSE_ADDRESS } from "../../shared/constants";
 import type { MessageResponse } from "../../shared/messages";
-import type { SerializedAccount, WalletState } from "../../shared/types";
+import type { MultiSendEntry, SerializedAccount, WalletState } from "../../shared/types";
 import { broadcastEvent } from "../broadcast";
 import { fetchNativePrice } from "../etherscan";
 import * as keychain from "../keychain";
@@ -377,4 +378,163 @@ export async function handleSendToken(
     { origin: "lion-wallet://popup" },
   );
   return { ok: true, data: result };
+}
+
+// ── Multi-send via Disperse.app ──
+
+type ApprovalMethod = "permit" | "approve" | "increaseAllowance";
+
+async function detectApprovalMethod(
+  chainId: number,
+  tokenAddress: Address,
+  owner: Address,
+): Promise<ApprovalMethod> {
+  const client = getPublicClient(chainId);
+
+  // 1. Permit (EIP-2612) — preferred: gasless signature-based approval
+  try {
+    await readContract(client, {
+      address: tokenAddress,
+      abi: erc20ExtAbi,
+      functionName: "nonces",
+      args: [owner],
+    });
+    return "permit";
+  } catch {
+    /* no permit support */
+  }
+
+  // 2. Standard approve — works for the vast majority of tokens
+  // We assume approve is available (ERC-20 spec) unless we later detect otherwise
+  // 3. increaseAllowance — OpenZeppelin extension, fallback only
+  return "approve";
+}
+
+async function buildApprovalCalldata(
+  method: ApprovalMethod,
+  _tokenAddress: Address,
+  spender: Address,
+  amount: bigint,
+): Promise<Hex> {
+  switch (method) {
+    case "permit":
+      // Permit requires an EIP-712 signature which is not available during
+      // tx queuing. Fall back to approve; the permit detection is surfaced
+      // to the UI so a future iteration can sign-then-call atomically.
+      return encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [spender, amount],
+      });
+    case "approve":
+      return encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [spender, amount],
+      });
+    case "increaseAllowance":
+      return encodeFunctionData({
+        abi: erc20ExtAbi,
+        functionName: "increaseAllowance",
+        args: [spender, amount],
+      });
+  }
+}
+
+export async function handleMultiSend(entries: MultiSendEntry[]): Promise<MessageResponse> {
+  if (entries.length === 0) return { ok: false, error: "No entries provided" };
+
+  const meta = await loadAccountsMeta();
+  const account = meta?.accounts[meta.activeAccountIndex];
+  if (!account) return { ok: false, error: "Wallet not initialized" };
+
+  const chainId = await getActiveNetworkId();
+  const network = getNetworkConfig(chainId);
+  if (!network?.hasDisperse) {
+    return { ok: false, error: "Multi-send is not supported on this network" };
+  }
+
+  const { handleRpc } = await import("../rpc-handler");
+  const client = getPublicClient(chainId);
+  let queued = 0;
+
+  // ── Native ETH entries → single disperseEther call ──
+  const nativeEntries = entries.filter((e) => !e.tokenAddress);
+  if (nativeEntries.length > 0) {
+    const recipients = nativeEntries.map((e) => e.to);
+    const values = nativeEntries.map((e) => parseUnits(e.amount, e.decimals));
+    const totalValue = values.reduce((sum, v) => sum + v, 0n);
+
+    const data = encodeFunctionData({
+      abi: disperseAbi,
+      functionName: "disperseEther",
+      args: [recipients, values],
+    });
+    await handleRpc(
+      "eth_sendTransaction",
+      [{ from: account.address, to: DISPERSE_ADDRESS, value: numberToHex(totalValue), data }],
+      { origin: "lion-wallet://popup" },
+    );
+    queued++;
+  }
+
+  // ── ERC-20 entries → group by token, one disperseTokenSimple per token ──
+  const erc20ByToken = new Map<Address, MultiSendEntry[]>();
+  for (const e of entries) {
+    if (!e.tokenAddress) continue;
+    const key = e.tokenAddress.toLowerCase() as Address;
+    const group = erc20ByToken.get(key) ?? [];
+    group.push(e);
+    erc20ByToken.set(key, group);
+  }
+
+  for (const [tokenAddr, group] of erc20ByToken) {
+    const recipients = group.map((e) => e.to);
+    const values = group.map((e) => parseUnits(e.amount, e.decimals));
+    const totalNeeded = values.reduce((sum, v) => sum + v, 0n);
+
+    // Check existing allowance
+    let currentAllowance = 0n;
+    try {
+      currentAllowance = (await readContract(client, {
+        address: tokenAddr,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [account.address, DISPERSE_ADDRESS],
+      })) as bigint;
+    } catch {
+      /* assume 0 */
+    }
+
+    if (currentAllowance < totalNeeded) {
+      const method = await detectApprovalMethod(chainId, tokenAddr, account.address);
+      const approveData = await buildApprovalCalldata(
+        method,
+        tokenAddr,
+        DISPERSE_ADDRESS,
+        totalNeeded,
+      );
+      await handleRpc(
+        "eth_sendTransaction",
+        [{ from: account.address, to: tokenAddr, data: approveData }],
+        { origin: "lion-wallet://popup" },
+      );
+      queued++;
+    }
+
+    // Queue the disperseTokenSimple call
+    const disperseData = encodeFunctionData({
+      abi: disperseAbi,
+      functionName: "disperseTokenSimple",
+      args: [tokenAddr, recipients, values],
+    });
+    await handleRpc(
+      "eth_sendTransaction",
+      [{ from: account.address, to: DISPERSE_ADDRESS, data: disperseData }],
+      { origin: "lion-wallet://popup" },
+    );
+    queued++;
+  }
+
+  return { ok: true, data: { queued } };
 }

@@ -1,12 +1,12 @@
 import { POPUP_ORIGIN } from "@shared/constants";
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { showError } from "../toast";
-import { useNavigate } from "../router";
 import { BookUser, ChevronDown } from "lucide-solid";
 import { batch, createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js";
 import type { Address } from "viem";
 import { numberToHex, parseEther } from "viem/utils";
+import { useNavigate } from "../router";
+import { showError } from "../toast";
 
 const addressRegex = /^0x[a-fA-F0-9]{40}$/;
 const isAddress = (value: string): boolean => addressRegex.test(value);

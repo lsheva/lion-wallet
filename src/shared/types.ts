@@ -29,6 +29,15 @@ export interface ChainMeta {
   blockExplorerUrl?: string;
   alchemySlug?: string;
   trustSlug?: string;
+  hasDisperse?: boolean;
+}
+
+export interface MultiSendEntry {
+  to: Address;
+  /** undefined = native token */
+  tokenAddress?: Address;
+  amount: string;
+  decimals: number;
 }
 
 export interface WalletState {
@@ -161,9 +170,10 @@ export interface StoredToken {
 
 export interface ApprovalData {
   approval: PendingApproval;
-  gasPresets: GasPresets | null;
   account: SerializedAccount;
   queueSize?: number;
+  storageMode?: "keychain" | "vault";
+  gasPresets?: GasPresets | null;
   decoded?: DecodedCall | null;
   transfers?: TokenTransfer[] | null;
   nativeUsdPrice?: number | null;
@@ -171,5 +181,15 @@ export interface ApprovalData {
   simulatedVia?: string | null;
   hasEtherscanKey?: boolean;
   hasRpcProviderKey?: boolean;
-  storageMode?: "keychain" | "vault";
+}
+
+export interface ApprovalEnrichment {
+  gasPresets: GasPresets | null;
+  decoded?: DecodedCall | null;
+  transfers?: TokenTransfer[] | null;
+  nativeUsdPrice?: number | null;
+  decodedVia?: string | null;
+  simulatedVia?: string | null;
+  hasEtherscanKey?: boolean;
+  hasRpcProviderKey?: boolean;
 }

@@ -1,7 +1,5 @@
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { showError } from "../toast";
-import { useNavigate } from "../router";
 import { ChevronDown, ChevronUp, ExternalLink, Search, Zap } from "lucide-solid";
 import { createSignal, For, Show } from "solid-js";
 import { Banner } from "../components/Banner";
@@ -9,6 +7,8 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
+import { useNavigate } from "../router";
+import { showError } from "../toast";
 
 const KEY_REGEX = /^[A-Za-z0-9_-]{20,40}$/;
 

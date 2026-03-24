@@ -1,9 +1,9 @@
-import { useNavigate } from "../router";
 import { createMemo, createSignal, For } from "solid-js";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { CopyButton } from "../components/CopyButton";
 import { Header } from "../components/Header";
+import { useNavigate } from "../router";
 
 export function SeedPhrase() {
   const navigate = useNavigate();

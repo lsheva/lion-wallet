@@ -1,7 +1,7 @@
-import { useNavigate } from "../router";
 import { createMemo, createSignal, For, Index } from "solid-js";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
+import { useNavigate } from "../router";
 import { refreshAll } from "../store";
 
 export function ConfirmSeed() {

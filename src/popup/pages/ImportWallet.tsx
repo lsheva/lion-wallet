@@ -1,7 +1,5 @@
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { showError } from "../toast";
-import { useNavigate } from "../router";
 import { Clipboard, Fingerprint } from "lucide-solid";
 import { createSignal, onMount, Show } from "solid-js";
 import { Banner } from "../components/Banner";
@@ -9,7 +7,9 @@ import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Tabs } from "../components/Tabs";
+import { useNavigate } from "../router";
 import { refreshAll } from "../store";
+import { showError } from "../toast";
 
 const TABS = [
   { id: "mnemonic", label: "Mnemonic" },

@@ -1,6 +1,6 @@
-import { useNavigate } from "../router";
 import { ArrowLeft } from "lucide-solid";
 import { type JSX, Show } from "solid-js";
+import { useNavigate } from "../router";
 
 interface HeaderProps {
   title: string;

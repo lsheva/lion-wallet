@@ -14,7 +14,7 @@ for (const { chain } of list) {
   if (match) viemName.set(chain.id, match[0]);
 }
 
-function minimal(chain: Chain, alchemy?: string, trust?: string) {
+function minimal(chain: Chain, alchemy?: string, trust?: string, disperse?: boolean) {
   const o: Record<string, unknown> = {
     id: chain.id,
     name: chain.name,
@@ -25,6 +25,7 @@ function minimal(chain: Chain, alchemy?: string, trust?: string) {
   if (chain.blockExplorers?.default?.url) o.blockExplorerUrl = chain.blockExplorers.default.url;
   if (alchemy) o.alchemySlug = alchemy;
   if (trust) o.trustSlug = trust;
+  if (disperse) o.hasDisperse = true;
   return o;
 }
 
@@ -32,9 +33,9 @@ function minimal(chain: Chain, alchemy?: string, trust?: string) {
 
 const chains: string[] = [];
 
-for (const { chain, alchemy, trust } of list) {
+for (const { chain, alchemy, trust, disperse } of list) {
   const _key = viemName.get(chain.id) ?? `chain${chain.id}`;
-  chains.push(`  ${JSON.stringify(minimal(chain, alchemy, trust))},`);
+  chains.push(`  ${JSON.stringify(minimal(chain, alchemy, trust, disperse))},`);
 }
 
 const shared = `// @generated — do not edit. Regenerate with \`pnpm gen:chains\`

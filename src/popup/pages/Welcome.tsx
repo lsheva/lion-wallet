@@ -1,11 +1,11 @@
 import { sendMessage } from "@shared/messages";
-import { useNavigate } from "../router";
 import { Fingerprint } from "lucide-solid";
 import { createSignal, onMount, Show } from "solid-js";
-import { showError } from "../toast";
 import lionIcon from "../../icons/icon.generated.svg";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
+import { useNavigate } from "../router";
+import { showError } from "../toast";
 
 export function Welcome() {
   const navigate = useNavigate();

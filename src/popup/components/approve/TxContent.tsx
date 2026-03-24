@@ -1,11 +1,13 @@
+import { truncateAddress } from "@shared/format";
 import type { ApprovalData, GasSpeed, TransactionParams } from "@shared/types";
-import { useNavigate } from "../../router";
 import { ChevronDown, ChevronUp, Info } from "lucide-solid";
 import { createSignal, For, Show } from "solid-js";
 import { formatGwei } from "viem/utils";
+import { useNavigate } from "../../router";
 import { Card } from "../Card";
 import { CopyButton } from "../CopyButton";
 import { FormattedTokenValue } from "../FormattedTokenValue";
+import { GasPresetsSkeleton } from "../Skeleton";
 import { DecodedCallCard } from "./DecodedCallCard";
 import { formatGasCost, GAS_ICONS, GAS_LABELS, scrollEndIntoView } from "./helpers";
 import { TransfersCard } from "./TransfersCard";
@@ -27,6 +29,7 @@ function ApiKeyHint(props: { text: string }) {
 
 export interface TxContentProps {
   data: ApprovalData;
+  enriching?: boolean;
   gasSpeed: GasSpeed;
   setGasSpeed: (s: GasSpeed) => void;
   showDetails: boolean;
@@ -51,6 +54,8 @@ export function TxContent(props: TxContentProps) {
   const showAlchemyHint = () =>
     hasCalldata() && !props.data.hasRpcProviderKey && props.data.simulatedVia === "fallback";
 
+  const enriched = () => props.data.gasPresets !== undefined;
+
   return (
     <>
       <Show when={props.data.decoded}>
@@ -62,6 +67,18 @@ export function TxContent(props: TxContentProps) {
             setArgsExpanded={setArgsExpanded}
           />
         )}
+      </Show>
+
+      <Show when={!props.data.decoded && txParams().to}>
+        <Card>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-text-secondary">Interacting with</span>
+            <span class="inline-flex items-center gap-1 font-mono text-xs text-text-primary">
+              {truncateAddress(txParams().to)}
+              <CopyButton text={txParams().to} size={12} />
+            </span>
+          </div>
+        </Card>
       </Show>
 
       <Show when={showEtherscanHint()}>
@@ -99,6 +116,12 @@ export function TxContent(props: TxContentProps) {
               </Show>
             </div>
           </button>
+
+          <Show when={!enriched() && props.enriching}>
+            <div class="px-4 pb-3">
+              <GasPresetsSkeleton />
+            </div>
+          </Show>
 
           <Show when={props.data.gasPresets}>
             <div class="px-4 pb-3">

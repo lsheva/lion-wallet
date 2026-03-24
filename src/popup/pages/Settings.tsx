@@ -1,7 +1,5 @@
-import { truncateAddress, toErrorMessage } from "@shared/format";
+import { toErrorMessage, truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { showError } from "../toast";
-import { useNavigate } from "../router";
 import {
   AlertTriangle,
   Check,
@@ -27,12 +25,14 @@ import { Header } from "../components/Header";
 import { Identicon } from "../components/Identicon";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
+import { useNavigate } from "../router";
 import {
   clearPopupCache,
   setShowNetworkSelector,
   showNetworkSelector,
   walletState,
 } from "../store";
+import { showError } from "../toast";
 import { NetworkSelector } from "./NetworkSelector";
 
 function SettingsRow(props: { label: string; onClick?: () => void }) {

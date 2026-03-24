@@ -169,12 +169,27 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
   const pending = getPendingApproval();
   if (!pending) return { ok: true, data: null };
 
-  const [meta, etherscanKey, mode] = await Promise.all([
-    loadAccountsMeta(),
-    getEtherscanApiKey(),
-    getStorageMode(),
-  ]);
+  const [meta, mode] = await Promise.all([loadAccountsMeta(), getStorageMode()]);
   const activeAccount = meta?.accounts[meta.activeAccountIndex];
+
+  return {
+    ok: true,
+    data: {
+      approval: pending,
+      account: activeAccount,
+      queueSize: getPendingCount(),
+      storageMode: mode,
+    },
+  };
+}
+
+export async function handleEnrichApproval(id: string): Promise<MessageResponse> {
+  const pending = getPendingApproval();
+  if (!pending || pending.id !== id) return { ok: true, data: null };
+
+  const [meta, etherscanKey] = await Promise.all([loadAccountsMeta(), getEtherscanApiKey()]);
+  const activeAccount = meta?.accounts[meta.activeAccountIndex];
+
   let gasPresets = null;
   let decoded = null;
   let transfers = null;
@@ -253,10 +268,7 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
   return {
     ok: true,
     data: {
-      approval: pending,
       gasPresets,
-      account: activeAccount,
-      queueSize: getPendingCount(),
       decoded,
       transfers,
       nativeUsdPrice,
@@ -264,8 +276,6 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
       simulatedVia,
       hasEtherscanKey,
       hasRpcProviderKey: hasAlchemyKey,
-      storageMode: mode,
-      _debug,
     },
   };
 }

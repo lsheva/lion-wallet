@@ -3,6 +3,7 @@ import type { MessageRequest, MessageResponse } from "../shared/messages";
 import { broadcastPendingCount, updateBadge } from "./broadcast";
 import {
   handleApproveRequest,
+  handleEnrichApproval,
   handleEstimateGas,
   handleGetPendingApproval,
   handleRejectRequest,
@@ -37,6 +38,7 @@ import {
   handleGetTokenPrice,
   handleImportPrivateKey,
   handleImportWallet,
+  handleMultiSend,
   handleResetWallet,
   handleSendToken,
   handleSwitchAccount,
@@ -88,6 +90,8 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleExportMnemonic(message.password);
     case "GET_PENDING_APPROVAL":
       return handleGetPendingApproval();
+    case "ENRICH_APPROVAL":
+      return handleEnrichApproval(message.id);
     case "APPROVE_REQUEST":
       return handleApproveRequest(message.id, message.gasSpeed, message.password);
     case "REJECT_REQUEST":
@@ -133,6 +137,8 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleAddManualToken(message.address, message.chainId, message.walletAddress);
     case "SCAN_TOKENS":
       return handleScanTokens(message.chainId, message.address);
+    case "MULTI_SEND":
+      return handleMultiSend(message.entries);
     default:
       return { ok: false, error: "Unknown message type" };
   }

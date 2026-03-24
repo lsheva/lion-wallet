@@ -1,6 +1,5 @@
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { showError } from "../toast";
 import { Loader2 } from "lucide-solid";
 import { batch, createSignal, Show } from "solid-js";
 import type { Address } from "viem";
@@ -8,6 +7,7 @@ import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
 import { fetchBalance, tokens, walletState } from "../store";
+import { showError } from "../toast";
 
 interface AddTokenProps {
   open: boolean;

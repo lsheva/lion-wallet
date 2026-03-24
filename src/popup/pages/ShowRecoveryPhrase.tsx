@@ -1,5 +1,4 @@
 import { sendMessage } from "@shared/messages";
-import { showError } from "../toast";
 import { Eye, EyeOff, Fingerprint } from "lucide-solid";
 import { createSignal, For, Show } from "solid-js";
 import { Banner } from "../components/Banner";
@@ -8,6 +7,7 @@ import { CopyButton } from "../components/CopyButton";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { walletState } from "../store";
+import { showError } from "../toast";
 
 export function ShowRecoveryPhrase() {
   const [password, setPassword] = createSignal("");

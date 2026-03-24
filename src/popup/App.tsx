@@ -2,8 +2,6 @@ import { sendMessage } from "@shared/messages";
 import type { ActivityItem } from "@shared/types";
 import type { ParentProps } from "solid-js";
 import { createSignal, Show } from "solid-js";
-import { HashRouter, Route, navigate } from "./router";
-
 import { ErrorToast } from "./components/ErrorToast";
 import { DevToolbar } from "./mock/DevToolbar";
 import { ApiKeySetup } from "./pages/ApiKeySetup";
@@ -12,14 +10,16 @@ import { ConfirmSeed } from "./pages/ConfirmSeed";
 import { ExportPrivateKey } from "./pages/ExportPrivateKey";
 import { Home } from "./pages/Home";
 import { ImportWallet } from "./pages/ImportWallet";
+import { MultiSend } from "./pages/MultiSend";
 import { Receive } from "./pages/Receive";
+import { Result } from "./pages/Result";
 import { SeedPhrase } from "./pages/SeedPhrase";
 import { Send } from "./pages/Send";
 import { SetPassword } from "./pages/SetPassword";
 import { Settings } from "./pages/Settings";
 import { ShowRecoveryPhrase } from "./pages/ShowRecoveryPhrase";
-import { Result } from "./pages/Result";
 import { Welcome } from "./pages/Welcome";
+import { HashRouter, navigate, Route } from "./router";
 import {
   activeNetworkId,
   fetchState,
@@ -132,6 +132,7 @@ export function App() {
       <Route path="/api-key-setup" component={ApiKeySetup} />
       <Route path="/home" component={Home} />
       <Route path="/send" component={Send} />
+      <Route path="/multi-send" component={MultiSend} />
       <Route path="/receive" component={Receive} />
       <Route path="/approve" component={Approve} />
       <Route path="/result" component={Result} />

@@ -1,6 +1,6 @@
 import type { ApprovalData } from "@shared/types";
-import { useNavigate } from "../router";
 import { createSignal, For, Show } from "solid-js";
+import { useNavigate } from "../router";
 import {
   MOCK_ACCOUNTS,
   MOCK_SEED_PHRASE,

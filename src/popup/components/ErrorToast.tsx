@@ -51,7 +51,13 @@ export function ErrorToast() {
   return (
     <Show when={toasts().length > 0}>
       <div class="absolute top-0 left-0 right-0 z-50 p-3 space-y-2 pointer-events-none">
-        <For each={toasts()}>{(toast) => <div class="pointer-events-auto"><ToastItem toast={toast} /></div>}</For>
+        <For each={toasts()}>
+          {(toast) => (
+            <div class="pointer-events-auto">
+              <ToastItem toast={toast} />
+            </div>
+          )}
+        </For>
       </div>
     </Show>
   );

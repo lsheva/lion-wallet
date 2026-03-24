@@ -1,23 +1,23 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 233.2 kB │ gzip: 72.2 kB
+  output: 240.9 kB │ gzip: 74.1 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  255.1 kB  63.6%
+  (project)  269.5 kB  64.8%
+    └ src/shared/chains.generated.ts  22.3 kB
     └ src/popup/pages/Settings.tsx  21.8 kB
-    └ src/shared/chains.generated.ts  21.7 kB
     └ src/popup/pages/NetworkSelector.tsx  15.8 kB
-  @web3icons/core  49.8 kB  12.4%
+  @web3icons/core  49.8 kB  12.0%
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/mantle.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/sei-network.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/metis-andromeda.svg.js  2.0 kB
-  solid-js  46.8 kB  11.7%
+  solid-js  46.8 kB  11.3%
     └ node_modules/solid-js/dist/solid.js  26.6 kB
     └ node_modules/solid-js/web/dist/web.js  20.3 kB
-  lucide-solid  21.8 kB  5.4%
+  lucide-solid  22.3 kB  5.4%
     └ node_modules/lucide-solid/dist/source/Icon.jsx  2.3 kB
-  uqr  19.4 kB  4.8%
+  uqr  19.4 kB  4.7%
     └ node_modules/uqr/dist/index.mjs  19.4 kB
-  viem  8.3 kB  2.1%
+  viem  8.3 kB  2.0%
     └ node_modules/viem/_esm/errors/base.js  2.3 kB
     └ node_modules/viem/_esm/utils/unit/parseUnits.js  1.2 kB
     └ node_modules/viem/_esm/utils/data/pad.js  1.1 kB
@@ -25,17 +25,17 @@
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 290.4 kB │ gzip: 92.4 kB
+  output: 293.8 kB │ gzip: 93.1 kB
 ──────────────────────────────────────────────────────────────────────────────────
-  viem  247.6 kB  46.6%
+  viem  247.6 kB  46.1%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.8 kB
-  (project)  123.5 kB  23.3%
+  (project)  129.4 kB  24.1%
     └ src/background/activity.ts  23.8 kB
-    └ src/shared/chains.generated.ts  22.8 kB
-    └ src/background/handlers/wallet.ts  8.6 kB
-  @noble/curves  57.6 kB  10.8%
+    └ src/shared/chains.generated.ts  23.4 kB
+    └ src/background/handlers/wallet.ts  12.2 kB
+  @noble/curves  57.6 kB  10.7%
     └ node_modules/@noble/curves/esm/abstract/weierstrass.js  26.1 kB
     └ node_modules/@noble/curves/esm/secp256k1.js  7.4 kB
     └ node_modules/@noble/curves/esm/abstract/modular.js  7.2 kB
@@ -47,10 +47,10 @@
     └ node_modules/abitype/dist/esm/human-readable/runtime/utils.js  7.7 kB
     └ node_modules/abitype/dist/esm/human-readable/runtime/cache.js  2.7 kB
     └ node_modules/abitype/dist/esm/human-readable/runtime/signatures.js  2.4 kB
-  @scure/bip39  14.7 kB  2.8%
+  @scure/bip39  14.7 kB  2.7%
     └ node_modules/@scure/bip39/esm/wordlists/english.js  12.9 kB
     └ node_modules/@scure/bip39/esm/index.js  1.7 kB
-  @scure/base  13.6 kB  2.6%
+  @scure/base  13.6 kB  2.5%
     └ node_modules/@scure/base/lib/esm/index.js  13.6 kB
   ox  8.0 kB  1.5%
     └ node_modules/ox/_esm/core/Errors.js  3.7 kB

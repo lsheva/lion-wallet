@@ -4,8 +4,10 @@ import { MESSAGE_TIMEOUT_MS } from "./protocol";
 import type {
   ActivityItem,
   ApprovalData,
+  ApprovalEnrichment,
   GasPresets,
   GasSpeed,
+  MultiSendEntry,
   SerializedAccount,
   StoredToken,
   TransactionParams,
@@ -26,6 +28,7 @@ export type MessageRequest =
   | { type: "EXPORT_MNEMONIC"; password?: string }
   | { type: "RPC_REQUEST"; id: string; method: string; params?: unknown[]; origin: string }
   | { type: "GET_PENDING_APPROVAL" }
+  | { type: "ENRICH_APPROVAL"; id: string }
   | { type: "APPROVE_REQUEST"; id: string; gasSpeed?: GasSpeed; password?: string }
   | { type: "REJECT_REQUEST"; id: string }
   | { type: "ESTIMATE_GAS"; chainId: number; tx: TransactionParams }
@@ -46,7 +49,8 @@ export type MessageRequest =
   | { type: "GET_DISCOVERED_TOKENS"; chainId: number; walletAddress: Address }
   | { type: "HIDE_DISCOVERED_TOKEN"; chainId: number; walletAddress: Address; address: Address }
   | { type: "ADD_MANUAL_TOKEN"; address: Address; chainId: number; walletAddress: Address }
-  | { type: "SCAN_TOKENS"; chainId: number; address: Address };
+  | { type: "SCAN_TOKENS"; chainId: number; address: Address }
+  | { type: "MULTI_SEND"; entries: MultiSendEntry[] };
 
 /** Untyped base response — used by the background handler's return type. */
 export type MessageResponse = { ok: true; data?: unknown } | { ok: false; error: string };
@@ -66,6 +70,7 @@ export interface MessageDataMap {
   EXPORT_MNEMONIC: { mnemonic: string };
   RPC_REQUEST: { result: unknown };
   GET_PENDING_APPROVAL: ApprovalData | null;
+  ENRICH_APPROVAL: ApprovalEnrichment | null;
   APPROVE_REQUEST: { result: string };
   REJECT_REQUEST: undefined;
   ESTIMATE_GAS: GasPresets;
@@ -91,6 +96,7 @@ export interface MessageDataMap {
   HIDE_DISCOVERED_TOKEN: undefined;
   ADD_MANUAL_TOKEN: undefined;
   SCAN_TOKENS: { found: number };
+  MULTI_SEND: { queued: number };
 }
 
 /** Typed success/error response keyed by message type. */

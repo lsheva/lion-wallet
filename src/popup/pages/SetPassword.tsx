@@ -1,11 +1,11 @@
 import { sendMessage } from "@shared/messages";
-import { useNavigate } from "../router";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { showError } from "../toast";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { Input } from "../components/Input";
+import { useNavigate } from "../router";
+import { showError } from "../toast";
 
 function getStrength(pw: string): { level: number; label: string; color: string } {
   if (pw.length === 0) return { level: 0, label: "", color: "bg-divider" };

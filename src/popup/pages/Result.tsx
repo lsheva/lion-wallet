@@ -7,7 +7,7 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
 import { useAutoCloseQueue } from "../hooks/useAutoCloseQueue";
-import { useNavState, useNavigate } from "../router";
+import { useNavigate, useNavState } from "../router";
 import { walletState } from "../store";
 
 interface ResultNavState {
@@ -149,7 +149,8 @@ export function Result() {
         <Card class="w-full mb-6">
           <p class="text-xs text-text-secondary mb-1">Error</p>
           <p class="font-mono text-xs text-danger leading-relaxed">
-            {errorMessage ?? (isTx() ? "Unknown error occurred" : "User rejected the signing request")}
+            {errorMessage ??
+              (isTx() ? "Unknown error occurred" : "User rejected the signing request")}
           </p>
         </Card>
         <div class="w-full space-y-2">

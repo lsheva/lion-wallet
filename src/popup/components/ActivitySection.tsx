@@ -1,6 +1,6 @@
-import { useNavigate } from "../router";
 import { Loader2 } from "lucide-solid";
 import { createSignal, For, Show } from "solid-js";
+import { useNavigate } from "../router";
 import { fetchActivity, walletState } from "../store";
 import { ActivityRow } from "./ActivityRow";
 import { ActivityRowSkeleton } from "./Skeleton";

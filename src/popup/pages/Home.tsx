@@ -1,10 +1,10 @@
 import { formatUsd } from "@shared/format";
-import { useNavigate } from "../router";
 import {
   ArrowDownLeft,
   ArrowUpRight,
   LoaderCircle,
   Plus,
+  Send,
   Settings,
   SlidersHorizontal,
 } from "lucide-solid";
@@ -15,6 +15,7 @@ import { ActivitySection } from "../components/ActivitySection";
 import { NetworkBadge } from "../components/NetworkBadge";
 import { TokenRowSkeleton } from "../components/Skeleton";
 import { TokenRow } from "../components/TokenRow";
+import { useNavigate } from "../router";
 import {
   fetchActivity,
   hideToken,
@@ -108,6 +109,16 @@ export function Home() {
             <span class="inline-flex items-center gap-1.5 -translate-x-1">
               <ArrowUpRight size={16} class="shrink-0" aria-hidden />
               Send
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/multi-send", { replace: true })}
+            class="flex-1 flex items-center justify-center py-2.5 bg-surface text-text-primary rounded-full font-medium text-sm shadow-sm hover:bg-divider transition-colors cursor-pointer active:scale-[0.97]"
+          >
+            <span class="inline-flex items-center gap-1.5 -translate-x-1">
+              <Send size={16} class="shrink-0" aria-hidden />
+              Multi
             </span>
           </button>
           <button

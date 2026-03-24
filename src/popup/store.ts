@@ -1,7 +1,6 @@
 import { CHAINS } from "@shared/constants";
 import { formatUsd, toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { showError } from "./toast";
 import type {
   ActivityItem,
   ChainMeta,
@@ -13,6 +12,7 @@ import { batch, createMemo, createRoot, createSignal, untrack } from "solid-js";
 import { type Address, zeroAddress } from "viem";
 import { formatUnits } from "viem/utils";
 import { CHAIN_COLOR_BY_ID } from "./chain-ui.generated";
+import { showError } from "./toast";
 
 export type { ActivityItem, TokenInfo as Token };
 
