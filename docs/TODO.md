@@ -324,7 +324,8 @@ Detect all tokens an address holds across all supported chains without requiring
 # Bugs
 [] - base sepolia doesnt show correct balance of base eth
 [x] - clear data does not clear popup cache, only backend one
-[] - background and popup errors show be displayed to the user via popup message
+[x] - background and popup errors show be displayed to the user via popup message
 [] - private key view - symbols out of the input field
 [] - implement multisend - multiple tokens multiple recipients (find contract than enables that for free)
 [] - on open briefly shows login before data is loaded
+[] - do not pause before loading transaction approval page

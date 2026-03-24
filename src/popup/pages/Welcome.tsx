@@ -1,7 +1,8 @@
 import { sendMessage } from "@shared/messages";
-import { useNavigate } from "@solidjs/router";
+import { useNavigate } from "../router";
 import { Fingerprint } from "lucide-solid";
 import { createSignal, onMount, Show } from "solid-js";
+import { showError } from "../toast";
 import lionIcon from "../../icons/icon.generated.svg";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
@@ -31,7 +32,8 @@ export function Welcome() {
     const res = await sendMessage({ type: "CREATE_WALLET" });
     setLoading(false);
     if (!res.ok) {
-      setError(res.error);
+      setError("Could not create wallet");
+      showError("Could not create wallet", res.error);
       return;
     }
     sessionStorage.setItem("onboarding_mnemonic", res.data.mnemonic);

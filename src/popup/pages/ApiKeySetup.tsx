@@ -1,5 +1,7 @@
+import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { useNavigate } from "@solidjs/router";
+import { showError } from "../toast";
+import { useNavigate } from "../router";
 import { ChevronDown, ChevronUp, ExternalLink, Search, Zap } from "lucide-solid";
 import { createSignal, For, Show } from "solid-js";
 import { Banner } from "../components/Banner";
@@ -80,8 +82,9 @@ export function ApiKeySetup() {
       if (etherscan) promises.push(sendMessage({ type: "SET_ETHERSCAN_KEY", key: etherscan }));
       await Promise.all(promises);
       navigate("/home");
-    } catch {
+    } catch (e) {
       setError("Failed to save — try again");
+      showError("Failed to save API keys", toErrorMessage(e));
       setSaving(false);
     }
   };

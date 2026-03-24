@@ -1,5 +1,6 @@
 import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
+import { showError } from "../toast";
 import { Eye, EyeOff, Fingerprint } from "lucide-solid";
 import { createSignal, Show } from "solid-js";
 import { Banner } from "../components/Banner";
@@ -37,7 +38,12 @@ export function ExportPrivateKey() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(res.error);
+      const friendly =
+        res.error === "Wrong password" || res.error === "Authentication failed or cancelled"
+          ? res.error
+          : "Could not export private key";
+      setError(friendly);
+      if (friendly !== res.error) showError(friendly, res.error);
       return;
     }
 

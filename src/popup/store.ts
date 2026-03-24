@@ -1,6 +1,7 @@
 import { CHAINS } from "@shared/constants";
-import { formatUsd } from "@shared/format";
+import { formatUsd, toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
+import { showError } from "./toast";
 import type {
   ActivityItem,
   ChainMeta,
@@ -388,8 +389,8 @@ export async function fetchActivity(options?: { loadMore?: boolean }): Promise<v
         setActivityHasMore(res.data.hasMore);
       });
     }
-  } catch {
-    /* non-blocking — keep whatever was in the signal */
+  } catch (e) {
+    showError("Could not load activity", toErrorMessage(e));
   } finally {
     setActivityLoading(false);
   }
@@ -452,7 +453,7 @@ export const walletState = {
     try {
       await sendMessage({ type: "SWITCH_NETWORK", chainId: id });
     } catch (e) {
-      console.warn("[store] switchNetwork message failed:", e);
+      showError("Failed to switch network", toErrorMessage(e));
     }
     await fetchBalance();
     fetchActivity().catch(() => {});
@@ -463,7 +464,7 @@ export const walletState = {
     try {
       await sendMessage({ type: "SWITCH_ACCOUNT", accountIndex: index });
     } catch (e) {
-      console.warn("[store] switchAccount message failed:", e);
+      showError("Failed to switch account", toErrorMessage(e));
     }
     await fetchBalance();
   },
@@ -479,6 +480,8 @@ export const walletState = {
     });
     if (res.ok) {
       await fetchState();
+    } else {
+      showError("Failed to add account", res.error);
     }
   },
 };

@@ -1,4 +1,4 @@
-import { useNavigate } from "@solidjs/router";
+import { useNavigate } from "../router";
 import { Loader2 } from "lucide-solid";
 import { createSignal, For, Show } from "solid-js";
 import { fetchActivity, walletState } from "../store";

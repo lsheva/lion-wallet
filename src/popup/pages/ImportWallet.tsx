@@ -1,6 +1,7 @@
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { useNavigate } from "@solidjs/router";
+import { showError } from "../toast";
+import { useNavigate } from "../router";
 import { Clipboard, Fingerprint } from "lucide-solid";
 import { createSignal, onMount, Show } from "solid-js";
 import { Banner } from "../components/Banner";
@@ -81,7 +82,8 @@ export function ImportWallet() {
             });
 
       if (!res.ok) {
-        setError(res.error);
+        setError("Import failed");
+        showError("Import failed", res.error);
         setLoading(false);
         return;
       }
@@ -89,7 +91,9 @@ export function ImportWallet() {
       await refreshAll();
       navigate("/api-key-setup");
     } catch (e) {
-      setError(toErrorMessage(e));
+      const detail = toErrorMessage(e);
+      setError("Import failed");
+      showError("Import failed", detail);
       setLoading(false);
     }
   };

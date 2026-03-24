@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "@noble/hashes": "^2.0.1",
-    "@solidjs/router": "^0.15.4",
     "@web3icons/core": "^4.0.51",
     "lucide-solid": "^0.577.0",
     "solid-js": "^1.9.5",
@@ -44,7 +43,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.8",
-    "vite-plugin-solid": "^2.11.6",
     "@tailwindcss/vite": "^4.2.2",
     "@types/webextension-polyfill": "^0.12.5",
     "@typescript/native-preview": "7.0.0-dev.20260319.1",
@@ -52,6 +50,7 @@
     "sharp": "^0.34.5",
     "svgo": "^4.0.1",
     "tailwindcss": "^4.2.2",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vite-plugin-solid": "^2.11.6"
   }
 }

@@ -1,5 +1,5 @@
 import type { ApprovalData, GasSpeed, TransactionParams } from "@shared/types";
-import { useNavigate } from "@solidjs/router";
+import { useNavigate } from "../../router";
 import { ChevronDown, ChevronUp, Info } from "lucide-solid";
 import { createSignal, For, Show } from "solid-js";
 import { formatGwei } from "viem/utils";

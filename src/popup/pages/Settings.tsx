@@ -1,6 +1,7 @@
-import { truncateAddress } from "@shared/format";
+import { truncateAddress, toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { useNavigate } from "@solidjs/router";
+import { showError } from "../toast";
+import { useNavigate } from "../router";
 import {
   AlertTriangle,
   Check,
@@ -524,6 +525,7 @@ function ResetWalletRow() {
       });
       if (!res.ok) {
         setError(res.error);
+        showError("Could not reset wallet", res.error);
         setResetting(false);
         return;
       }
@@ -531,7 +533,8 @@ function ResetWalletRow() {
       localStorage.removeItem("lion-theme");
       document.documentElement.removeAttribute("data-theme");
       navigate("/", { replace: true });
-    } catch {
+    } catch (e) {
+      showError("Could not reset wallet", toErrorMessage(e));
       setResetting(false);
     }
   };

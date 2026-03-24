@@ -1,6 +1,7 @@
 import { sendMessage } from "@shared/messages";
-import { useNavigate } from "@solidjs/router";
+import { useNavigate } from "../router";
 import { createMemo, createSignal, For, Show } from "solid-js";
+import { showError } from "../toast";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
@@ -40,7 +41,8 @@ export function SetPassword() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(res.error);
+      setError("Could not create wallet");
+      showError("Could not create wallet", res.error);
       return;
     }
 

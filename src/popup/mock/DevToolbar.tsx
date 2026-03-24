@@ -1,7 +1,6 @@
 import type { ApprovalData } from "@shared/types";
-import { useNavigate } from "@solidjs/router";
+import { useNavigate } from "../router";
 import { createSignal, For, Show } from "solid-js";
-import { setPendingApprovalData } from "../App";
 import {
   MOCK_ACCOUNTS,
   MOCK_SEED_PHRASE,
@@ -16,6 +15,7 @@ interface NavItem {
   path: string;
   view: WalletView;
   setup?: () => void;
+  state?: unknown;
 }
 
 function mockApproval(method: string, extra: Record<string, unknown> = {}): ApprovalData {
@@ -111,88 +111,68 @@ const GROUPS: Array<{ name: string; items: NavItem[] }> = [
         label: "Tx",
         path: "/approve",
         view: "approval",
-        setup: () => {
-          setPendingApprovalData(
-            mockApproval("eth_sendTransaction", {
-              decoded: MOCK_TX_REQUEST.decoded,
-              transfers: MOCK_TX_REQUEST.transfers,
-              nativeUsdPrice: 2385,
-            }),
-          );
-        },
+        state: mockApproval("eth_sendTransaction", {
+          decoded: MOCK_TX_REQUEST.decoded,
+          transfers: MOCK_TX_REQUEST.transfers,
+          nativeUsdPrice: 2385,
+        }),
       },
       {
         label: "Sign",
         path: "/approve",
         view: "approval",
-        setup: () => {
-          setPendingApprovalData(
-            mockApproval("personal_sign", {
-              origin: MOCK_SIGN_REQUEST.origin,
-            }),
-          );
-        },
+        state: mockApproval("personal_sign", {
+          origin: MOCK_SIGN_REQUEST.origin,
+        }),
       },
       {
         label: "Typed",
         path: "/approve",
         view: "approval",
-        setup: () => {
-          setPendingApprovalData(
-            mockApproval("eth_signTypedData_v4", {
-              origin: MOCK_TYPED_DATA_REQUEST.origin,
-            }),
-          );
-        },
+        state: mockApproval("eth_signTypedData_v4", {
+          origin: MOCK_TYPED_DATA_REQUEST.origin,
+        }),
       },
       {
         label: "TX OK",
-        path: "/tx-success",
+        path: "/result",
         view: "approval",
-        setup: () => {
-          sessionStorage.setItem(
-            "txResult",
-            JSON.stringify({
-              hash: "0xabc123def456789012345678901234567890123456789012345678901234abcd",
-              method: "eth_sendTransaction",
-            }),
-          );
+        state: {
+          kind: "tx",
+          status: "success",
+          hash: "0xabc123def456789012345678901234567890123456789012345678901234abcd",
+          method: "eth_sendTransaction",
         },
       },
       {
         label: "TX Fail",
-        path: "/tx-error",
+        path: "/result",
         view: "approval",
-        setup: () => {
-          sessionStorage.setItem(
-            "txResult",
-            JSON.stringify({ error: "Execution reverted: insufficient funds for transfer" }),
-          );
+        state: {
+          kind: "tx",
+          status: "error",
+          error: "Execution reverted: insufficient funds for transfer",
         },
       },
       {
         label: "Sig OK",
-        path: "/sign-success",
+        path: "/result",
         view: "approval",
-        setup: () => {
-          sessionStorage.setItem(
-            "signResult",
-            JSON.stringify({
-              signature:
-                "0x4a7f8c2e9b1d3f5a6c8e0b2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c01b",
-            }),
-          );
+        state: {
+          kind: "sign",
+          status: "success",
+          signature:
+            "0x4a7f8c2e9b1d3f5a6c8e0b2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c0e2d4f6a8c01b",
         },
       },
       {
         label: "Sig Fail",
-        path: "/sign-error",
+        path: "/result",
         view: "approval",
-        setup: () => {
-          sessionStorage.setItem(
-            "signResult",
-            JSON.stringify({ error: "User rejected the signing request" }),
-          );
+        state: {
+          kind: "sign",
+          status: "error",
+          error: "User rejected the signing request",
         },
       },
     ],
@@ -228,7 +208,7 @@ export function DevToolbar() {
                       onClick={() => {
                         item.setup?.();
                         walletState.setView(item.view);
-                        navigate(item.path, { replace: true });
+                        navigate(item.path, { replace: true, state: item.state });
                       }}
                       class="px-1.5 py-0.5 text-[10px] text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer whitespace-nowrap"
                     >

@@ -1,5 +1,5 @@
 import { formatUsd } from "@shared/format";
-import { useNavigate } from "@solidjs/router";
+import { useNavigate } from "../router";
 import {
   ArrowDownLeft,
   ArrowUpRight,

@@ -1,4 +1,6 @@
+import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
+import { showError } from "../toast";
 import { Loader2 } from "lucide-solid";
 import { batch, createSignal, Show } from "solid-js";
 import type { Address } from "viem";
@@ -59,8 +61,9 @@ export function AddToken(props: AddTokenProps) {
         const chainId = walletState.activeNetworkId();
         const info = await fetchTokenInfo(trimmed, chainId);
         setDetected(info);
-      } catch {
+      } catch (e) {
         setError("Could not read token contract");
+        showError("Could not read token contract", toErrorMessage(e));
       } finally {
         setDetecting(false);
       }

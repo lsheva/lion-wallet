@@ -1,4 +1,4 @@
-import { useNavigate } from "@solidjs/router";
+import { useNavigate } from "../router";
 import { createMemo, createSignal, For, Index } from "solid-js";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";

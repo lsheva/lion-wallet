@@ -1,4 +1,4 @@
-import { useNavigate } from "@solidjs/router";
+import { useNavigate } from "../router";
 import { ArrowLeft } from "lucide-solid";
 import { type JSX, Show } from "solid-js";
 

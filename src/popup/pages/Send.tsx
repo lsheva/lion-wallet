@@ -1,7 +1,8 @@
 import { POPUP_ORIGIN } from "@shared/constants";
 import { toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { useNavigate } from "@solidjs/router";
+import { showError } from "../toast";
+import { useNavigate } from "../router";
 import { BookUser, ChevronDown } from "lucide-solid";
 import { batch, createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js";
 import type { Address } from "viem";
@@ -166,7 +167,9 @@ export function Send() {
       }
       navigate("/approve", { replace: true });
     } catch (e) {
-      setError(toErrorMessage(e));
+      const detail = toErrorMessage(e);
+      setError("Transaction could not be prepared");
+      showError("Transaction could not be prepared", detail);
       setSubmitting(false);
     }
   };
