@@ -320,3 +320,11 @@ Detect all tokens an address holds across all supported chains without requiring
 [] - cache cross-chain token holdings with per-chain TTL invalidation
 [] - add portfolio / cross-chain overview UI showing all token holdings grouped by chain
 [] - allow user to trigger manual cross-chain rescan from settings or portfolio view
+
+# Bugs
+[] - base sepolia doesnt show correct balance of base eth
+[x] - clear data does not clear popup cache, only backend one
+[] - background and popup errors show be displayed to the user via popup message
+[] - private key view - symbols out of the input field
+[] - implement multisend - multiple tokens multiple recipients (find contract than enables that for free)
+[] - on open briefly shows login before data is loaded

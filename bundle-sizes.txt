@@ -1,8 +1,8 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 261.8 kB │ gzip: 83.2 kB
+  output: 261.9 kB │ gzip: 83.2 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  255.7 kB  59.1%
+  (project)  255.8 kB  59.1%
     └ src/shared/chains.generated.ts  21.7 kB
     └ src/popup/pages/Settings.tsx  21.7 kB
     └ src/popup/pages/NetworkSelector.tsx  15.7 kB
@@ -35,7 +35,7 @@
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.8 kB
-  (project)  123.5 kB  23.2%
+  (project)  123.5 kB  23.3%
     └ src/background/activity.ts  23.8 kB
     └ src/shared/chains.generated.ts  22.8 kB
     └ src/background/handlers/wallet.ts  8.6 kB

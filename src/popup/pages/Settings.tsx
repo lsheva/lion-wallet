@@ -27,9 +27,7 @@ import { Identicon } from "../components/Identicon";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
 import {
-  setActivity,
-  setActivityHasMore,
-  setActivitySource,
+  clearPopupCache,
   setShowNetworkSelector,
   showNetworkSelector,
   walletState,
@@ -318,9 +316,7 @@ function ClearCacheRow() {
       setTimeout(() => setClearError(false), 3000);
       return;
     }
-    setActivity([]);
-    setActivitySource(null);
-    setActivityHasMore(false);
+    clearPopupCache();
     setCleared(true);
     setTimeout(() => setCleared(false), 2000);
   };
@@ -531,6 +527,7 @@ function ResetWalletRow() {
         setResetting(false);
         return;
       }
+      clearPopupCache();
       localStorage.removeItem("lion-theme");
       document.documentElement.removeAttribute("data-theme");
       navigate("/", { replace: true });

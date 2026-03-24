@@ -395,6 +395,25 @@ export async function fetchActivity(options?: { loadMore?: boolean }): Promise<v
   }
 }
 
+export function clearPopupCache(): void {
+  localStorage.removeItem(NATIVE_BALANCE_KEY);
+  localStorage.removeItem(TOKEN_PRICES_KEY);
+  localStorage.removeItem(NETWORK_IDS_KEY);
+  batch(() => {
+    setAccounts([]);
+    setActiveAccountIndex(0);
+    setActiveNetworkId(1);
+    setEthBalance("—");
+    setNativeUsdPrice(null);
+    setTokens([]);
+    setBalanceLoading(true);
+    setRawNetworks(CHAINS.filter((c) => POPULAR_CHAIN_IDS.has(c.id)));
+    setActivity([]);
+    setActivitySource(null);
+    setActivityHasMore(false);
+  });
+}
+
 export async function refreshAll(): Promise<void> {
   await fetchState();
   await fetchBalance();
