@@ -3,6 +3,12 @@ import type { Hex } from "viem";
 import { numberToHex } from "viem/utils";
 import { POPUP_ORIGIN } from "../shared/constants";
 import { createPendingApproval, type PendingApprovalExtras } from "./approval";
+import { broadcastEvent } from "./broadcast";
+import {
+  ensureConnectedOriginsLoaded,
+  isOriginConnected,
+  removeConnectedOrigin,
+} from "./connected-origins";
 import {
   getActiveNetworkId,
   getNetworkConfig,
@@ -10,6 +16,8 @@ import {
   setActiveNetworkId,
 } from "./networks";
 import { isVaultInitialized, loadAccountsMeta } from "./vault";
+
+export { isOriginConnected } from "./connected-origins";
 
 export interface RpcError {
   code: number;
@@ -24,8 +32,6 @@ interface RpcContext {
 
 type RpcResult = { result: unknown } | { error: RpcError };
 
-const connectedOrigins = new Set<string>();
-
 const SIGNING_METHODS = new Set([
   "eth_sendTransaction",
   "eth_signTransaction",
@@ -35,12 +41,8 @@ const SIGNING_METHODS = new Set([
   "eth_signTypedData",
 ]);
 
-export function isOriginConnected(origin: string): boolean {
-  return connectedOrigins.has(origin);
-}
-
-export function disconnectOrigin(origin: string): void {
-  connectedOrigins.delete(origin);
+export async function disconnectOrigin(origin: string): Promise<void> {
+  await removeConnectedOrigin(origin);
 }
 
 let onApprovalCreated: (() => void) | null = null;
@@ -49,12 +51,24 @@ export function setApprovalCreatedCallback(cb: () => void): void {
   onApprovalCreated = cb;
 }
 
+async function completeConnectionRequest(
+  promise: Promise<{ result: unknown } | { error: RpcError }>,
+): Promise<RpcResult> {
+  const resolved = await promise;
+  if ("error" in resolved) {
+    return { error: resolved.error };
+  }
+  return ok(resolved.result);
+}
+
 export async function handleRpc(
   method: string,
   params: unknown[] | undefined,
   ctx: RpcContext,
 ): Promise<RpcResult> {
   try {
+    await ensureConnectedOriginsLoaded();
+
     switch (method) {
       case "eth_requestAccounts": {
         if (!(await isVaultInitialized())) {
@@ -65,12 +79,33 @@ export async function handleRpc(
         if (accounts.length === 0) {
           return err(4100, "No accounts available");
         }
-        connectedOrigins.add(ctx.origin);
-        return ok(accounts.map((a) => a.address));
+        const addresses = accounts.map((a) => a.address);
+
+        if (isOriginConnected(ctx.origin)) {
+          return ok(addresses);
+        }
+
+        const isPopup = ctx.origin === POPUP_ORIGIN;
+        const chainId = await getActiveNetworkId();
+        const { promise } = createPendingApproval(
+          "eth_requestAccounts",
+          params ?? [],
+          ctx.origin,
+          chainId,
+          ctx.extras,
+        );
+
+        if (isPopup) {
+          return ok({ pending: true });
+        }
+
+        if (onApprovalCreated) onApprovalCreated();
+
+        return completeConnectionRequest(promise);
       }
 
       case "eth_accounts": {
-        if (!connectedOrigins.has(ctx.origin)) {
+        if (!isOriginConnected(ctx.origin)) {
           return ok([]);
         }
         const meta = await loadAccountsMeta();
@@ -134,19 +169,42 @@ export async function handleRpc(
         if (!meta || meta.accounts.length === 0) {
           return err(4100, "No accounts available");
         }
-        connectedOrigins.add(ctx.origin);
-        return ok([{ parentCapability: "eth_accounts" }]);
+
+        if (isOriginConnected(ctx.origin)) {
+          return ok([{ parentCapability: "eth_accounts" }]);
+        }
+
+        const isPopup = ctx.origin === POPUP_ORIGIN;
+        const chainId = await getActiveNetworkId();
+        const { promise } = createPendingApproval(
+          "wallet_requestPermissions",
+          params ?? [],
+          ctx.origin,
+          chainId,
+          ctx.extras,
+        );
+
+        if (isPopup) {
+          return ok({ pending: true });
+        }
+
+        if (onApprovalCreated) onApprovalCreated();
+
+        return completeConnectionRequest(promise);
       }
 
       case "wallet_getPermissions": {
-        if (connectedOrigins.has(ctx.origin)) {
+        if (isOriginConnected(ctx.origin)) {
           return ok([{ parentCapability: "eth_accounts" }]);
         }
         return ok([]);
       }
 
       case "wallet_revokePermissions": {
-        connectedOrigins.delete(ctx.origin);
+        if (isOriginConnected(ctx.origin)) {
+          await removeConnectedOrigin(ctx.origin);
+          broadcastEvent("accountsChanged", []);
+        }
         return ok(null);
       }
 
@@ -156,7 +214,7 @@ export async function handleRpc(
 
     if (SIGNING_METHODS.has(method)) {
       const isPopup = ctx.origin === POPUP_ORIGIN;
-      if (!isPopup && !connectedOrigins.has(ctx.origin)) {
+      if (!isPopup && !isOriginConnected(ctx.origin)) {
         return err(4100, "Unauthorized — connect first via eth_requestAccounts");
       }
 

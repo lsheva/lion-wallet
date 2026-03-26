@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ExternalLink,
   Fingerprint,
+  Globe,
   Key,
   Moon,
   Pencil,
@@ -218,6 +219,21 @@ export function Settings() {
             <div class="flex items-center gap-2">
               <BookUser size={16} class="text-text-tertiary" />
               <span class="text-sm text-text-primary">Saved Addresses</span>
+            </div>
+            <ChevronRight size={16} class="text-text-tertiary" />
+          </button>
+        </Card>
+
+        {/* Connections */}
+        <Card header="Connections" padding={false}>
+          <button
+            type="button"
+            onClick={() => navigate("/settings/connected-sites", { replace: true })}
+            class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer"
+          >
+            <div class="flex items-center gap-2">
+              <Globe size={16} class="text-text-tertiary" />
+              <span class="text-sm text-text-primary">Connected sites</span>
             </div>
             <ChevronRight size={16} class="text-text-tertiary" />
           </button>
@@ -543,8 +559,7 @@ function UpdateSection() {
       <div class="px-4 py-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-sm text-text-primary">
-            Lion Wallet{" "}
-            <span class="font-mono text-text-tertiary">v{currentVersion}</span>
+            Lion Wallet <span class="font-mono text-text-tertiary">v{currentVersion}</span>
           </span>
           <button
             type="button"
@@ -566,9 +581,7 @@ function UpdateSection() {
             <ArrowUpCircle size={16} class="text-accent shrink-0" />
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-accent">Update available</p>
-              <p class="text-xs text-text-tertiary">
-                v{latest()} — tap to download
-              </p>
+              <p class="text-xs text-text-tertiary">v{latest()} — tap to download</p>
             </div>
             <ExternalLink size={12} class="text-accent shrink-0" />
           </a>

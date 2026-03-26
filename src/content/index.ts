@@ -5,6 +5,26 @@ script.src = browser.runtime.getURL("inpage.js");
 script.onload = () => script.remove();
 (document.head || document.documentElement).appendChild(script);
 
+function getPageFaviconUrl(): string | undefined {
+  const links = document.querySelectorAll(
+    'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]',
+  );
+  for (const el of links) {
+    const href = el.getAttribute("href");
+    if (!href) continue;
+    try {
+      return new URL(href, window.location.href).href;
+    } catch {
+      /* try next */
+    }
+  }
+  try {
+    return new URL("/favicon.ico", window.location.origin).href;
+  } catch {
+    return undefined;
+  }
+}
+
 function isValidRequest(msg: unknown): msg is {
   type: string;
   direction: string;
@@ -28,6 +48,7 @@ window.addEventListener("message", (event: MessageEvent) => {
   if (!isValidRequest(msg)) return;
 
   const origin = window.location.origin;
+  const faviconUrl = getPageFaviconUrl();
 
   browser.runtime
     .sendMessage({
@@ -36,6 +57,7 @@ window.addEventListener("message", (event: MessageEvent) => {
       method: msg.method,
       params: msg.params,
       origin,
+      ...(faviconUrl ? { faviconUrl } : {}),
     })
     .then((response: unknown) => {
       const res = response as

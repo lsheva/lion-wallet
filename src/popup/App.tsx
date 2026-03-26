@@ -16,6 +16,7 @@ import { Result } from "./pages/Result";
 import { SeedPhrase } from "./pages/SeedPhrase";
 import { Send } from "./pages/Send";
 import { SetPassword } from "./pages/SetPassword";
+import { ConnectedSites } from "./pages/ConnectedSites";
 import { Settings } from "./pages/Settings";
 import { ShowRecoveryPhrase } from "./pages/ShowRecoveryPhrase";
 import { Welcome } from "./pages/Welcome";
@@ -35,6 +36,8 @@ const APPROVAL_METHODS = new Set([
   "eth_sign",
   "eth_signTypedData_v4",
   "eth_signTypedData",
+  "eth_requestAccounts",
+  "wallet_requestPermissions",
 ]);
 
 export const [pendingQueueSize, setPendingQueueSize] = createSignal(0);
@@ -43,7 +46,13 @@ try {
   type BgMessage =
     | { type: "PENDING_COUNT"; count: number }
     | { type: "BG_LOG"; msg: string }
-    | { type: "ACTIVITY_UPDATED"; items: ActivityItem[]; source?: string; hasMore?: boolean; chainId?: number };
+    | {
+        type: "ACTIVITY_UPDATED";
+        items: ActivityItem[];
+        source?: string;
+        hasMore?: boolean;
+        chainId?: number;
+      };
 
   browser.runtime.onMessage.addListener((msg: unknown) => {
     const m = msg as BgMessage;
@@ -137,6 +146,7 @@ export function App() {
       <Route path="/approve" component={Approve} />
       <Route path="/result" component={Result} />
       <Route path="/settings" component={Settings} />
+      <Route path="/settings/connected-sites" component={ConnectedSites} />
       <Route path="/address-book" component={AddressBook} />
       <Route path="/export-key" component={ExportPrivateKey} />
       <Route path="/show-phrase" component={ShowRecoveryPhrase} />

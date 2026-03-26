@@ -28,7 +28,14 @@ export type MessageRequest =
   | { type: "SWITCH_ACCOUNT"; accountIndex: number }
   | { type: "EXPORT_PRIVATE_KEY"; accountIndex: number; password?: string }
   | { type: "EXPORT_MNEMONIC"; password?: string }
-  | { type: "RPC_REQUEST"; id: string; method: string; params?: unknown[]; origin: string }
+  | {
+      type: "RPC_REQUEST";
+      id: string;
+      method: string;
+      params?: unknown[];
+      origin: string;
+      faviconUrl?: string;
+    }
   | { type: "GET_PENDING_APPROVAL" }
   | { type: "ENRICH_APPROVAL"; id: string }
   | { type: "APPROVE_REQUEST"; id: string; gasSpeed?: GasSpeed; password?: string }
@@ -56,7 +63,9 @@ export type MessageRequest =
   | { type: "CHECK_UPDATE"; force?: boolean }
   | { type: "GET_ADDRESS_BOOK" }
   | { type: "UPSERT_ADDRESS_BOOK_ENTRY"; address: Address; name: string }
-  | { type: "REMOVE_ADDRESS_BOOK_ENTRY"; address: Address };
+  | { type: "REMOVE_ADDRESS_BOOK_ENTRY"; address: Address }
+  | { type: "GET_CONNECTED_SITES" }
+  | { type: "REVOKE_CONNECTED_ORIGIN"; origin: string };
 
 /** Untyped base response — used by the background handler's return type. */
 export type MessageResponse = { ok: true; data?: unknown } | { ok: false; error: string };
@@ -77,7 +86,7 @@ export interface MessageDataMap {
   RPC_REQUEST: { result: unknown };
   GET_PENDING_APPROVAL: ApprovalData | null;
   ENRICH_APPROVAL: ApprovalEnrichment | null;
-  APPROVE_REQUEST: { result: string };
+  APPROVE_REQUEST: { result: unknown };
   REJECT_REQUEST: undefined;
   ESTIMATE_GAS: GasPresets;
   RESET_WALLET: undefined;
@@ -112,6 +121,8 @@ export interface MessageDataMap {
   GET_ADDRESS_BOOK: { entries: AddressBookEntry[]; recent: RecentAddress[] };
   UPSERT_ADDRESS_BOOK_ENTRY: undefined;
   REMOVE_ADDRESS_BOOK_ENTRY: undefined;
+  GET_CONNECTED_SITES: { origins: string[] };
+  REVOKE_CONNECTED_ORIGIN: undefined;
 }
 
 /** Typed success/error response keyed by message type. */

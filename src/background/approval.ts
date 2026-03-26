@@ -3,8 +3,10 @@ import type { RpcError } from "./rpc-handler";
 
 interface PendingEntry {
   approval: PendingApproval;
-  resolve: (result: string) => void;
-  reject: (error: RpcError) => void;
+  /** Completes the RPC promise with `{ result }`. */
+  resolveValue: (result: unknown) => void;
+  /** Completes the RPC promise with `{ error }`. */
+  resolveError: (error: RpcError) => void;
 }
 
 const pendingQueue = new Map<string, PendingEntry>();
@@ -15,6 +17,7 @@ export interface PendingApprovalExtras {
     decoded?: DecodedCall | null;
     transfers?: TokenTransfer[] | null;
   };
+  faviconUrl?: string;
 }
 
 export function createPendingApproval(
@@ -23,10 +26,10 @@ export function createPendingApproval(
   origin: string,
   chainId: number,
   extras?: PendingApprovalExtras,
-): { id: string; promise: Promise<{ result: string } | { error: RpcError }> } {
+): { id: string; promise: Promise<{ result: unknown } | { error: RpcError }> } {
   const id = `approval-${++idCounter}-${Date.now()}`;
 
-  const promise = new Promise<{ result: string } | { error: RpcError }>((resolve) => {
+  const promise = new Promise<{ result: unknown } | { error: RpcError }>((resolve) => {
     pendingQueue.set(id, {
       approval: {
         id,
@@ -36,9 +39,10 @@ export function createPendingApproval(
         timestamp: Date.now(),
         chainId,
         ...(extras?.prefilled ? { prefilled: extras.prefilled } : {}),
+        ...(extras?.faviconUrl ? { faviconUrl: extras.faviconUrl } : {}),
       },
-      resolve: (result: string) => resolve({ result }),
-      reject: (error: RpcError) => resolve({ error }),
+      resolveValue: (result: unknown) => resolve({ result }),
+      resolveError: (error: RpcError) => resolve({ error }),
     });
   });
 
@@ -54,10 +58,10 @@ export function getPendingCount(): number {
   return pendingQueue.size;
 }
 
-export function resolvePendingApproval(id: string, result: string): boolean {
+export function resolvePendingApproval(id: string, result: unknown): boolean {
   const entry = pendingQueue.get(id);
   if (!entry) return false;
-  entry.resolve(result);
+  entry.resolveValue(result);
   pendingQueue.delete(id);
   return true;
 }
@@ -65,14 +69,14 @@ export function resolvePendingApproval(id: string, result: string): boolean {
 export function rejectPendingApproval(id: string, reason?: string): boolean {
   const entry = pendingQueue.get(id);
   if (!entry) return false;
-  entry.reject({ code: 4001, message: reason ?? "User rejected the request" });
+  entry.resolveError({ code: 4001, message: reason ?? "User rejected the request" });
   pendingQueue.delete(id);
   return true;
 }
 
 export function clearAllPending(): void {
   for (const entry of pendingQueue.values()) {
-    entry.reject({ code: 4001, message: "Wallet reset" });
+    entry.resolveError({ code: 4001, message: "Wallet reset" });
   }
   pendingQueue.clear();
 }

@@ -4,7 +4,7 @@ import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import type { ApprovalData, GasSpeed } from "@shared/types";
 import { Fingerprint, Globe } from "lucide-solid";
-import { createMemo, createSignal, Match, Show, Switch } from "solid-js";
+import { createEffect, createMemo, createSignal, Match, Show, Switch } from "solid-js";
 import { closePopup, routeToNextApprovalOrClose } from "../App";
 import { SignContent } from "../components/approve/SignContent";
 import { TxContent } from "../components/approve/TxContent";
@@ -17,6 +17,33 @@ import { GasPresetsSkeleton, Skeleton } from "../components/Skeleton";
 import { useNavigate, useNavState } from "../router";
 
 const TX_METHODS = new Set(["eth_sendTransaction", "eth_signTransaction"]);
+
+const CONNECT_METHODS = new Set(["eth_requestAccounts", "wallet_requestPermissions"]);
+
+function SiteIcon(props: { url?: string }) {
+  const [broken, setBroken] = createSignal(false);
+  createEffect(() => {
+    props.url;
+    setBroken(false);
+  });
+  return (
+    <Show
+      when={props.url && !broken()}
+      fallback={
+        <div class="w-9 h-9 rounded-lg bg-base border border-divider flex items-center justify-center shrink-0">
+          <Globe size={18} class="text-text-tertiary" />
+        </div>
+      }
+    >
+      <img
+        src={props.url}
+        alt=""
+        class="w-9 h-9 rounded-lg bg-base object-contain shrink-0 border border-divider"
+        onError={() => setBroken(true)}
+      />
+    </Show>
+  );
+}
 
 export function Approve() {
   const navigate = useNavigate();
@@ -37,6 +64,7 @@ export function Approve() {
 
   function enrichApproval(d: ApprovalData) {
     if (isDev) return;
+    if (CONNECT_METHODS.has(d.approval.method)) return;
     const isTxMethod = TX_METHODS.has(d.approval.method);
     if (!isTxMethod) return;
 
@@ -65,12 +93,17 @@ export function Approve() {
     const d = data();
     return d ? TX_METHODS.has(d.approval.method) : false;
   });
+  const isConnect = createMemo(() => {
+    const d = data();
+    return d ? CONNECT_METHODS.has(d.approval.method) : false;
+  });
   const isPopupOrigin = createMemo(() => data()?.approval.origin === POPUP_ORIGIN);
   const isVaultMode = createMemo(() => data()?.storageMode === "vault");
 
   const title = createMemo(() => {
     const d = data();
     if (!d) return "";
+    if (isConnect()) return "Connection request";
     return isTx()
       ? isPopupOrigin()
         ? "Confirm Send"
@@ -103,6 +136,25 @@ export function Approve() {
     const d = data();
     if (!d) return;
 
+    if (isConnect()) {
+      setAuthError("");
+      setSubmitting(true);
+      const res = await sendMessage({ type: "APPROVE_REQUEST", id: d.approval.id });
+      setSubmitting(false);
+      if (res.ok) {
+        await routeToNextApprovalOrClose(() => {
+          if (isPopupOrigin()) {
+            navigate("/home", { replace: true });
+          } else {
+            closePopup();
+          }
+        });
+      } else {
+        setAuthError(res.error);
+      }
+      return;
+    }
+
     if (isVaultMode() && password().length < 4) {
       setAuthError("Enter your password to continue");
       return;
@@ -132,12 +184,22 @@ export function Approve() {
         let recipient: string | undefined;
         if (!txParams?.data || txParams.data === "0x") {
           recipient = txParams?.to;
-        } else if (txParams.data.startsWith(ERC20_TRANSFER_SELECTOR) && txParams.data.length >= 74) {
+        } else if (
+          txParams.data.startsWith(ERC20_TRANSFER_SELECTOR) &&
+          txParams.data.length >= 74
+        ) {
           recipient = `0x${txParams.data.slice(34, 74)}`;
         }
         navigate("/result", {
           replace: true,
-          state: { kind, status: "success", hash: result, method: d.approval.method, chainId: d.approval.chainId, recipient },
+          state: {
+            kind,
+            status: "success",
+            hash: result,
+            method: d.approval.method,
+            chainId: d.approval.chainId,
+            recipient,
+          },
         });
       } else {
         navigate("/result", {
@@ -148,7 +210,12 @@ export function Approve() {
     } else {
       navigate("/result", {
         replace: true,
-        state: { kind: isTx() ? "tx" : "sign", status: "error", error: res.error, chainId: d.approval.chainId },
+        state: {
+          kind: isTx() ? "tx" : "sign",
+          status: "error",
+          error: res.error,
+          chainId: d.approval.chainId,
+        },
       });
     }
   }
@@ -236,28 +303,39 @@ export function Approve() {
                 </div>
 
                 <Show when={!isPopupOrigin()}>
-                  <div class="flex items-center gap-2 px-4 py-2.5 bg-surface border-b border-divider">
-                    <Globe size={16} class="text-text-tertiary" />
-                    <span class="text-sm text-text-secondary">{d().approval.origin}</span>
+                  <div class="flex items-center gap-3 px-4 py-2.5 bg-surface border-b border-divider">
+                    <SiteIcon url={d().approval.faviconUrl} />
+                    <span class="text-sm text-text-secondary break-all">{d().approval.origin}</span>
                   </div>
                 </Show>
 
                 <div class="flex-1 overflow-y-auto px-4 pt-4 space-y-3">
-                  <Show when={isTx()} fallback={<SignContent data={d()} />}>
-                    <TxContent
-                      data={d()}
-                      enriching={enriching()}
-                      gasSpeed={gasSpeed()}
-                      setGasSpeed={setGasSpeed}
-                      showDetails={showDetails()}
-                      setShowDetails={setShowDetails}
-                      showData={showData()}
-                      setShowData={setShowData}
-                    />
+                  <Show when={isConnect()}>
+                    <div class="rounded-[var(--radius-card)] border border-divider bg-surface px-4 py-3 text-sm text-text-secondary leading-relaxed">
+                      <p class="font-medium text-text-primary mb-2">Requested permissions</p>
+                      <ul class="list-disc pl-4 space-y-1">
+                        <li>View your wallet address</li>
+                        <li>Use connected account for transactions (after you approve each one)</li>
+                      </ul>
+                    </div>
+                  </Show>
+                  <Show when={!isConnect()}>
+                    <Show when={isTx()} fallback={<SignContent data={d()} />}>
+                      <TxContent
+                        data={d()}
+                        enriching={enriching()}
+                        gasSpeed={gasSpeed()}
+                        setGasSpeed={setGasSpeed}
+                        showDetails={showDetails()}
+                        setShowDetails={setShowDetails}
+                        showData={showData()}
+                        setShowData={setShowData}
+                      />
+                    </Show>
                   </Show>
                 </div>
 
-                <Show when={isVaultMode()}>
+                <Show when={isVaultMode() && !isConnect()}>
                   <div class="px-4 pt-2">
                     <Input
                       type="password"
@@ -287,7 +365,9 @@ export function Approve() {
                     fullWidth
                     loading={submitting()}
                   >
-                    {isVaultMode() ? (
+                    {isConnect() ? (
+                      "Connect"
+                    ) : isVaultMode() ? (
                       isTx() ? (
                         "Confirm"
                       ) : (

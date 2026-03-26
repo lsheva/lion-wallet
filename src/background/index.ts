@@ -1,6 +1,8 @@
 import type { Runtime } from "webextension-polyfill/namespaces/runtime";
 import type { MessageRequest, MessageResponse } from "../shared/messages";
-import { broadcastPendingCount, updateBadge } from "./broadcast";
+import { getPendingCount } from "./approval";
+import { broadcastEvent, broadcastPendingCount, updateBadge } from "./broadcast";
+import { ensureConnectedOriginsLoaded } from "./connected-origins";
 import {
   handleGetAddressBook,
   handleRemoveAddressBookEntry,
@@ -14,6 +16,7 @@ import {
   handleRejectRequest,
   handleRpcRequest,
 } from "./handlers/approval";
+import { handleGetConnectedSites, handleRevokeConnectedOrigin } from "./handlers/connected-sites";
 import {
   handleCheckKeychainAvailable,
   handleClearActivityCache,
@@ -52,6 +55,11 @@ import {
 import { bgLog } from "./log";
 import { loadRpcProviderKey } from "./networks";
 import { setApprovalCreatedCallback } from "./rpc-handler";
+import { getStorageMode } from "./vault";
+
+ensureConnectedOriginsLoaded().catch((e) => {
+  bgLog("[background] ensureConnectedOriginsLoaded failed:", e);
+});
 
 updateBadge();
 browser.runtime.onInstalled.addListener(() => updateBadge());
@@ -60,17 +68,23 @@ browser.runtime.onStartup?.addListener(() => updateBadge());
 setApprovalCreatedCallback(() => {
   updateBadge();
   broadcastPendingCount();
-  try {
-    (browser.action as { openPopup?: () => void }).openPopup?.();
-  } catch {
-    /* popup couldn't be opened programmatically */
-  }
+  void (async () => {
+    const mode = await getStorageMode();
+    if (mode === "keychain") {
+      broadcastEvent("approvalPending", { count: getPendingCount() });
+    }
+    try {
+      (browser.action as { openPopup?: () => void }).openPopup?.();
+    } catch {
+      /* popup couldn't be opened programmatically */
+    }
+  })();
 });
 
 async function handleMessage(message: MessageRequest): Promise<MessageResponse> {
   switch (message.type) {
     case "RPC_REQUEST":
-      return handleRpcRequest(message.method, message.params, message.origin);
+      return handleRpcRequest(message.method, message.params, message.origin, message.faviconUrl);
     case "CREATE_WALLET":
       return handleCreateWallet(message.password);
     case "IMPORT_WALLET":
@@ -155,6 +169,10 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleUpsertAddressBookEntry(message.address, message.name);
     case "REMOVE_ADDRESS_BOOK_ENTRY":
       return handleRemoveAddressBookEntry(message.address);
+    case "GET_CONNECTED_SITES":
+      return handleGetConnectedSites();
+    case "REVOKE_CONNECTED_ORIGIN":
+      return handleRevokeConnectedOrigin(message.origin);
     default:
       return { ok: false, error: "Unknown message type" };
   }

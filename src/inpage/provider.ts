@@ -139,6 +139,10 @@ class EIP1193Provider extends EventEmitter {
         this.emit("disconnect", data);
         break;
       }
+      case "approvalPending": {
+        this.emit("approvalPending", data);
+        break;
+      }
     }
   }
 

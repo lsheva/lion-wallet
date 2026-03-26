@@ -5,6 +5,7 @@ import { erc20Abi, feedFaceDisperseAbi } from "../../shared/abis";
 import type { MessageResponse } from "../../shared/messages";
 import type { MultiSendEntry, SerializedAccount, WalletState } from "../../shared/types";
 import { broadcastEvent } from "../broadcast";
+import { clearConnectedOrigins } from "../connected-origins";
 import { fetchNativePrice } from "../etherscan";
 import * as keychain from "../keychain";
 import { bgLog } from "../log";
@@ -273,6 +274,7 @@ export async function handleResetWallet(password?: string): Promise<MessageRespo
     );
   }
   await clearVault();
+  await clearConnectedOrigins();
   broadcastEvent("accountsChanged", []);
   broadcastEvent("disconnect", { code: 4900, message: "Wallet reset" });
   return { ok: true };

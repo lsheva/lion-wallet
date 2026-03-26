@@ -108,6 +108,8 @@ export interface PendingApproval {
   method: string;
   params: unknown[];
   origin: string;
+  /** Page favicon URL from the tab (connection requests). */
+  faviconUrl?: string;
   timestamp: number;
   chainId: number;
   /** When set, executeApproval signs the EIP-712 permit and sends

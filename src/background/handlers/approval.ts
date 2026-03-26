@@ -11,6 +11,7 @@ import {
   resolvePendingApproval,
 } from "../approval";
 import { broadcastPendingCount, updateBadge } from "../broadcast";
+import { addConnectedOrigin } from "../connected-origins";
 import { getEtherscanApiKey } from "../etherscan";
 import { bgLog } from "../log";
 import { getNetworkConfig, hasRpcProviderKey } from "../networks";
@@ -68,6 +69,42 @@ async function executeApproval(
     return { ok: false, error: "No matching pending approval" };
   }
 
+  if (pending.method === "eth_requestAccounts") {
+    try {
+      const meta = await loadAccountsMeta();
+      if (!meta) return { ok: false, error: "No accounts found" };
+      await addConnectedOrigin(pending.origin);
+      const addresses = meta.accounts.map((a) => a.address);
+      resolvePendingApproval(id, addresses);
+      updateBadge();
+      broadcastPendingCount();
+      return { ok: true, data: { result: addresses } };
+    } catch (e) {
+      const msg = toErrorMessage(e);
+      rejectPendingApproval(id, msg);
+      updateBadge();
+      broadcastPendingCount();
+      return { ok: false, error: msg };
+    }
+  }
+
+  if (pending.method === "wallet_requestPermissions") {
+    try {
+      await addConnectedOrigin(pending.origin);
+      const perms = [{ parentCapability: "eth_accounts" as const }];
+      resolvePendingApproval(id, perms);
+      updateBadge();
+      broadcastPendingCount();
+      return { ok: true, data: { result: perms } };
+    } catch (e) {
+      const msg = toErrorMessage(e);
+      rejectPendingApproval(id, msg);
+      updateBadge();
+      broadcastPendingCount();
+      return { ok: false, error: msg };
+    }
+  }
+
   try {
     const mode = await getStorageMode();
     const meta = await loadAccountsMeta();
@@ -121,14 +158,15 @@ async function executeApproval(
           let recipient: Address | undefined;
           if (!txParams.data || txParams.data === "0x") {
             recipient = txParams.to;
-          } else if (txParams.data.startsWith(ERC20_TRANSFER_SELECTOR) && txParams.data.length >= 74) {
+          } else if (
+            txParams.data.startsWith(ERC20_TRANSFER_SELECTOR) &&
+            txParams.data.length >= 74
+          ) {
             recipient = `0x${txParams.data.slice(34, 74)}` as Address;
           }
           if (recipient) {
             import("../address-book")
-              .then(({ pushRecentAddress }) =>
-                pushRecentAddress(account.address, recipient),
-              )
+              .then(({ pushRecentAddress }) => pushRecentAddress(account.address, recipient))
               .catch((e) => {
                 bgLog("[address-book] pushRecentAddress failed:", e);
               });
@@ -178,8 +216,10 @@ export async function handleRpcRequest(
   method: string,
   params: unknown[] | undefined,
   origin: string,
+  faviconUrl?: string,
 ): Promise<MessageResponse> {
-  const result = await handleRpc(method, params, { origin });
+  const extras = faviconUrl ? { faviconUrl } : undefined;
+  const result = await handleRpc(method, params, { origin, extras });
   return { ok: true, data: result };
 }
 
@@ -204,6 +244,10 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
 export async function handleEnrichApproval(id: string): Promise<MessageResponse> {
   const pending = getPendingApproval();
   if (!pending || pending.id !== id) return { ok: true, data: null };
+
+  if (pending.method === "eth_requestAccounts" || pending.method === "wallet_requestPermissions") {
+    return { ok: true, data: null };
+  }
 
   const [meta, etherscanKey] = await Promise.all([loadAccountsMeta(), getEtherscanApiKey()]);
   const activeAccount = meta?.accounts[meta.activeAccountIndex];
@@ -346,4 +390,3 @@ export async function handleEstimateGas(
     return { ok: false, error: formatGasEstimateError(e) };
   }
 }
-

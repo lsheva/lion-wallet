@@ -5,11 +5,11 @@
 
 ## Connection approval prompt
 
-When a dApp calls `eth_requestAccounts` for the first time, show an approval popup instead of auto-connecting. Currently any site can silently obtain the active account address.
+When a dApp calls `eth_requestAccounts` for the first time from an origin, the extension shows an approval popup instead of auto-connecting.
 
 ### Behavior
 
-- First `eth_requestAccounts` from an origin → open approval popup showing site origin, favicon, and requested permissions
+- First `eth_requestAccounts` from an origin → open approval popup showing site origin, favicon (when available), and requested permissions
 - User approves → origin is added to connected set, accounts returned
 - User rejects → `4001 User Rejected Request` error returned to dApp
 - Approved origins persisted in `browser.storage.local` and survive browser restart
@@ -18,12 +18,13 @@ When a dApp calls `eth_requestAccounts` for the first time, show an approval pop
 
 ### Steps
 
-[] - add connected origins storage (persistent, not just in-memory Set)
-[] - intercept `eth_requestAccounts` — check storage, show approval popup if origin unknown
-[] - build connection approval UI: origin, favicon, approve/reject buttons
-[] - emit `accountsChanged` / `disconnect` events on revoke
-[] - add Settings → Connected Sites page with revoke per-origin
-[] - handle re-connection after revoke (re-prompts approval)
+[x] - add connected origins storage (persistent, not just in-memory Set)
+[x] - intercept `eth_requestAccounts` — check storage, show approval popup if origin unknown
+[x] - build connection approval UI: origin, approve/reject buttons
+[x] - show site favicon on connection approval screen
+[x] - emit `accountsChanged` / `disconnect` events on revoke
+[x] - add Settings → Connected Sites page with revoke per-origin
+[x] - handle re-connection after revoke (re-prompts approval)
 
 ## Optional lock screen
 
