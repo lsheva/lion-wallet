@@ -1,3 +1,4 @@
+import { ERC20_TRANSFER_SELECTOR } from "@shared/abis";
 import { CHAIN_BY_ID, POPUP_ORIGIN } from "@shared/constants";
 import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
@@ -120,9 +121,16 @@ export function Approve() {
       const result = res.data?.result;
       const kind = isTx() ? "tx" : "sign";
       if (isTx()) {
+        const txParams = d.approval.params[0] as { to?: string; data?: string } | undefined;
+        let recipient: string | undefined;
+        if (!txParams?.data || txParams.data === "0x") {
+          recipient = txParams?.to;
+        } else if (txParams.data.startsWith(ERC20_TRANSFER_SELECTOR) && txParams.data.length >= 74) {
+          recipient = `0x${txParams.data.slice(34, 74)}`;
+        }
         navigate("/result", {
           replace: true,
-          state: { kind, status: "success", hash: result, method: d.approval.method, chainId: d.approval.chainId },
+          state: { kind, status: "success", hash: result, method: d.approval.method, chainId: d.approval.chainId, recipient },
         });
       } else {
         navigate("/result", {

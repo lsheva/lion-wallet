@@ -310,12 +310,14 @@ function attachTransfers(
     const raw = rawByTxIndex[i] ?? [];
     item.transfers = raw.map((t) => {
       const info = tokenMeta.get(t.token);
+      const outgoing = t.from.toLowerCase() === addrLower;
       return {
         token: t.token,
         symbol: info?.symbol ?? "???",
         amount: String(t.value),
         decimals: info?.decimals ?? 18,
-        dir: t.from.toLowerCase() === addrLower ? "out" : "in",
+        dir: outgoing ? "out" : "in",
+        peer: outgoing ? t.to : t.from,
       };
     });
   }
@@ -651,12 +653,14 @@ async function fetchRpcData(
   const transfersByHash: Record<string, TokenMovement[]> = {};
   for (const t of rawTransfers) {
     const info = meta.get(t.token.toLowerCase());
+    const outgoing = t.from.toLowerCase() === addrLower;
     const mv: TokenMovement = {
       token: t.token,
       symbol: info?.symbol ?? "???",
       amount: String(t.value),
       decimals: info?.decimals ?? 18,
-      dir: t.from.toLowerCase() === addrLower ? "out" : "in",
+      dir: outgoing ? "out" : "in",
+      peer: outgoing ? t.to : t.from,
     };
     if (!transfersByHash[t.hash]) transfersByHash[t.hash] = [];
     transfersByHash[t.hash]?.push(mv);

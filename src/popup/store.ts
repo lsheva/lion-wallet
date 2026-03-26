@@ -1,5 +1,5 @@
 import { CHAINS } from "@shared/constants";
-import { formatUsd, toErrorMessage } from "@shared/format";
+import { formatUsd, toErrorMessage, tokenColorFromAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import type {
   ActivityItem,
@@ -111,7 +111,7 @@ function tokenUsdValue(balance: string, price: number | undefined): string | und
 function buildErc20Token(
   t: StoredToken,
   balance: string,
-  chainId: number,
+  _chainId: number,
   price: number | undefined,
 ): TokenInfo {
   return {
@@ -120,7 +120,7 @@ function buildErc20Token(
     address: t.address as Address,
     decimals: t.decimals,
     balance,
-    color: chainColor(chainId),
+    color: tokenColorFromAddress(t.address),
     source: t.source,
     usdValue: tokenUsdValue(balance, price),
   };

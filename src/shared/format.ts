@@ -7,6 +7,8 @@
  * - Very small values (between 0 and 1, 5+ leading zeros after decimal): `0.0` + subscript count + significant digits (see `getTokenValueDisplay` + `FormattedTokenValue`)
  */
 
+import type { AddressBookEntry, SerializedAccount } from "./types";
+
 /** Segment for HTML/Preact rendering (`<sub>` for repeated zero count). */
 export type TokenValuePiece = { kind: "text"; text: string } | { kind: "sub"; text: string };
 
@@ -92,6 +94,48 @@ export function isAddress(value: string): boolean {
 export function truncateAddress(address: string): string {
   if (!address || address.length < 10) return address || "—";
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+/** Trim to at most `maxChars` characters; if longer, end with an ellipsis (counts toward the limit). */
+export function truncateWithEllipsis(str: string, maxChars: number): string {
+  if (str.length <= maxChars) return str;
+  return str.slice(0, maxChars - 1) + "…";
+}
+
+/**
+ * Deterministic HSL for `TokenImage` letter fallback (activity + token list).
+ * Color is **generated** from the address hash but constrained to the Lion warm theme:
+ * hue in the amber→orange→mane-brown band (see `brand/LION_PALETTE.md`), saturation and
+ * lightness bounded so fills stay “savanna” and stay dark enough for white letter glyphs.
+ */
+export function tokenColorFromAddress(address: string): string {
+  let a = 0;
+  let b = 0;
+  for (let i = 0; i < address.length; i++) {
+    const c = address.charCodeAt(i);
+    a = (a * 31 + c) >>> 0;
+    b = (b * 33 + c * (i + 1)) >>> 0;
+  }
+  const hue = 12 + (a % 37); // ~12–48° (warm only; no greens/blues/purples)
+  const sat = 34 + (b % 48); // 34–81%
+  const light = 28 + ((a ^ b) % 20); // 28–47% — readable white text on circle
+  return `hsl(${hue} ${sat}% ${light}%)`;
+}
+
+/**
+ * Human-readable label for an address if it matches a wallet account or address book entry (account wins).
+ */
+export function resolveAddressAlias(
+  address: string,
+  accounts: SerializedAccount[],
+  addressBook: AddressBookEntry[],
+): string | null {
+  if (!address) return null;
+  const lower = address.toLowerCase();
+  const acc = accounts.find((a) => a.address.toLowerCase() === lower);
+  if (acc) return acc.name;
+  const entry = addressBook.find((e) => e.address.toLowerCase() === lower);
+  return entry?.name ?? null;
 }
 
 /** Safely extract a human-readable message from an unknown catch value. */

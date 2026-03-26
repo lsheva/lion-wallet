@@ -58,10 +58,10 @@ export function TxContent(props: TxContentProps) {
 
   return (
     <>
-      <Show when={props.data.decoded}>
+      <Show when={props.data.decoded} keyed>
         {(decoded) => (
           <DecodedCallCard
-            decoded={decoded()}
+            decoded={decoded}
             toAddress={txParams().to}
             argsExpanded={argsExpanded()}
             setArgsExpanded={setArgsExpanded}

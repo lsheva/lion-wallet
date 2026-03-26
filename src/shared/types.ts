@@ -155,6 +155,8 @@ export interface TokenMovement {
   amount: string;
   decimals: number;
   dir: "in" | "out";
+  /** Counterparty address for ERC-20 Transfer (not the token contract). */
+  peer?: string;
 }
 
 export interface DecodedEvent {

@@ -1,3 +1,7 @@
+import { toFunctionSelector } from "viem";
+
+export const ERC20_TRANSFER_SELECTOR = toFunctionSelector("transfer(address,uint256)");
+
 export const erc20Abi = [
   {
     type: "event",

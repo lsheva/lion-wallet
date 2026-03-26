@@ -1,7 +1,9 @@
+import { sendMessage } from "@shared/messages";
+import type { AddressBookEntry } from "@shared/types";
 import { Loader2 } from "lucide-solid";
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, For, onMount, Show } from "solid-js";
 import { useNavigate } from "../router";
-import { fetchActivity, walletState } from "../store";
+import { accounts, fetchActivity, walletState } from "../store";
 import { ActivityRow } from "./ActivityRow";
 import { ActivityRowSkeleton } from "./Skeleton";
 
@@ -9,7 +11,16 @@ const PAGE_SIZE = 5;
 
 export function ActivitySection(props: { account: { address: string } }) {
   const [displayCount, setDisplayCount] = createSignal(PAGE_SIZE);
+  const [addressBook, setAddressBook] = createSignal<AddressBookEntry[]>([]);
   const navigate = useNavigate();
+
+  const loadAddressBook = () => {
+    sendMessage({ type: "GET_ADDRESS_BOOK" }).then((res) => {
+      if (res.ok && res.data) setAddressBook(res.data.entries);
+    });
+  };
+
+  onMount(loadAddressBook);
 
   const items = () => walletState.activity();
   const loading = () => walletState.activityLoading();
@@ -63,6 +74,10 @@ export function ActivitySection(props: { account: { address: string } }) {
                 userAddress={props.account.address}
                 explorerUrl={explorerUrl()}
                 nativeSymbol={nativeSymbol()}
+                chainId={network().id}
+                addressBook={addressBook()}
+                accounts={accounts()}
+                onAddressBookSaved={loadAddressBook}
               />
             )}
           </For>

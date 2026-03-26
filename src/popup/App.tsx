@@ -40,26 +40,27 @@ const APPROVAL_METHODS = new Set([
 export const [pendingQueueSize, setPendingQueueSize] = createSignal(0);
 
 try {
+  type BgMessage =
+    | { type: "PENDING_COUNT"; count: number }
+    | { type: "BG_LOG"; msg: string }
+    | { type: "ACTIVITY_UPDATED"; items: ActivityItem[]; source?: string; hasMore?: boolean; chainId?: number };
+
   browser.runtime.onMessage.addListener((msg: unknown) => {
-    const m = msg as {
-      type?: string;
-      count?: number;
-      args?: string[];
-      items?: ActivityItem[];
-      source?: string;
-      hasMore?: boolean;
-      chainId?: number;
-    };
-    if (m.type === "PENDING_COUNT" && typeof m.count === "number") {
-      setPendingQueueSize(m.count);
-    } else if (m.type === "BG_LOG" && m.args) {
-      // biome-ignore lint/suspicious/noConsole: this IS the logging utility
-      console.log("BG_LOG", m.args);
-    } else if (m.type === "ACTIVITY_UPDATED" && m.items) {
-      if (m.chainId != null && m.chainId !== activeNetworkId()) return;
-      setActivity(m.items);
-      if (m.source) setActivitySource(m.source as "etherscan" | "rpc" | "cache");
-      if (typeof m.hasMore === "boolean") setActivityHasMore(m.hasMore);
+    const m = msg as BgMessage;
+    switch (m.type) {
+      case "PENDING_COUNT":
+        setPendingQueueSize(m.count);
+        break;
+      case "BG_LOG":
+        // biome-ignore lint/suspicious/noConsole: this IS the logging utility
+        console.log("[BG]", m.msg);
+        break;
+      case "ACTIVITY_UPDATED":
+        if (m.chainId != null && m.chainId !== activeNetworkId()) return;
+        setActivity(m.items);
+        if (m.source) setActivitySource(m.source as "etherscan" | "rpc" | "cache");
+        if (typeof m.hasMore === "boolean") setActivityHasMore(m.hasMore);
+        break;
     }
   });
 } catch {

@@ -1,11 +1,16 @@
 import { CHAIN_BY_ID, POPUP_ORIGIN } from "@shared/constants";
+import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-solid";
+import type { AddressBookEntry } from "@shared/types";
+import { CheckCircle2, ExternalLink, Loader2, Star, XCircle } from "lucide-solid";
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
+import type { Address } from "viem";
+import { getAddress } from "viem/utils";
 import { AddressDisplay } from "../components/AddressDisplay";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { CopyButton } from "../components/CopyButton";
+import { Modal } from "../components/Modal";
 import { useAutoCloseQueue } from "../hooks/useAutoCloseQueue";
 import { useNavigate, useNavState } from "../router";
 import { walletState } from "../store";
@@ -18,6 +23,7 @@ interface ResultNavState {
   error?: string;
   method?: string;
   chainId?: number;
+  recipient?: string;
 }
 
 const TARGET_CONFIRMATIONS = 12;
@@ -130,6 +136,49 @@ export function Result() {
   onCleanup(() => {
     if (intervalRef) clearInterval(intervalRef);
   });
+
+  const [saveModalOpen, setSaveModalOpen] = createSignal(false);
+  const [saveModalName, setSaveModalName] = createSignal("");
+  const [saved, setSaved] = createSignal(false);
+  const [addressBook, setAddressBook] = createSignal<AddressBookEntry[]>([]);
+
+  const recipient = () => {
+    try {
+      return stored.recipient ? getAddress(stored.recipient) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const alreadySaved = createMemo(() => {
+    const r = recipient();
+    if (!r) return true;
+    return addressBook().some((e) => e.address.toLowerCase() === r.toLowerCase());
+  });
+
+  onMount(() => {
+    if (recipient()) {
+      sendMessage({ type: "GET_ADDRESS_BOOK" }).then((res) => {
+        if (res.ok && res.data) setAddressBook(res.data.entries);
+      });
+    }
+  });
+
+  const handleSaveToAddressBook = async () => {
+    const addr = recipient();
+    const name = saveModalName().trim();
+    if (!addr || !name) return;
+    const res = await sendMessage({
+      type: "UPSERT_ADDRESS_BOOK_ENTRY",
+      address: addr as Address,
+      name,
+    });
+    if (res.ok) {
+      setSaved(true);
+      setSaveModalOpen(false);
+      setSaveModalName("");
+    }
+  };
 
   const { autoCloseIn, queueSize, dismiss } = useAutoCloseQueue({ skip: isError() });
 
@@ -269,6 +318,19 @@ export function Result() {
         </Card>
       </Show>
 
+      <Show when={!alreadySaved() && !saved() && recipient()} keyed>
+        {(addr) => (
+          <button
+            type="button"
+            onClick={() => setSaveModalOpen(true)}
+            class="flex items-center justify-center gap-1.5 w-full text-xs text-text-tertiary hover:text-accent transition-colors cursor-pointer py-1.5"
+          >
+            <Star size={12} strokeWidth={2} class="shrink-0" />
+            Save {truncateAddress(addr)} to address book
+          </button>
+        )}
+      </Show>
+
       <div class="w-full space-y-2">
         <Button onClick={dismiss} size="lg" variant={mined() ? "primary" : "secondary"}>
           {mined() ? "Done" : "Dismiss"}
@@ -280,6 +342,38 @@ export function Result() {
           </p>
         </Show>
       </div>
+
+      <Modal
+        open={saveModalOpen()}
+        onClose={() => setSaveModalOpen(false)}
+        title="Save to Address Book"
+      >
+        <div class="p-4 space-y-3">
+          <div class="text-xs font-mono text-text-secondary bg-surface rounded-[var(--radius-card)] px-3 py-2">
+            {recipient()}
+          </div>
+          <div class="space-y-1.5">
+            <label for="save-result-name" class="block text-sm font-medium text-text-secondary">Name</label>
+            <input
+              id="save-result-name"
+              class="w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none ring-1 ring-transparent focus:ring-accent/40 focus:ring-2 transition-shadow"
+              type="text"
+              placeholder="e.g. Alice, Uniswap Router"
+              value={saveModalName()}
+              onInput={(e) => setSaveModalName(e.currentTarget.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSaveToAddressBook(); }}
+              autofocus
+            />
+          </div>
+          <Button
+            onClick={handleSaveToAddressBook}
+            disabled={!saveModalName().trim()}
+            size="lg"
+          >
+            Save
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

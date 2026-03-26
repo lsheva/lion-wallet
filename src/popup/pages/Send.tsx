@@ -2,7 +2,17 @@ import { POPUP_ORIGIN } from "@shared/constants";
 import { isAddress, toErrorMessage, truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import type { AddressBookEntry, MultiSendEntry, RecentAddress } from "@shared/types";
-import { BookUser, ChevronDown, Clock, ExternalLink, Plus, Star, Trash2, Wallet, X } from "lucide-solid";
+import {
+  BookUser,
+  ChevronDown,
+  Clock,
+  ExternalLink,
+  Plus,
+  Star,
+  Trash2,
+  Wallet,
+  X,
+} from "lucide-solid";
 import { createMemo, createSignal, Index, onCleanup, onMount, Show } from "solid-js";
 import type { Address } from "viem";
 import { numberToHex, parseEther } from "viem/utils";
@@ -370,7 +380,6 @@ export function Send() {
               <div
                 class={`space-y-4 ${gi > 0 ? "mt-8 pt-6 border-t-2 border-divider-strong" : ""}`}
               >
-
                 {/* ── Token ── */}
                 <div>
                   <div class="flex items-center justify-between mb-1.5">
@@ -517,7 +526,9 @@ export function Send() {
                           };
                           const filteredRecent = () => {
                             const q = filterText();
-                            const bookAddrs = new Set(addressBook().map((e) => e.address.toLowerCase()));
+                            const bookAddrs = new Set(
+                              addressBook().map((e) => e.address.toLowerCase()),
+                            );
                             const base = recentAddresses().filter(
                               (r) => !bookAddrs.has(r.address.toLowerCase()),
                             );
@@ -591,7 +602,9 @@ export function Send() {
                                     <div class="flex-1 flex items-center gap-2 bg-surface rounded-[var(--radius-card)] px-3 py-2.5 ring-1 ring-accent/20">
                                       <Show
                                         when={c.type === "book"}
-                                        fallback={<Wallet size={14} class="text-text-tertiary shrink-0" />}
+                                        fallback={
+                                          <Wallet size={14} class="text-text-tertiary shrink-0" />
+                                        }
                                       >
                                         <Star size={14} class="text-accent shrink-0" />
                                       </Show>
@@ -626,42 +639,6 @@ export function Send() {
 
                               <Show when={openAddrPicker() === rec().id && hasDropdownItems()}>
                                 <div class="absolute left-0 right-0 top-full mt-1 z-20 bg-elevated rounded-[var(--radius-card)] ring-1 ring-divider shadow-lg overflow-y-auto max-h-[240px]">
-
-                                  {/* Address Book */}
-                                  <Show when={filteredBook().length > 0}>
-                                    <div class="px-3 pt-2 pb-1">
-                                      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                                        Address Book
-                                      </span>
-                                    </div>
-                                    <Index each={filteredBook()}>
-                                      {(entry) => (
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            updateRecipient(grp().id, rec().id, {
-                                              to: entry().address,
-                                            });
-                                            setOpenAddrPicker(null);
-                                          }}
-                                          class={`w-full flex items-center gap-2 px-3 py-2 hover:bg-base/50 transition-colors cursor-pointer text-left ${
-                                            entry().address.toLowerCase() === rec().to.toLowerCase()
-                                              ? "bg-accent-light"
-                                              : ""
-                                          }`}
-                                        >
-                                          <Star size={14} class="text-accent shrink-0" />
-                                          <span class="text-sm font-medium text-text-primary truncate">
-                                            {entry().name}
-                                          </span>
-                                          <span class="text-[11px] font-mono text-text-secondary ml-auto shrink-0">
-                                            {truncateAddress(entry().address)}
-                                          </span>
-                                        </button>
-                                      )}
-                                    </Index>
-                                  </Show>
-
                                   {/* Recent */}
                                   <Show when={filteredRecent().length > 0}>
                                     <div class="px-3 pt-2 pb-1">
@@ -673,7 +650,8 @@ export function Send() {
                                       {(recent) => (
                                         <div
                                           class={`w-full flex items-center gap-2 px-3 py-2 hover:bg-base/50 transition-colors text-left ${
-                                            recent().address.toLowerCase() === rec().to.toLowerCase()
+                                            recent().address.toLowerCase() ===
+                                            rec().to.toLowerCase()
                                               ? "bg-accent-light"
                                               : ""
                                           }`}
@@ -710,6 +688,41 @@ export function Send() {
                                             <Plus size={14} />
                                           </button>
                                         </div>
+                                      )}
+                                    </Index>
+                                  </Show>
+
+                                  {/* Address Book */}
+                                  <Show when={filteredBook().length > 0}>
+                                    <div class="px-3 pt-2 pb-1">
+                                      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                                        Address Book
+                                      </span>
+                                    </div>
+                                    <Index each={filteredBook()}>
+                                      {(entry) => (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            updateRecipient(grp().id, rec().id, {
+                                              to: entry().address,
+                                            });
+                                            setOpenAddrPicker(null);
+                                          }}
+                                          class={`w-full flex items-center gap-2 px-3 py-2 hover:bg-base/50 transition-colors cursor-pointer text-left ${
+                                            entry().address.toLowerCase() === rec().to.toLowerCase()
+                                              ? "bg-accent-light"
+                                              : ""
+                                          }`}
+                                        >
+                                          <Star size={14} class="text-accent shrink-0" />
+                                          <span class="text-sm font-medium text-text-primary truncate">
+                                            {entry().name}
+                                          </span>
+                                          <span class="text-[11px] font-mono text-text-secondary ml-auto shrink-0">
+                                            {truncateAddress(entry().address)}
+                                          </span>
+                                        </button>
                                       )}
                                     </Index>
                                   </Show>
@@ -784,9 +797,7 @@ export function Send() {
                         <input
                           type="checkbox"
                           checked={grp().useSameRecipients}
-                          onChange={(e) =>
-                            toggleSameRecipients(grp().id, e.currentTarget.checked)
-                          }
+                          onChange={(e) => toggleSameRecipients(grp().id, e.currentTarget.checked)}
                           class="sr-only peer"
                         />
                         <div
@@ -796,9 +807,7 @@ export function Send() {
                         >
                           <div
                             class={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow transition-transform ${
-                              grp().useSameRecipients
-                                ? "translate-x-[16px]"
-                                : "translate-x-[2px]"
+                              grp().useSameRecipients ? "translate-x-[16px]" : "translate-x-[2px]"
                             }`}
                           />
                         </div>
@@ -821,9 +830,7 @@ export function Send() {
                               >
                                 {(c) => (
                                   <>
-                                    <span class="font-medium text-text-primary">
-                                      {c.name}
-                                    </span>
+                                    <span class="font-medium text-text-primary">{c.name}</span>
                                     <span class="font-mono text-text-tertiary ml-1.5">
                                       {truncateAddress(c.address)}
                                     </span>
@@ -848,9 +855,7 @@ export function Send() {
                         <input
                           type="checkbox"
                           checked={!grp().uniformAmount}
-                          onChange={(e) =>
-                            toggleUniformAmount(grp().id, !e.currentTarget.checked)
-                          }
+                          onChange={(e) => toggleUniformAmount(grp().id, !e.currentTarget.checked)}
                           class="sr-only peer"
                         />
                         <div
@@ -987,7 +992,9 @@ export function Send() {
             {saveModalAddr()}
           </div>
           <div class="space-y-1.5">
-            <label for="save-addr-name" class="block text-sm font-medium text-text-secondary">Name</label>
+            <label for="save-addr-name" class="block text-sm font-medium text-text-secondary">
+              Name
+            </label>
             <input
               id="save-addr-name"
               class="w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none ring-1 ring-transparent focus:ring-accent/40 focus:ring-2 transition-shadow"
@@ -995,15 +1002,13 @@ export function Send() {
               placeholder="e.g. Alice, Uniswap Router"
               value={saveModalName()}
               onInput={(e) => setSaveModalName(e.currentTarget.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSaveToAddressBook(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveToAddressBook();
+              }}
               autofocus
             />
           </div>
-          <Button
-            onClick={handleSaveToAddressBook}
-            disabled={!saveModalName().trim()}
-            size="lg"
-          >
+          <Button onClick={handleSaveToAddressBook} disabled={!saveModalName().trim()} size="lg">
             Save
           </Button>
         </div>

@@ -1,3 +1,4 @@
+import { ERC20_TRANSFER_SELECTOR } from "@shared/abis";
 import { toErrorMessage } from "@shared/format";
 import type { Address, Hex } from "viem";
 import { formatEther } from "viem/utils";
@@ -116,14 +117,22 @@ async function executeApproval(
           .catch((e) => {
             bgLog("[activity] pushActivityItem failed:", e);
           });
-        if (txParams.to) {
-          import("../address-book")
-            .then(({ pushRecentAddress }) =>
-              pushRecentAddress(account.address, txParams.to),
-            )
-            .catch((e) => {
-              bgLog("[address-book] pushRecentAddress failed:", e);
-            });
+        {
+          let recipient: Address | undefined;
+          if (!txParams.data || txParams.data === "0x") {
+            recipient = txParams.to;
+          } else if (txParams.data.startsWith(ERC20_TRANSFER_SELECTOR) && txParams.data.length >= 74) {
+            recipient = `0x${txParams.data.slice(34, 74)}` as Address;
+          }
+          if (recipient) {
+            import("../address-book")
+              .then(({ pushRecentAddress }) =>
+                pushRecentAddress(account.address, recipient),
+              )
+              .catch((e) => {
+                bgLog("[address-book] pushRecentAddress failed:", e);
+              });
+          }
         }
         break;
       }
@@ -287,6 +296,8 @@ export async function handleEnrichApproval(id: string): Promise<MessageResponse>
       }
     }
   }
+
+  for (const line of _debug) bgLog("[enrich]", line);
 
   return {
     ok: true,
