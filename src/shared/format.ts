@@ -7,6 +7,7 @@
  * - Very small values (between 0 and 1, 5+ leading zeros after decimal): `0.0` + subscript count + significant digits (see `getTokenValueDisplay` + `FormattedTokenValue`)
  */
 
+import { formatRevertFingerprintForDisplay } from "./revert-decode";
 import type { AddressBookEntry, SerializedAccount } from "./types";
 
 /** Segment for HTML/Preact rendering (`<sub>` for repeated zero count). */
@@ -141,6 +142,38 @@ export function resolveAddressAlias(
 /** Safely extract a human-readable message from an unknown catch value. */
 export function toErrorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+
+function baseGasEstimateMessage(e: unknown): string {
+  if (e instanceof Error && e.message.trim()) {
+    return e.message.trim();
+  }
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    if (typeof o.shortMessage === "string" && o.shortMessage.trim()) {
+      return o.shortMessage.trim();
+    }
+    if (typeof o.details === "string" && o.details.trim()) {
+      return o.details.trim();
+    }
+    if (o.cause) {
+      return baseGasEstimateMessage(o.cause);
+    }
+  }
+  return toErrorMessage(e);
+}
+
+/**
+ * Best-effort message for failed `eth_estimateGas` / viem `estimateGas`.
+ * When the error chain includes {@link ContractFunctionRevertedError} (e.g. after `simulateContract`), appends `reason` / `signature` / decoded data.
+ */
+export function formatGasEstimateError(e: unknown): string {
+  const base = baseGasEstimateMessage(e);
+  const revert = formatRevertFingerprintForDisplay(e);
+  if (revert) {
+    return `${base}\n\n— Revert —\n${revert}`;
+  }
+  return base;
 }
 
 /** Fiat string for UI (always two decimal places). */

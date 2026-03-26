@@ -1,7 +1,7 @@
 import type { Address, Hex } from "viem";
 import { getBalance, readContract } from "viem/actions";
 import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits } from "viem/utils";
-import { disperseAbi, erc20Abi, multicall3Abi } from "../../shared/abis";
+import { erc20Abi, feedFaceDisperseAbi } from "../../shared/abis";
 import type { MessageResponse } from "../../shared/messages";
 import type { MultiSendEntry, SerializedAccount, WalletState } from "../../shared/types";
 import { broadcastEvent } from "../broadcast";
@@ -379,11 +379,9 @@ export async function handleSendToken(
   return { ok: true, data: result };
 }
 
-// ── Multi-send via Disperse.app ──
+// ── Multi-send via FeedFaceDisperse ──
 
 import type { DecodedCall, TokenTransfer } from "../../shared/types";
-
-const MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11" as Address;
 
 function buildTransfers(entries: MultiSendEntry[]): TokenTransfer[] {
   return entries.map((e) => ({
@@ -454,64 +452,39 @@ export async function handleMultiSend(entries: MultiSendEntry[]): Promise<Messag
             { name: "amount", type: "uint256", value: `${e.amount} ${e.symbol}` },
           ],
         };
-        await handleRpc(
-          "eth_sendTransaction",
-          [{ from: account.address, to: tokenAddr, data }],
-          {
-            origin: "lion-wallet://popup",
-            extras: { prefilled: { decoded, transfers: buildTransfers([e]) } },
-          },
-        );
+        await handleRpc("eth_sendTransaction", [{ from: account.address, to: tokenAddr, data }], {
+          origin: "lion-wallet://popup",
+          extras: { prefilled: { decoded, transfers: buildTransfers([e]) } },
+        });
         queued++;
       }
     }
     return { ok: true, data: { queued } };
   }
 
-  // ── Disperse path ──
+  // ── FeedFaceDisperse: one `disperse` tx for all native + ERC20 rows (after approvals) ──
   const client = getPublicClient(chainId);
 
-  // 1. Native ETH → disperseEther (queued separately)
-  if (nativeEntries.length > 0) {
-    const firstNative = nativeEntries[0]!;
-    const recipients = nativeEntries.map((e) => e.to);
-    const values = nativeEntries.map((e) => parseUnits(e.amount, e.decimals));
-    const totalValue = values.reduce((sum, v) => sum + v, 0n);
+  const ethTransfers = nativeEntries.map((e) => ({
+    to: e.to,
+    amount: parseUnits(e.amount, e.decimals),
+  }));
+  const totalEthValue = ethTransfers.reduce((sum, t) => sum + t.amount, 0n);
 
-    const data = encodeFunctionData({
-      abi: disperseAbi,
-      functionName: "disperseEther",
-      args: [recipients, values],
+  const tokenTransfers: { token: Address; to: Address; amount: bigint }[] = [];
+  for (const e of entries) {
+    if (!e.tokenAddress) continue;
+    tokenTransfers.push({
+      token: e.tokenAddress,
+      to: e.to,
+      amount: parseUnits(e.amount, e.decimals),
     });
-    const decoded: DecodedCall = {
-      contractName: "Disperse",
-      functionName: "disperseEther",
-      args: [
-        { name: "recipients", type: "address[]", value: `${recipients.length} addresses` },
-        { name: "total", type: "uint256", value: formatUnits(totalValue, firstNative.decimals) },
-      ],
-    };
-    await handleRpc(
-      "eth_sendTransaction",
-      [{ from: account.address, to: disperseAddr, value: numberToHex(totalValue), data }],
-      {
-        origin: "lion-wallet://popup",
-        extras: { prefilled: { decoded, transfers: buildTransfers(nativeEntries) } },
-      },
-    );
-    queued++;
   }
 
-  // 2. ERC-20: queue one approve per token, then batch all disperse calls
-  type DisperseCall = { target: Address; allowFailure: false; callData: `0x${string}` };
-  const disperseCalls: DisperseCall[] = [];
-  const allErc20Transfers: MultiSendEntry[] = [];
-
   for (const [tokenAddr, group] of erc20ByToken) {
-    const first = group[0]!;
-    const recipients = group.map((e) => e.to);
-    const values = group.map((e) => parseUnits(e.amount, e.decimals));
-    const totalNeeded = values.reduce((sum, v) => sum + v, 0n);
+    const first = group[0];
+    if (!first) continue;
+    const totalNeeded = group.reduce((sum, e) => sum + parseUnits(e.amount, e.decimals), 0n);
 
     let currentAllowance = 0n;
     try {
@@ -534,7 +507,7 @@ export async function handleMultiSend(entries: MultiSendEntry[]): Promise<Messag
       const approveDecoded: DecodedCall = {
         functionName: "approve",
         args: [
-          { name: "spender", type: "address", value: "Disperse" },
+          { name: "spender", type: "address", value: "FeedFace Disperse" },
           {
             name: "amount",
             type: "uint256",
@@ -549,66 +522,47 @@ export async function handleMultiSend(entries: MultiSendEntry[]): Promise<Messag
       );
       queued++;
     }
-
-    const disperseCalldata = encodeFunctionData({
-      abi: disperseAbi,
-      functionName: "disperseTokenSimple",
-      args: [tokenAddr, recipients, values],
-    });
-    disperseCalls.push({
-      target: disperseAddr,
-      allowFailure: false as const,
-      callData: disperseCalldata as `0x${string}`,
-    });
-    allErc20Transfers.push(...group);
   }
 
-  // 3. Queue disperse calls — direct for single token, multicall3 for multiple
-  if (disperseCalls.length === 1) {
-    const call = disperseCalls[0]!;
-    const tokenAddr = [...erc20ByToken.keys()][0]!;
-    const group = erc20ByToken.get(tokenAddr)!;
-    const first = group[0]!;
-    const decoded: DecodedCall = {
-      contractName: "Disperse",
-      functionName: "disperseTokenSimple",
-      args: [
-        { name: "token", type: "address", value: `${first.symbol} (${tokenAddr.slice(0, 10)}…)` },
-        { name: "recipients", type: "address[]", value: `${group.length} addresses` },
-      ],
-    };
-    await handleRpc(
-      "eth_sendTransaction",
-      [{ from: account.address, to: disperseAddr, data: call.callData }],
+  const data = encodeFunctionData({
+    abi: feedFaceDisperseAbi,
+    functionName: "disperse",
+    args: [ethTransfers, tokenTransfers, []],
+  });
+  const decoded: DecodedCall = {
+    contractName: "FeedFaceDisperse",
+    functionName: "disperse",
+    args: [
       {
-        origin: "lion-wallet://popup",
-        extras: { prefilled: { decoded, transfers: buildTransfers(group) } },
+        name: "ethTransfers",
+        type: "tuple[]",
+        value: `${ethTransfers.length} recipient${ethTransfers.length === 1 ? "" : "s"}`,
       },
-    );
-    queued++;
-  } else if (disperseCalls.length > 1) {
-    const multicallData = encodeFunctionData({
-      abi: multicall3Abi,
-      functionName: "aggregate3",
-      args: [disperseCalls],
-    });
-    const decoded: DecodedCall = {
-      contractName: "Multicall3",
-      functionName: "aggregate3",
-      args: [
-        { name: "calls", type: "tuple[]", value: `${disperseCalls.length} Disperse calls` },
-      ],
-    };
-    await handleRpc(
-      "eth_sendTransaction",
-      [{ from: account.address, to: MULTICALL3, data: multicallData }],
       {
-        origin: "lion-wallet://popup",
-        extras: { prefilled: { decoded, transfers: buildTransfers(allErc20Transfers) } },
+        name: "tokenTransfers",
+        type: "tuple[]",
+        value: `${tokenTransfers.length} transfer${tokenTransfers.length === 1 ? "" : "s"}`,
       },
-    );
-    queued++;
-  }
+      { name: "permits", type: "tuple[]", value: "none" },
+    ],
+  };
+
+  await handleRpc(
+    "eth_sendTransaction",
+    [
+      {
+        from: account.address,
+        to: disperseAddr,
+        ...(totalEthValue > 0n ? { value: numberToHex(totalEthValue) } : {}),
+        data,
+      },
+    ],
+    {
+      origin: "lion-wallet://popup",
+      extras: { prefilled: { decoded, transfers: buildTransfers(entries) } },
+    },
+  );
+  queued++;
 
   return { ok: true, data: { queued } };
 }

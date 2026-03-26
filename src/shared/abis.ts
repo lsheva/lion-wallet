@@ -99,56 +99,54 @@ export const erc20Abi = [
   },
 ] as const;
 
-export const disperseAbi = [
+/** FeedFaceDisperse — single-call batch ETH + ERC20 (SafeERC20), optional ERC2612 permits */
+export const feedFaceDisperseAbi = [
+  { type: "error", inputs: [], name: "EthRefundFailed" },
+  { type: "error", inputs: [], name: "EthTransferFailed" },
   {
-    type: "function",
-    name: "disperseEther",
-    stateMutability: "payable",
-    inputs: [
-      { name: "recipients", type: "address[]" },
-      { name: "values", type: "uint256[]" },
-    ],
-    outputs: [],
+    type: "error",
+    inputs: [{ name: "token", internalType: "address", type: "address" }],
+    name: "SafeERC20FailedOperation",
   },
   {
     type: "function",
-    name: "disperseTokenSimple",
-    stateMutability: "nonpayable",
     inputs: [
-      { name: "token", type: "address" },
-      { name: "recipients", type: "address[]" },
-      { name: "values", type: "uint256[]" },
+      {
+        name: "ethTransfers",
+        internalType: "struct FeedFaceDisperse.EthTransfer[]",
+        type: "tuple[]",
+        components: [
+          { name: "to", internalType: "address", type: "address" },
+          { name: "amount", internalType: "uint256", type: "uint256" },
+        ],
+      },
+      {
+        name: "tokenTransfers",
+        internalType: "struct FeedFaceDisperse.TokenTransfer[]",
+        type: "tuple[]",
+        components: [
+          { name: "token", internalType: "address", type: "address" },
+          { name: "to", internalType: "address", type: "address" },
+          { name: "amount", internalType: "uint256", type: "uint256" },
+        ],
+      },
+      {
+        name: "permits",
+        internalType: "struct FeedFaceDisperse.Permit[]",
+        type: "tuple[]",
+        components: [
+          { name: "token", internalType: "address", type: "address" },
+          { name: "value", internalType: "uint256", type: "uint256" },
+          { name: "deadline", internalType: "uint256", type: "uint256" },
+          { name: "v", internalType: "uint8", type: "uint8" },
+          { name: "r", internalType: "bytes32", type: "bytes32" },
+          { name: "s", internalType: "bytes32", type: "bytes32" },
+        ],
+      },
     ],
+    name: "disperse",
     outputs: [],
-  },
-] as const;
-
-export const multicall3Abi = [
-  {
-    type: "function",
-    name: "aggregate3",
     stateMutability: "payable",
-    inputs: [
-      {
-        name: "calls",
-        type: "tuple[]",
-        components: [
-          { name: "target", type: "address" },
-          { name: "allowFailure", type: "bool" },
-          { name: "callData", type: "bytes" },
-        ],
-      },
-    ],
-    outputs: [
-      {
-        name: "returnData",
-        type: "tuple[]",
-        components: [
-          { name: "success", type: "bool" },
-          { name: "returnData", type: "bytes" },
-        ],
-      },
-    ],
   },
 ] as const;
 

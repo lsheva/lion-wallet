@@ -218,10 +218,13 @@ export interface ApprovalData {
   simulatedVia?: string | null;
   hasEtherscanKey?: boolean;
   hasRpcProviderKey?: boolean;
+  /** Set when gas estimation failed — RPC / viem revert reason for the Approve screen. */
+  gasEstimateError?: string | null;
 }
 
 export interface ApprovalEnrichment {
   gasPresets: GasPresets | null;
+  gasEstimateError?: string | null;
   decoded?: DecodedCall | null;
   transfers?: TokenTransfer[] | null;
   nativeUsdPrice?: number | null;

@@ -45,6 +45,7 @@ export function TxContent(props: TxContentProps) {
 
   const txParams = () => props.data.approval.params[0] as TransactionParams;
   const currentGas = () => props.data.gasPresets?.[props.gasSpeed];
+  const gasEstimateError = () => props.data.gasEstimateError;
   const hasCalldata = () => {
     const d = txParams().data;
     return !!(d && d !== "0x" && d.length >= 10);
@@ -53,8 +54,6 @@ export function TxContent(props: TxContentProps) {
     hasCalldata() && !props.data.hasEtherscanKey && props.data.decodedVia !== "etherscan";
   const showAlchemyHint = () =>
     hasCalldata() && !props.data.hasRpcProviderKey && props.data.simulatedVia === "fallback";
-
-  const enriched = () => props.data.gasPresets !== undefined;
 
   return (
     <>
@@ -117,9 +116,25 @@ export function TxContent(props: TxContentProps) {
             </div>
           </button>
 
-          <Show when={!enriched() && props.enriching}>
+          <Show when={props.enriching && !gasEstimateError()}>
             <div class="px-4 pb-3">
               <GasPresetsSkeleton />
+            </div>
+          </Show>
+
+          <Show when={gasEstimateError()}>
+            <div class="px-4 pb-3 space-y-2">
+              <div class="rounded-[var(--radius-chip)] border border-danger/30 bg-danger-bg px-3 py-2.5">
+                <p class="text-sm font-medium text-danger">
+                  This contract call will likely revert on-chain if you confirm.
+                </p>
+              </div>
+              <div class="rounded-[var(--radius-chip)] border border-divider bg-base px-3 py-2.5">
+                <p class="text-[11px] font-medium text-text-secondary mb-1.5">Simulation / estimate error</p>
+                <pre class="font-mono text-[10px] text-text-secondary whitespace-pre-wrap break-words max-h-[200px] overflow-y-auto leading-relaxed">
+                  {gasEstimateError()}
+                </pre>
+              </div>
             </div>
           </Show>
 

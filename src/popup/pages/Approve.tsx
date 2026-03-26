@@ -85,6 +85,13 @@ export function Approve() {
     return d ? CHAIN_BY_ID.get(d.approval.chainId) : undefined;
   });
 
+  /** Gas/simulation failed (e.g. revert) — warn before signing. */
+  const txLikelyRevert = createMemo(() => {
+    const d = data();
+    if (!d || !TX_METHODS.has(d.approval.method)) return false;
+    return !!d.gasEstimateError;
+  });
+
   async function handleConfirm() {
     if (isDev) {
       navigate("/result", {
@@ -274,7 +281,12 @@ export function Approve() {
                   >
                     Reject
                   </Button>
-                  <Button onClick={handleConfirm} fullWidth loading={submitting()}>
+                  <Button
+                    variant={txLikelyRevert() ? "danger" : "primary"}
+                    onClick={handleConfirm}
+                    fullWidth
+                    loading={submitting()}
+                  >
                     {isVaultMode() ? (
                       isTx() ? (
                         "Confirm"

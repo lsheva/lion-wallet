@@ -1,5 +1,5 @@
 import { ERC20_TRANSFER_SELECTOR } from "@shared/abis";
-import { toErrorMessage } from "@shared/format";
+import { formatGasEstimateError, toErrorMessage } from "@shared/format";
 import type { Address, Hex } from "viem";
 import { formatEther } from "viem/utils";
 import type { MessageResponse } from "../../shared/messages";
@@ -209,6 +209,7 @@ export async function handleEnrichApproval(id: string): Promise<MessageResponse>
   const activeAccount = meta?.accounts[meta.activeAccountIndex];
 
   let gasPresets = null;
+  let gasEstimateError: string | null = null;
   let decoded = null;
   let transfers = null;
   let nativeUsdPrice = null;
@@ -239,7 +240,8 @@ export async function handleEnrichApproval(id: string): Promise<MessageResponse>
       gasPresets = await estimateGasPresets(pending.chainId, txParams, activeAccount?.address);
       _debug.push("gas: OK");
     } catch (e) {
-      _debug.push(`gas: FAIL ${toErrorMessage(e)}`);
+      gasEstimateError = formatGasEstimateError(e);
+      _debug.push(`gas: FAIL ${gasEstimateError}`);
     }
 
     if (!pending.prefilled) {
@@ -303,6 +305,7 @@ export async function handleEnrichApproval(id: string): Promise<MessageResponse>
     ok: true,
     data: {
       gasPresets,
+      gasEstimateError,
       decoded,
       transfers,
       nativeUsdPrice,
@@ -340,7 +343,7 @@ export async function handleEstimateGas(
     const presets = await estimateGasPresets(chainId, tx, fromAddr);
     return { ok: true, data: presets };
   } catch (e) {
-    return { ok: false, error: toErrorMessage(e) };
+    return { ok: false, error: formatGasEstimateError(e) };
   }
 }
 

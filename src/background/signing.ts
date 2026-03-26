@@ -1,11 +1,13 @@
-import type { Address, Hex } from "viem";
+import { decodeFunctionData, type Address, type Hex } from "viem";
 import {
   estimateGas,
   getBlock,
   getTransactionCount,
   sendTransaction as viemSendTx,
+  simulateContract,
 } from "viem/actions";
 import { formatEther, formatGwei, parseGwei } from "viem/utils";
+import { feedFaceDisperseAbi } from "../shared/abis";
 import type { GasPresets, GasSpeed, SerializedAccount, TransactionParams } from "../shared/types";
 import { getPublicClient } from "./networks";
 import * as wallet from "./wallet";
@@ -31,6 +33,26 @@ export async function estimateGasPresets(
   fromAddress?: Address,
 ): Promise<GasPresets> {
   const client = getPublicClient(chainId);
+  const account = tx.from ?? fromAddress;
+
+  if (account && tx.to && tx.data && tx.data.length >= 10) {
+    let disperse: ReturnType<typeof decodeFunctionData<typeof feedFaceDisperseAbi>> | null = null;
+    try {
+      disperse = decodeFunctionData({ abi: feedFaceDisperseAbi, data: tx.data });
+    } catch {
+      /* selector does not match FeedFaceDisperse ABI */
+    }
+    if (disperse) {
+      await simulateContract(client, {
+        address: tx.to,
+        abi: feedFaceDisperseAbi,
+        functionName: disperse.functionName,
+        args: disperse.args,
+        account,
+        value: tx.value ? BigInt(tx.value) : undefined,
+      });
+    }
+  }
 
   const [gasLimit, block, priorityFee] = await Promise.all([
     estimateGas(client, {
