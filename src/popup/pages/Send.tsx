@@ -1,24 +1,22 @@
 import { POPUP_ORIGIN } from "@shared/constants";
-import { toErrorMessage } from "@shared/format";
+import { isAddress, toErrorMessage, truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import type { MultiSendEntry } from "@shared/types";
-import { BookUser, ChevronDown, ExternalLink, Plus, Trash2, X } from "lucide-solid";
-import { createMemo, createSignal, Index, onCleanup, Show } from "solid-js";
+import type { AddressBookEntry, MultiSendEntry, RecentAddress } from "@shared/types";
+import { BookUser, ChevronDown, Clock, ExternalLink, Plus, Star, Trash2, Wallet, X } from "lucide-solid";
+import { createMemo, createSignal, Index, onCleanup, onMount, Show } from "solid-js";
 import type { Address } from "viem";
 import { numberToHex, parseEther } from "viem/utils";
 import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { ChainIcon } from "../components/ChainIcon";
 import { Header } from "../components/Header";
+import { Modal } from "../components/Modal";
 import { TokenImage } from "../components/TokenImage";
 import { useNavigate } from "../router";
 import { accounts, activeAccountIndex, type Token, walletState } from "../store";
 import { showError } from "../toast";
 
-const addressRegex = /^0x[a-fA-F0-9]{40}$/;
-const isAddress = (value: string): boolean => addressRegex.test(value);
 const isNative = (token: Token) => !token.address;
-const truncAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 interface Recipient {
   id: number;
@@ -61,6 +59,37 @@ export function Send() {
   const [error, setError] = createSignal<string | null>(null);
   const [openPicker, setOpenPicker] = createSignal<number | null>(null);
   const [openAddrPicker, setOpenAddrPicker] = createSignal<number | null>(null);
+  const [addressBook, setAddressBook] = createSignal<AddressBookEntry[]>([]);
+  const [recentAddresses, setRecentAddresses] = createSignal<RecentAddress[]>([]);
+  const [saveModalAddr, setSaveModalAddr] = createSignal<string | null>(null);
+  const [saveModalName, setSaveModalName] = createSignal("");
+
+  const fetchAddressBook = () => {
+    sendMessage({ type: "GET_ADDRESS_BOOK" }).then((res) => {
+      if (res.ok && res.data) {
+        setAddressBook(res.data.entries);
+        setRecentAddresses(res.data.recent);
+      }
+    });
+  };
+
+  onMount(fetchAddressBook);
+
+  const handleSaveToAddressBook = async () => {
+    const addr = saveModalAddr();
+    const name = saveModalName().trim();
+    if (!addr || !name) return;
+    const res = await sendMessage({
+      type: "UPSERT_ADDRESS_BOOK_ENTRY",
+      address: addr as Address,
+      name,
+    });
+    if (res.ok) {
+      fetchAddressBook();
+      setSaveModalAddr(null);
+      setSaveModalName("");
+    }
+  };
 
   const onClickOutside = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -97,6 +126,20 @@ export function Send() {
     isAddress(addr)
       ? accounts().find((a) => a.address.toLowerCase() === addr.toLowerCase())
       : undefined;
+
+  const matchBookEntry = (addr: string) =>
+    isAddress(addr)
+      ? addressBook().find((e) => e.address.toLowerCase() === addr.toLowerCase())
+      : undefined;
+
+  /** Matches address to either an account or address book entry. */
+  const matchContact = (addr: string) => {
+    const acct = matchAccount(addr);
+    if (acct) return { type: "account" as const, name: acct.name, address: acct.address };
+    const entry = matchBookEntry(addr);
+    if (entry) return { type: "book" as const, name: entry.name, address: entry.address };
+    return undefined;
+  };
 
   /* ── mutations ── */
 
@@ -460,12 +503,58 @@ export function Send() {
                     <div class="space-y-2">
                       <Index each={recs()}>
                         {(rec) => {
-                          const matched = () => matchAccount(rec().to);
+                          const contact = () => matchContact(rec().to);
+
+                          const filterText = () => rec().to.toLowerCase();
+                          const filteredBook = () => {
+                            const q = filterText();
+                            if (!q) return addressBook();
+                            return addressBook().filter(
+                              (e) =>
+                                e.address.toLowerCase().includes(q) ||
+                                e.name.toLowerCase().includes(q),
+                            );
+                          };
+                          const filteredRecent = () => {
+                            const q = filterText();
+                            const bookAddrs = new Set(addressBook().map((e) => e.address.toLowerCase()));
+                            const base = recentAddresses().filter(
+                              (r) => !bookAddrs.has(r.address.toLowerCase()),
+                            );
+                            if (!q) return base;
+                            return base.filter((r) => r.address.toLowerCase().includes(q));
+                          };
+                          const filteredAccounts = () => {
+                            const q = filterText();
+                            if (!q) return accounts();
+                            return accounts().filter(
+                              (a) =>
+                                a.address.toLowerCase().includes(q) ||
+                                a.name.toLowerCase().includes(q),
+                            );
+                          };
+                          const hasDropdownItems = () =>
+                            filteredBook().length > 0 ||
+                            filteredRecent().length > 0 ||
+                            filteredAccounts().length > 0;
+
+                          const relativeTime = (ts: number) => {
+                            const diff = Date.now() - ts;
+                            const mins = Math.floor(diff / 60_000);
+                            if (mins < 1) return "just now";
+                            if (mins < 60) return `${mins}m ago`;
+                            const hrs = Math.floor(mins / 60);
+                            if (hrs < 24) return `${hrs}h ago`;
+                            const days = Math.floor(hrs / 24);
+                            return `${days}d ago`;
+                          };
+
                           return (
                             <div data-addr-picker class="relative">
                               <div class="flex items-center gap-1">
                                 <Show
-                                  when={matched()}
+                                  when={contact()}
+                                  keyed
                                   fallback={
                                     <div class="relative flex-1">
                                       <input
@@ -482,30 +571,35 @@ export function Send() {
                                             to: e.currentTarget.value,
                                           })
                                         }
+                                        onFocus={() => setOpenAddrPicker(rec().id)}
                                       />
-                                      <Show when={accounts().length > 0}>
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            setOpenAddrPicker(
-                                              openAddrPicker() === rec().id ? null : rec().id,
-                                            )
-                                          }
-                                          class="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-accent transition-colors cursor-pointer"
-                                        >
-                                          <BookUser size={16} />
-                                        </button>
-                                      </Show>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setOpenAddrPicker(
+                                            openAddrPicker() === rec().id ? null : rec().id,
+                                          )
+                                        }
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-accent transition-colors cursor-pointer"
+                                      >
+                                        <BookUser size={16} />
+                                      </button>
                                     </div>
                                   }
                                 >
-                                  {(acct) => (
+                                  {(c) => (
                                     <div class="flex-1 flex items-center gap-2 bg-surface rounded-[var(--radius-card)] px-3 py-2.5 ring-1 ring-accent/20">
+                                      <Show
+                                        when={c.type === "book"}
+                                        fallback={<Wallet size={14} class="text-text-tertiary shrink-0" />}
+                                      >
+                                        <Star size={14} class="text-accent shrink-0" />
+                                      </Show>
                                       <span class="text-sm font-medium text-text-primary truncate">
-                                        {acct().name}
+                                        {c.name}
                                       </span>
                                       <span class="text-xs font-mono text-text-tertiary shrink-0">
-                                        {truncAddr(acct().address)}
+                                        {truncateAddress(c.address)}
                                       </span>
                                       <button
                                         type="button"
@@ -530,39 +624,140 @@ export function Send() {
                                 </Show>
                               </div>
 
-                              <Show when={openAddrPicker() === rec().id}>
-                                <div class="absolute left-0 right-0 top-full mt-1 z-20 bg-elevated rounded-[var(--radius-card)] ring-1 ring-divider shadow-lg overflow-y-auto max-h-[160px]">
-                                  <Index each={accounts()}>
-                                    {(account, i) => (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          updateRecipient(grp().id, rec().id, {
-                                            to: account().address,
-                                          });
-                                          setOpenAddrPicker(null);
-                                        }}
-                                        class={`w-full flex items-center justify-between px-3 py-2 hover:bg-base/50 transition-colors cursor-pointer text-left ${
-                                          account().address.toLowerCase() ===
-                                          rec().to.toLowerCase()
-                                            ? "bg-accent-light"
-                                            : ""
-                                        }`}
-                                      >
-                                        <span class="text-sm font-medium text-text-primary truncate">
-                                          {account().name}
-                                          <Show when={i === activeAccountIndex()}>
-                                            <span class="text-[11px] text-text-tertiary ml-1">
-                                              (sender)
+                              <Show when={openAddrPicker() === rec().id && hasDropdownItems()}>
+                                <div class="absolute left-0 right-0 top-full mt-1 z-20 bg-elevated rounded-[var(--radius-card)] ring-1 ring-divider shadow-lg overflow-y-auto max-h-[240px]">
+
+                                  {/* Address Book */}
+                                  <Show when={filteredBook().length > 0}>
+                                    <div class="px-3 pt-2 pb-1">
+                                      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                                        Address Book
+                                      </span>
+                                    </div>
+                                    <Index each={filteredBook()}>
+                                      {(entry) => (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            updateRecipient(grp().id, rec().id, {
+                                              to: entry().address,
+                                            });
+                                            setOpenAddrPicker(null);
+                                          }}
+                                          class={`w-full flex items-center gap-2 px-3 py-2 hover:bg-base/50 transition-colors cursor-pointer text-left ${
+                                            entry().address.toLowerCase() === rec().to.toLowerCase()
+                                              ? "bg-accent-light"
+                                              : ""
+                                          }`}
+                                        >
+                                          <Star size={14} class="text-accent shrink-0" />
+                                          <span class="text-sm font-medium text-text-primary truncate">
+                                            {entry().name}
+                                          </span>
+                                          <span class="text-[11px] font-mono text-text-secondary ml-auto shrink-0">
+                                            {truncateAddress(entry().address)}
+                                          </span>
+                                        </button>
+                                      )}
+                                    </Index>
+                                  </Show>
+
+                                  {/* Recent */}
+                                  <Show when={filteredRecent().length > 0}>
+                                    <div class="px-3 pt-2 pb-1">
+                                      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                                        Recent
+                                      </span>
+                                    </div>
+                                    <Index each={filteredRecent()}>
+                                      {(recent) => (
+                                        <div
+                                          class={`w-full flex items-center gap-2 px-3 py-2 hover:bg-base/50 transition-colors text-left ${
+                                            recent().address.toLowerCase() === rec().to.toLowerCase()
+                                              ? "bg-accent-light"
+                                              : ""
+                                          }`}
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              updateRecipient(grp().id, rec().id, {
+                                                to: recent().address,
+                                              });
+                                              setOpenAddrPicker(null);
+                                            }}
+                                            class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                                          >
+                                            <Clock size={14} class="text-text-tertiary shrink-0" />
+                                            <span class="text-sm font-mono text-text-secondary truncate">
+                                              {truncateAddress(recent().address)}
                                             </span>
-                                          </Show>
-                                        </span>
-                                        <span class="text-[11px] font-mono text-text-secondary ml-2 shrink-0">
-                                          {truncAddr(account().address)}
-                                        </span>
-                                      </button>
-                                    )}
-                                  </Index>
+                                            <span class="text-[10px] text-text-tertiary shrink-0">
+                                              {relativeTime(recent().lastUsedAt)}
+                                            </span>
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSaveModalAddr(recent().address);
+                                              setSaveModalName("");
+                                              setOpenAddrPicker(null);
+                                            }}
+                                            class="text-text-tertiary hover:text-accent transition-colors cursor-pointer shrink-0 p-0.5"
+                                            title="Save to address book"
+                                          >
+                                            <Plus size={14} />
+                                          </button>
+                                        </div>
+                                      )}
+                                    </Index>
+                                  </Show>
+
+                                  {/* My Accounts */}
+                                  <Show when={filteredAccounts().length > 0}>
+                                    <div class="px-3 pt-2 pb-1">
+                                      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                                        My Accounts
+                                      </span>
+                                    </div>
+                                    <Index each={filteredAccounts()}>
+                                      {(account) => {
+                                        const isSender = () =>
+                                          accounts().indexOf(account()) === activeAccountIndex();
+                                        return (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              updateRecipient(grp().id, rec().id, {
+                                                to: account().address,
+                                              });
+                                              setOpenAddrPicker(null);
+                                            }}
+                                            class={`w-full flex items-center gap-2 px-3 py-2 hover:bg-base/50 transition-colors cursor-pointer text-left ${
+                                              account().address.toLowerCase() ===
+                                              rec().to.toLowerCase()
+                                                ? "bg-accent-light"
+                                                : ""
+                                            }`}
+                                          >
+                                            <Wallet size={14} class="text-text-tertiary shrink-0" />
+                                            <span class="text-sm font-medium text-text-primary truncate">
+                                              {account().name}
+                                              <Show when={isSender()}>
+                                                <span class="text-[11px] text-text-tertiary ml-1">
+                                                  (sender)
+                                                </span>
+                                              </Show>
+                                            </span>
+                                            <span class="text-[11px] font-mono text-text-secondary ml-auto shrink-0">
+                                              {truncateAddress(account().address)}
+                                            </span>
+                                          </button>
+                                        );
+                                      }}
+                                    </Index>
+                                  </Show>
                                 </div>
                               </Show>
 
@@ -612,24 +807,25 @@ export function Send() {
                     <div class="space-y-2">
                       <Index each={recs()}>
                         {(rec) => {
-                          const matched = () => matchAccount(rec().to);
+                          const contact = () => matchContact(rec().to);
                           return (
                             <div class="bg-surface/50 rounded-[var(--radius-card)] px-3 py-2.5 text-sm truncate">
                               <Show
-                                when={matched()}
+                                when={contact()}
+                                keyed
                                 fallback={
                                   <span class="font-mono text-text-tertiary">
                                     {rec().to || "—"}
                                   </span>
                                 }
                               >
-                                {(acct) => (
+                                {(c) => (
                                   <>
                                     <span class="font-medium text-text-primary">
-                                      {acct().name}
+                                      {c.name}
                                     </span>
                                     <span class="font-mono text-text-tertiary ml-1.5">
-                                      {truncAddr(acct().address)}
+                                      {truncateAddress(c.address)}
                                     </span>
                                   </>
                                 )}
@@ -678,9 +874,9 @@ export function Send() {
                       <div class="space-y-2">
                         <Index each={recs()}>
                           {(rec, ri) => {
-                            const matched = () => matchAccount(rec().to);
+                            const c = () => matchContact(rec().to);
                             const label = () => {
-                              const m = matched();
+                              const m = c();
                               return m ? m.name : `Recipient ${ri + 1}`;
                             };
                             return (
@@ -780,6 +976,38 @@ export function Send() {
           {isMulti() ? `Review ${txCount()} Transaction(s)` : "Review Transaction"}
         </Button>
       </div>
+
+      <Modal
+        open={saveModalAddr() !== null}
+        onClose={() => setSaveModalAddr(null)}
+        title="Save to Address Book"
+      >
+        <div class="p-4 space-y-3">
+          <div class="text-xs font-mono text-text-secondary bg-surface rounded-[var(--radius-card)] px-3 py-2">
+            {saveModalAddr()}
+          </div>
+          <div class="space-y-1.5">
+            <label for="save-addr-name" class="block text-sm font-medium text-text-secondary">Name</label>
+            <input
+              id="save-addr-name"
+              class="w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none ring-1 ring-transparent focus:ring-accent/40 focus:ring-2 transition-shadow"
+              type="text"
+              placeholder="e.g. Alice, Uniswap Router"
+              value={saveModalName()}
+              onInput={(e) => setSaveModalName(e.currentTarget.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSaveToAddressBook(); }}
+              autofocus
+            />
+          </div>
+          <Button
+            onClick={handleSaveToAddressBook}
+            disabled={!saveModalName().trim()}
+            size="lg"
+          >
+            Save
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

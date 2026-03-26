@@ -3,11 +3,13 @@ import type { Address, Hex } from "viem";
 import { MESSAGE_TIMEOUT_MS } from "./protocol";
 import type {
   ActivityItem,
+  AddressBookEntry,
   ApprovalData,
   ApprovalEnrichment,
   GasPresets,
   GasSpeed,
   MultiSendEntry,
+  RecentAddress,
   SerializedAccount,
   StoredToken,
   TransactionParams,
@@ -51,7 +53,10 @@ export type MessageRequest =
   | { type: "ADD_MANUAL_TOKEN"; address: Address; chainId: number; walletAddress: Address }
   | { type: "SCAN_TOKENS"; chainId: number; address: Address }
   | { type: "MULTI_SEND"; entries: MultiSendEntry[] }
-  | { type: "CHECK_UPDATE"; force?: boolean };
+  | { type: "CHECK_UPDATE"; force?: boolean }
+  | { type: "GET_ADDRESS_BOOK" }
+  | { type: "UPSERT_ADDRESS_BOOK_ENTRY"; address: Address; name: string }
+  | { type: "REMOVE_ADDRESS_BOOK_ENTRY"; address: Address };
 
 /** Untyped base response — used by the background handler's return type. */
 export type MessageResponse = { ok: true; data?: unknown } | { ok: false; error: string };
@@ -104,6 +109,9 @@ export interface MessageDataMap {
     downloadUrl: string;
     updateAvailable: boolean;
   };
+  GET_ADDRESS_BOOK: { entries: AddressBookEntry[]; recent: RecentAddress[] };
+  UPSERT_ADDRESS_BOOK_ENTRY: undefined;
+  REMOVE_ADDRESS_BOOK_ENTRY: undefined;
 }
 
 /** Typed success/error response keyed by message type. */

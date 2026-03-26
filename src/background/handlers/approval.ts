@@ -116,6 +116,15 @@ async function executeApproval(
           .catch((e) => {
             bgLog("[activity] pushActivityItem failed:", e);
           });
+        if (txParams.to) {
+          import("../address-book")
+            .then(({ pushRecentAddress }) =>
+              pushRecentAddress(account.address, txParams.to),
+            )
+            .catch((e) => {
+              bgLog("[address-book] pushRecentAddress failed:", e);
+            });
+        }
         break;
       }
       case "eth_signTransaction": {

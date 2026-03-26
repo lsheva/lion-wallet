@@ -1,4 +1,4 @@
-import { toErrorMessage } from "@shared/format";
+import { isAddress, toErrorMessage } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import type { MultiSendEntry } from "@shared/types";
 import { ChevronDown, Plus, Trash2 } from "lucide-solid";
@@ -14,8 +14,6 @@ import { useNavigate } from "../router";
 import { type Token, walletState } from "../store";
 import { showError } from "../toast";
 
-const addressRegex = /^0x[a-fA-F0-9]{40}$/;
-const isAddress = (value: string): boolean => addressRegex.test(value);
 const isNative = (token: Token) => !token.address;
 
 interface SendRow {

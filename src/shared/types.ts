@@ -191,6 +191,18 @@ export interface StoredToken {
   lastBalance?: string;
 }
 
+export interface AddressBookEntry {
+  address: Address;
+  name: string;
+  addedAt: number;
+}
+
+export interface RecentAddress {
+  address: Address;
+  lastUsedAt: number;
+  useCount: number;
+}
+
 export interface ApprovalData {
   approval: PendingApproval;
   account: SerializedAccount;

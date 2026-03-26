@@ -4,6 +4,7 @@ import type { ParentProps } from "solid-js";
 import { createSignal, Show } from "solid-js";
 import { ErrorToast } from "./components/ErrorToast";
 import { DevToolbar } from "./mock/DevToolbar";
+import { AddressBook } from "./pages/AddressBook";
 import { ApiKeySetup } from "./pages/ApiKeySetup";
 import { Approve } from "./pages/Approve";
 import { ConfirmSeed } from "./pages/ConfirmSeed";
@@ -135,6 +136,7 @@ export function App() {
       <Route path="/approve" component={Approve} />
       <Route path="/result" component={Result} />
       <Route path="/settings" component={Settings} />
+      <Route path="/address-book" component={AddressBook} />
       <Route path="/export-key" component={ExportPrivateKey} />
       <Route path="/show-phrase" component={ShowRecoveryPhrase} />
       <Route path="*" component={Welcome} />

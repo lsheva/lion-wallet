@@ -2,6 +2,11 @@ import type { Runtime } from "webextension-polyfill/namespaces/runtime";
 import type { MessageRequest, MessageResponse } from "../shared/messages";
 import { broadcastPendingCount, updateBadge } from "./broadcast";
 import {
+  handleGetAddressBook,
+  handleRemoveAddressBookEntry,
+  handleUpsertAddressBookEntry,
+} from "./handlers/address-book";
+import {
   handleApproveRequest,
   handleEnrichApproval,
   handleEstimateGas,
@@ -144,6 +149,12 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       const info = await checkForUpdate(message.force === true);
       return { ok: true, data: info };
     }
+    case "GET_ADDRESS_BOOK":
+      return handleGetAddressBook();
+    case "UPSERT_ADDRESS_BOOK_ENTRY":
+      return handleUpsertAddressBookEntry(message.address, message.name);
+    case "REMOVE_ADDRESS_BOOK_ENTRY":
+      return handleRemoveAddressBookEntry(message.address);
     default:
       return { ok: false, error: "Unknown message type" };
   }

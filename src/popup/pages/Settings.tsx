@@ -3,6 +3,7 @@ import { sendMessage } from "@shared/messages";
 import {
   AlertTriangle,
   ArrowUpCircle,
+  BookUser,
   Check,
   ChevronRight,
   ExternalLink,
@@ -202,6 +203,21 @@ export function Settings() {
             <div class="flex items-center gap-2">
               <ChainIcon chainId={walletState.activeNetwork().id} size={16} />
               <span class="text-sm text-text-primary">{walletState.activeNetwork().name}</span>
+            </div>
+            <ChevronRight size={16} class="text-text-tertiary" />
+          </button>
+        </Card>
+
+        {/* Address Book */}
+        <Card header="Address Book" padding={false}>
+          <button
+            type="button"
+            onClick={() => navigate("/address-book", { replace: true })}
+            class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer"
+          >
+            <div class="flex items-center gap-2">
+              <BookUser size={16} class="text-text-tertiary" />
+              <span class="text-sm text-text-primary">Saved Addresses</span>
             </div>
             <ChevronRight size={16} class="text-text-tertiary" />
           </button>

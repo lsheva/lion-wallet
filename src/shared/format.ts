@@ -83,10 +83,15 @@ function trimTrailing(s: string): string {
   return s.replace(/0+$/, "").replace(/\.$/, "");
 }
 
-/** Truncate an Ethereum address to `0x1234...abcd` form. */
+/** Quick regex check for a 0x-prefixed 40-hex-char Ethereum address. */
+export function isAddress(value: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
+/** Truncate an Ethereum address to `0x1234…abcd` form. */
 export function truncateAddress(address: string): string {
   if (!address || address.length < 10) return address || "—";
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
 /** Safely extract a human-readable message from an unknown catch value. */
