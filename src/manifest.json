@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Lion Wallet",
   "version": "0.1.0",
-  "description": "A minimal EVM wallet for Safari",
+  "description": "A lightweight Ethereum wallet with native Keychain integration and multi-chain support",
   "author": "Lion Wallet",
   "theme_color": "#d97706",
   "browser_specific_settings": {
@@ -22,7 +22,8 @@
     "https://api.etherscan.io/*",
     "https://www.4byte.directory/*",
     "https://api.coingecko.com/*",
-    "https://raw.githubusercontent.com/*"
+    "https://raw.githubusercontent.com/*",
+    "https://api.github.com/*"
   ],
   "action": {
     "default_popup": "popup/index.html",

@@ -1,4 +1,4 @@
-import { POPUP_ORIGIN } from "@shared/constants";
+import { CHAIN_BY_ID, POPUP_ORIGIN } from "@shared/constants";
 import { sendMessage } from "@shared/messages";
 import { CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-solid";
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
@@ -17,6 +17,7 @@ interface ResultNavState {
   signature?: string;
   error?: string;
   method?: string;
+  chainId?: number;
 }
 
 const TARGET_CONFIRMATIONS = 12;
@@ -39,7 +40,12 @@ export function Result() {
   const signature = stored.signature;
   const errorMessage = stored.error;
 
-  const explorerUrl = () => walletState.activeNetwork().blockExplorerUrl;
+  const explorerUrl = () => {
+    if (stored.chainId) {
+      return CHAIN_BY_ID.get(stored.chainId)?.blockExplorerUrl;
+    }
+    return walletState.activeNetwork().blockExplorerUrl;
+  };
   const txExplorerUrl = createMemo(() => {
     const url = explorerUrl();
     return url && txHash ? `${url}/tx/${txHash}` : null;

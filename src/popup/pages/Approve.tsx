@@ -122,18 +122,18 @@ export function Approve() {
       if (isTx()) {
         navigate("/result", {
           replace: true,
-          state: { kind, status: "success", hash: result, method: d.approval.method },
+          state: { kind, status: "success", hash: result, method: d.approval.method, chainId: d.approval.chainId },
         });
       } else {
         navigate("/result", {
           replace: true,
-          state: { kind, status: "success", signature: result },
+          state: { kind, status: "success", signature: result, chainId: d.approval.chainId },
         });
       }
     } else {
       navigate("/result", {
         replace: true,
-        state: { kind: isTx() ? "tx" : "sign", status: "error", error: res.error },
+        state: { kind: isTx() ? "tx" : "sign", status: "error", error: res.error, chainId: d.approval.chainId },
       });
     }
   }

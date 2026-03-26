@@ -19,9 +19,6 @@ export function Welcome() {
         setKeychainAvailable(true);
       } else {
         setKeychainAvailable(false);
-        if (res.ok && res.data?.error) {
-          setError(`Keychain probe failed: ${res.data.error}`);
-        }
       }
     });
   });
@@ -58,6 +55,23 @@ export function Welcome() {
       <Show when={error()}>
         <div class="w-full mb-4">
           <Banner variant="danger">{error()}</Banner>
+        </div>
+      </Show>
+
+      <Show when={keychainAvailable() === false}>
+        <div class="w-full mb-4">
+          <Banner variant="info">
+            Touch ID is available with the{" "}
+            <a
+              href="https://github.com/lsheva/lion-wallet/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="underline hover:text-accent transition-colors"
+            >
+              companion app
+            </a>
+            .
+          </Banner>
         </div>
       </Show>
 

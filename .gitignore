@@ -15,5 +15,9 @@ xcode/**/DerivedData/
 # Chrome extension signing key
 chrome-extension.pem
 
+# Hardhat
+multisend/cache/
+multisend/artifacts/
+
 # macOS
 .DS_Store

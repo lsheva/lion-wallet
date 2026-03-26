@@ -75,7 +75,11 @@ const [bgResult, contentResult, inpageResult] = await Promise.all([
   }),
 ]);
 
-cpSync(isChrome ? "src/manifest.chrome.json" : "src/manifest.json", "dist/manifest.json");
+const manifestSrc = isChrome ? "src/manifest.chrome.json" : "src/manifest.json";
+const manifest = JSON.parse(readFileSync(manifestSrc, "utf8"));
+const { version } = JSON.parse(readFileSync("package.json", "utf8"));
+manifest.version = version;
+writeFileSync("dist/manifest.json", JSON.stringify(manifest, null, 2));
 
 if (!existsSync("src/icons/generated")) {
   await import("./icons.ts");

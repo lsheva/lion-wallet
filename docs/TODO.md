@@ -329,3 +329,9 @@ Detect all tokens an address holds across all supported chains without requiring
 [] - implement multisend - multiple tokens multiple recipients (find contract than enables that for free)
 [] - on open briefly shows login before data is loaded
 [] - do not pause before loading transaction approval page
+
+# Features
+[] = signer for cli apps so keys are not stored in envs
+[] - missing MAX button when sending tokens
+[] - do not close popup when sending tokens (action initiated from popup, not inpage script)
+[] - when sending confirmation appears, the balance is rounded to closest, but it should round down

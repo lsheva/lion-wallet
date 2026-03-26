@@ -128,4 +128,9 @@ const resourcesBuf = await render(SVG_APP, 256);
 writeFileSync(XCODE_RESOURCES_ICON, resourcesBuf);
 console.log("Xcode Resources Icon.png written");
 
+// 6. Chrome Web Store icon (128×128, full-color lion)
+const storeIconBuf = await render(SVG_APP, 128);
+writeFileSync("brand/store-icon-128.png", storeIconBuf);
+console.log("Store icon written to brand/store-icon-128.png");
+
 console.log("All icons generated.");

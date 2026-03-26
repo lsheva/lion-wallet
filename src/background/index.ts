@@ -139,6 +139,11 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleScanTokens(message.chainId, message.address);
     case "MULTI_SEND":
       return handleMultiSend(message.entries);
+    case "CHECK_UPDATE": {
+      const { checkForUpdate } = await import("./update-checker");
+      const info = await checkForUpdate(message.force === true);
+      return { ok: true, data: info };
+    }
     default:
       return { ok: false, error: "Unknown message type" };
   }

@@ -50,7 +50,8 @@ export type MessageRequest =
   | { type: "HIDE_DISCOVERED_TOKEN"; chainId: number; walletAddress: Address; address: Address }
   | { type: "ADD_MANUAL_TOKEN"; address: Address; chainId: number; walletAddress: Address }
   | { type: "SCAN_TOKENS"; chainId: number; address: Address }
-  | { type: "MULTI_SEND"; entries: MultiSendEntry[] };
+  | { type: "MULTI_SEND"; entries: MultiSendEntry[] }
+  | { type: "CHECK_UPDATE"; force?: boolean };
 
 /** Untyped base response — used by the background handler's return type. */
 export type MessageResponse = { ok: true; data?: unknown } | { ok: false; error: string };
@@ -97,6 +98,12 @@ export interface MessageDataMap {
   ADD_MANUAL_TOKEN: undefined;
   SCAN_TOKENS: { found: number };
   MULTI_SEND: { queued: number };
+  CHECK_UPDATE: {
+    current: string;
+    latest: string;
+    downloadUrl: string;
+    updateAvailable: boolean;
+  };
 }
 
 /** Typed success/error response keyed by message type. */
