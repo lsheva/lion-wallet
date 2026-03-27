@@ -1,5 +1,8 @@
 import * as c from "viem/chains";
 
+/** FeedFace disperse (CREATE2); deployed where `disperse` is set below. */
+const FEEDFACE_DISPERSE = "0xFEED8f72DBc14fdf99D97E9CC1EAD65828a3FACE";
+
 export default [
   // ── Mainnets (by popularity / TVL) ──
   {
@@ -8,7 +11,7 @@ export default [
     icon: "ethereum",
     alchemy: "eth-mainnet",
     trust: "ethereum",
-    // disperse: "0xD152f549545093347A162Dce210e7293f1452150",
+    disperse: FEEDFACE_DISPERSE,
   },
   {
     chain: c.bsc,
@@ -23,7 +26,7 @@ export default [
     icon: "arbitrum-one",
     alchemy: "arb-mainnet",
     trust: "arbitrum",
-    // disperse: "0xD152f549545093347A162Dce210e7293f1452150",
+    disperse: FEEDFACE_DISPERSE,
   },
   {
     chain: c.base,
@@ -31,7 +34,7 @@ export default [
     icon: "base",
     alchemy: "base-mainnet",
     trust: "base",
-    // disperse: "0xD152f549545093347A162Dce210e7293f1452150",
+    disperse: FEEDFACE_DISPERSE,
   },
   {
     chain: c.polygon,
@@ -47,7 +50,7 @@ export default [
     icon: "optimism",
     alchemy: "opt-mainnet",
     trust: "optimism",
-    // disperse: "0xD152f549545093347A162Dce210e7293f1452150",
+    disperse: FEEDFACE_DISPERSE,
   },
   {
     chain: c.avalanche,
@@ -198,30 +201,30 @@ export default [
     chain: c.sepolia,
     icon: "ethereum",
     alchemy: "eth-sepolia",
-    // disperse: "0xD152f549545093347A162Dce210e7293f1452150",
+    disperse: FEEDFACE_DISPERSE,
   },
   { chain: c.bscTestnet, icon: "binance-smart-chain" },
-  { chain: c.arbitrumSepolia, icon: "arbitrum-one", alchemy: "arb-sepolia" },
+  { chain: c.arbitrumSepolia, icon: "arbitrum-one", alchemy: "arb-sepolia", disperse: FEEDFACE_DISPERSE },
   {
     chain: c.baseSepolia,
     icon: "base",
     alchemy: "base-sepolia",
-    disperse: "0xef6880E88c2b4790C01e73b5d58AaB50E679A4e9",
+    disperse: FEEDFACE_DISPERSE,
   },
   { chain: c.polygonAmoy, icon: "polygon", alchemy: "polygon-amoy" },
-  { chain: c.optimismSepolia, icon: "optimism", alchemy: "opt-sepolia" },
+  { chain: c.optimismSepolia, icon: "optimism", alchemy: "opt-sepolia", disperse: FEEDFACE_DISPERSE },
   { chain: c.avalancheFuji, icon: "avalanche", alchemy: "avax-fuji" },
   { chain: c.blastSepolia, icon: "blast", alchemy: "blast-sepolia" },
   { chain: c.lineaSepolia, icon: "linea", alchemy: "linea-sepolia" },
-  { chain: c.scrollSepolia, icon: "scroll", alchemy: "scroll-sepolia" },
+  { chain: c.scrollSepolia, icon: "scroll", alchemy: "scroll-sepolia", disperse: FEEDFACE_DISPERSE },
   { chain: c.mantleSepoliaTestnet, icon: "mantle" },
   { chain: c.celoAlfajores, icon: "celo" },
   { chain: c.gnosisChiado },
   { chain: c.fantomTestnet, icon: "fantom" },
   { chain: c.moonbaseAlpha, icon: "moonbase-alpha" },
   { chain: c.cronosTestnet, icon: "cronos" },
-  { chain: c.zoraSepolia, icon: "zora" },
-  { chain: c.modeTestnet, icon: "mode" },
+  { chain: c.zoraSepolia, icon: "zora", disperse: FEEDFACE_DISPERSE },
+  { chain: c.modeTestnet, icon: "mode", disperse: FEEDFACE_DISPERSE },
   { chain: c.fraxtalTestnet, icon: "fraxtal" },
   { chain: c.kavaTestnet, icon: "kava" },
   { chain: c.klaytnBaobab, icon: "kaia" },
@@ -229,12 +232,12 @@ export default [
   { chain: c.iotexTestnet },
   { chain: c.rootstockTestnet },
   { chain: c.telosTestnet, icon: "telos" },
-  { chain: c.bobaSepolia, icon: "boba" },
+  { chain: c.bobaSepolia, icon: "boba", disperse: FEEDFACE_DISPERSE },
   { chain: c.flareTestnet, icon: "flare" },
   { chain: c.wemixTestnet },
   { chain: c.bobSepolia, icon: "bob" },
-  { chain: c.liskSepolia, icon: "lisk" },
-  { chain: c.worldchainSepolia, icon: "world" },
+  { chain: c.liskSepolia, icon: "lisk", disperse: FEEDFACE_DISPERSE },
+  { chain: c.worldchainSepolia, icon: "world", disperse: FEEDFACE_DISPERSE },
   { chain: c.seiTestnet, icon: "sei-network" },
   { chain: c.taikoHekla, icon: "taiko" },
   { chain: c.berachainBepolia },
