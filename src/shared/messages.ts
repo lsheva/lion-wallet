@@ -25,6 +25,7 @@ export type MessageRequest =
   | { type: "ADD_ACCOUNT"; password?: string }
   | { type: "GET_BALANCE"; address: Address; chainId: number }
   | { type: "SWITCH_NETWORK"; chainId: number }
+  | { type: "ENSURE_CHAIN_DISCOVERY"; chainId: number }
   | { type: "SWITCH_ACCOUNT"; accountIndex: number }
   | { type: "EXPORT_PRIVATE_KEY"; accountIndex: number; password?: string }
   | { type: "EXPORT_MNEMONIC"; password?: string }
@@ -80,6 +81,10 @@ export interface MessageDataMap {
   ADD_ACCOUNT: { account: SerializedAccount };
   GET_BALANCE: { balance: string; nativeUsdPrice: number | null };
   SWITCH_NETWORK: undefined;
+  ENSURE_CHAIN_DISCOVERY: {
+    activeAccountIndices: number[];
+    scannedAt: number;
+  };
   SWITCH_ACCOUNT: undefined;
   EXPORT_PRIVATE_KEY: { privateKey: Hex };
   EXPORT_MNEMONIC: { mnemonic: string };

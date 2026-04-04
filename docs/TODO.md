@@ -163,48 +163,8 @@ True hardware-enclave signing for Ethereum. The P-256 private key lives inside t
 [] - add paymaster integration for optional gas sponsorship
 [] - UI: distinguish Smart Account vs EOA in account list, show security level indicator
 
-[] - batch token sending (for privatekey and smartcontract wallets)
+[x] - batch token sending (for privatekey and smartcontract wallets)
 
-## Reset Wallet
-
-Add a "Reset Wallet" button to Settings that wipes all data (mnemonic, accounts, imported keys, cached activity, API keys, preferences) and returns the user to the onboarding screen. The backend handler (`handleResetWallet`) already exists — this is primarily a UI task with a confirmation flow.
-
-**Why "Reset Wallet" and not "Logout" or "Remove Account":**
-- "Logout" implies a session — there's no server, no session to end. The data is destroyed, not signed out of.
-- "Remove Account" suggests deleting one account from a multi-account wallet. That's a separate, less destructive feature.
-- "Reset Wallet" is the industry standard (MetaMask, Rabby, etc.) and clearly communicates the irreversible action.
-
-### Confirmation flow
-
-Resetting is destructive and irreversible. The confirmation must make this extremely clear:
-
-1. User taps "Reset Wallet" in Settings (styled as a danger action at the bottom of the page)
-2. First confirmation modal:
-   - Warning icon + "Reset Wallet?" heading
-   - Text: "This will permanently delete your recovery phrase, all accounts, and all settings from this device. If you haven't backed up your recovery phrase, your funds will be lost forever."
-   - Two buttons: "Cancel" (primary) and "Reset" (danger, secondary)
-3. Second confirmation — type to confirm:
-   - Input field: "Type RESET to confirm"
-   - "Reset Wallet" button only enabled when input matches
-4. On confirm: call `RESET_WALLET` message, clear all local state, redirect to onboarding
-
-### What gets wiped
-
-- Mnemonic (keychain or encrypted vault)
-- All derived and imported account keys
-- Account metadata (names, derivation indices)
-- Active network selection
-- Cached activity and token data
-- API keys (Alchemy, Etherscan)
-- Theme preference
-- Any pending approval requests
-
-### Steps
-
-[] - add "Reset Wallet" danger button to Settings page (below all other sections)
-[] - build two-step confirmation modal (warning + type-to-confirm)
-[] - on confirm: send `RESET_WALLET` message, clear popup local state (localStorage, signals), redirect to onboarding
-[] - ensure all storage is actually cleared (verify keychain cleanup, vault, browser.storage.local, session storage)
 
 ## Remove Individual Account
 

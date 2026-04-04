@@ -15,10 +15,10 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   const [open, setOpen] = createSignal(false);
   let rootRef: HTMLDivElement | undefined;
 
-  const accounts = () => walletState.accounts();
+  const rows = () => walletState.homeAccountsForSwitcher();
   const active = () => walletState.activeAccount();
   const activeIndex = () => walletState.activeAccountIndex();
-  const multi = () => accounts().length > 1;
+  const multi = () => rows().length > 1;
 
   createEffect(
     on(open, (isOpen) => {
@@ -38,10 +38,10 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     }),
   );
 
-  const selectAccount = async (index: number) => {
+  const selectAccount = async (accountArrayIndex: number) => {
     setOpen(false);
-    if (index === activeIndex()) return;
-    await walletState.switchAccount(index);
+    if (accountArrayIndex === activeIndex()) return;
+    await walletState.switchAccount(accountArrayIndex);
     fetchActivity().catch(() => {});
   };
 
@@ -122,27 +122,27 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <For each={accounts()}>
-            {(acc, i) => {
-              const isActive = () => i() === activeIndex();
+          <For each={rows()}>
+            {(row) => {
+              const isActive = () => row.accountArrayIndex === activeIndex();
               return (
                 <button
                   type="button"
                   role="option"
                   aria-selected={isActive()}
-                  onClick={() => selectAccount(i())}
+                  onClick={() => selectAccount(row.accountArrayIndex)}
                   class={`
                   w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors cursor-pointer
                   ${isActive() ? "bg-divider/50" : "hover:bg-divider/30"}
                 `}
                 >
                   <div class="shrink-0 rounded-full overflow-hidden ring-1 ring-divider/60">
-                    <Identicon address={acc.address} size={28} />
+                    <Identicon address={row.account.address} size={28} />
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-text-primary truncate">{acc.name}</p>
+                    <p class="text-sm font-medium text-text-primary truncate">{row.account.name}</p>
                     <p class="text-[11px] font-mono text-text-tertiary truncate">
-                      {truncateAddress(acc.address)}
+                      {truncateAddress(row.account.address)}
                     </p>
                   </div>
                   {isActive() && <Check size={16} class="shrink-0 text-accent" />}

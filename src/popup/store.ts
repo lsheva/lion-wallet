@@ -150,6 +150,34 @@ export const [balanceLoading, setBalanceLoading] = createSignal(true);
 export const [networks, setRawNetworks] = createSignal<ChainMeta[]>(buildInitialNetworks());
 export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">("vault");
 
+/** Per-chain home list: `null` before first discovery result for this session. */
+export const [homeDiscoveryActiveIndices, setHomeDiscoveryActiveIndices] = createSignal<
+  number[] | null
+>(null);
+export const [chainDiscoveryScanning, setChainDiscoveryScanning] = createSignal(false);
+
+/** Accounts visible on Home / AccountSwitcher for the current chain (lazy discovery). */
+export function homeAccountsForSwitcher(): { account: SerializedAccount; accountArrayIndex: number }[] {
+  const all = accounts();
+  const idxSet = homeDiscoveryActiveIndices();
+  const scanning = chainDiscoveryScanning();
+
+  if (scanning && idxSet === null) {
+    const first = all[0];
+    if (!first) return [];
+    return [{ account: first, accountArrayIndex: 0 }];
+  }
+  if (idxSet == null) {
+    return all.map((account, accountArrayIndex) => ({ account, accountArrayIndex }));
+  }
+  const out: { account: SerializedAccount; accountArrayIndex: number }[] = [];
+  for (const i of idxSet) {
+    const account = all[i];
+    if (account) out.push({ account, accountArrayIndex: i });
+  }
+  return out;
+}
+
 export function setNetworks(chains: ChainMeta[]): void {
   setRawNetworks(chains);
   saveNetworkIds(chains);
@@ -211,6 +239,31 @@ export async function fetchState(): Promise<void> {
     setActiveNetworkId(res.data.activeNetworkId);
     setStorageMode(res.data.storageMode);
   });
+}
+
+async function ensureChainDiscoveryForChain(chainId: number): Promise<void> {
+  const list = accounts();
+  if (list.length === 0) return;
+  if (list.length === 1 && list[0]?.path === "imported") {
+    setHomeDiscoveryActiveIndices([0]);
+    return;
+  }
+
+  setChainDiscoveryScanning(true);
+  try {
+    const res = await sendMessage({
+      type: "ENSURE_CHAIN_DISCOVERY",
+      chainId,
+    });
+    if (res.ok && res.data) {
+      setHomeDiscoveryActiveIndices(res.data.activeAccountIndices);
+      await fetchState();
+    } else if (!res.ok) {
+      showError("Chain scan failed", res.error);
+    }
+  } finally {
+    setChainDiscoveryScanning(false);
+  }
 }
 
 export async function fetchBalance(): Promise<void> {
@@ -412,11 +465,14 @@ export function clearPopupCache(): void {
     setActivity([]);
     setActivitySource(null);
     setActivityHasMore(false);
+    setHomeDiscoveryActiveIndices(null);
+    setChainDiscoveryScanning(false);
   });
 }
 
 export async function refreshAll(): Promise<void> {
   await fetchState();
+  await ensureChainDiscoveryForChain(activeNetworkId());
   await fetchBalance();
 }
 
@@ -426,6 +482,9 @@ export const walletState = {
   activeAccountIndex,
   activeNetworkId,
   accounts,
+  homeDiscoveryActiveIndices,
+  chainDiscoveryScanning,
+  homeAccountsForSwitcher,
   tokens,
   networks,
   ethBalance,
@@ -437,6 +496,12 @@ export const walletState = {
   activityLoading,
   activitySource,
   activityHasMore,
+
+  async refreshChainDiscovery(): Promise<void> {
+    await ensureChainDiscoveryForChain(untrack(activeNetworkId));
+    await fetchBalance();
+    fetchActivity().catch(() => {});
+  },
 
   async switchNetwork(id: number): Promise<void> {
     setActiveNetworkId(id);
@@ -454,7 +519,9 @@ export const walletState = {
       await sendMessage({ type: "SWITCH_NETWORK", chainId: id });
     } catch (e) {
       showError("Failed to switch network", toErrorMessage(e));
+      return;
     }
+    await ensureChainDiscoveryForChain(id);
     await fetchBalance();
     fetchActivity().catch(() => {});
   },

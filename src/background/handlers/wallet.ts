@@ -4,7 +4,14 @@ import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits }
 import { erc20Abi, feedFaceDisperseAbi } from "../../shared/abis";
 import type { MessageResponse } from "../../shared/messages";
 import type { MultiSendEntry, SerializedAccount, WalletState } from "../../shared/types";
+import { runChainDiscovery } from "../chain-discovery";
 import { broadcastEvent } from "../broadcast";
+import {
+  clearHdDerivedAddresses,
+  deriveHdAddressList,
+  resolveHdAddressList,
+  saveHdDerivedAddresses,
+} from "../hd-addresses";
 import { clearConnectedOrigins } from "../connected-origins";
 import { fetchNativePrice } from "../etherscan";
 import * as keychain from "../keychain";
@@ -112,6 +119,11 @@ async function persistWalletData({
   }
 
   await saveAccountsMeta(accounts, 0);
+  if (!importedKeys) {
+    await saveHdDerivedAddresses(deriveHdAddressList(mnemonic));
+  } else {
+    await clearHdDerivedAddresses();
+  }
   broadcastEvent(
     "accountsChanged",
     accounts.map((a) => a.address),
@@ -133,8 +145,7 @@ async function getWalletState(): Promise<WalletState> {
 
 export async function handleCreateWallet(password?: string): Promise<MessageResponse> {
   const mnemonic = wallet.createMnemonic();
-  const account = wallet.deriveAccount(mnemonic, 0);
-  const accounts = [account];
+  const accounts = [wallet.deriveAccount(mnemonic, 0)];
   const res = await persistWalletData({ mnemonic, accounts, password, label: "create" });
   if (!res.ok) return res;
   return { ok: true, data: { mnemonic, accounts } };
@@ -144,8 +155,7 @@ export async function handleImportWallet(
   mnemonic: string,
   password?: string,
 ): Promise<MessageResponse> {
-  const account = wallet.deriveAccount(mnemonic, 0);
-  const accounts = [account];
+  const accounts = [wallet.deriveAccount(mnemonic, 0)];
   const res = await persistWalletData({ mnemonic, accounts, password, label: "import" });
   if (!res.ok) return res;
   return { ok: true, data: { accounts } };
@@ -190,7 +200,8 @@ export async function handleAddAccount(password?: string): Promise<MessageRespon
   if (!meta) return { ok: false, error: "Wallet not initialized" };
 
   const mnemonic = await retrieveMnemonic(mode, password, "Derive a new account");
-  const nextIndex = meta.accounts.length;
+  const hdIndices = meta.accounts.filter((a) => a.path !== "imported").map((a) => a.index);
+  const nextIndex = hdIndices.length > 0 ? Math.max(...hdIndices) + 1 : 0;
   const account = wallet.deriveAccount(mnemonic, nextIndex);
   const updatedAccounts = [...meta.accounts, account];
 
@@ -209,6 +220,34 @@ export async function handleAddAccount(password?: string): Promise<MessageRespon
     updatedAccounts.map((a) => a.address),
   );
   return { ok: true, data: { account } };
+}
+
+export async function handleEnsureChainDiscovery(chainId: number): Promise<MessageResponse> {
+  const meta = await loadAccountsMeta();
+  if (!meta?.accounts.length) return { ok: false, error: "Wallet not initialized" };
+
+  if (meta.accounts.every((a) => a.path === "imported")) {
+    return { ok: true, data: { activeAccountIndices: [0], scannedAt: Date.now() } };
+  }
+
+  let hdAddresses = await resolveHdAddressList(meta);
+  if (!hdAddresses) {
+    try {
+      const mode = await getStorageMode();
+      const mnemonic = await retrieveMnemonic(mode, undefined, "Discover accounts");
+      hdAddresses = deriveHdAddressList(mnemonic);
+      await saveHdDerivedAddresses(hdAddresses);
+    } catch {
+      hdAddresses = null;
+    }
+  }
+
+  try {
+    const data = await runChainDiscovery(chainId, meta, hdAddresses);
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export async function handleGetBalance(
@@ -274,6 +313,7 @@ export async function handleResetWallet(password?: string): Promise<MessageRespo
     );
   }
   await clearVault();
+  await clearHdDerivedAddresses();
   await clearConnectedOrigins();
   broadcastEvent("accountsChanged", []);
   broadcastEvent("disconnect", { code: 4900, message: "Wallet reset" });

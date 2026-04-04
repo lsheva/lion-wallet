@@ -44,6 +44,7 @@ import {
   handleGetTokenBalances,
   handleGetTokenInfo,
   handleGetTokenPrice,
+  handleEnsureChainDiscovery,
   handleImportPrivateKey,
   handleImportWallet,
   handleMultiSend,
@@ -101,6 +102,8 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleGetBalance(message.address, message.chainId);
     case "SWITCH_NETWORK":
       return handleSwitchNetwork(message.chainId);
+    case "ENSURE_CHAIN_DISCOVERY":
+      return handleEnsureChainDiscovery(message.chainId);
     case "SWITCH_ACCOUNT":
       return handleSwitchAccount(message.accountIndex);
     case "EXPORT_PRIVATE_KEY":
