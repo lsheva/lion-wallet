@@ -1,23 +1,88 @@
-import type { ChainMeta, DecodedCall, TokenTransfer } from "@shared/types";
+import { IMPORTED_KEYRING_ID } from "@shared/keyring-constants";
+import type {
+  ChainMeta,
+  DecodedCall,
+  KeyringPublic,
+  SerializedAccount,
+  TokenTransfer,
+} from "@shared/types";
+import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 
 export type { DecodedCall, TokenTransfer };
 
-export const MOCK_ACCOUNTS = [
+const MOCK_KR_MAIN = "mock-kr";
+const MOCK_KR_IMPORTED_SEED = "mock-kr-imported";
+
+/** Main HD wallet — standard dev mnemonic. */
+const MAIN_MNEMONIC =
+  "test test test test test test test test test test test junk";
+
+/** Second HD wallet — simulates a user who imported another recovery phrase. */
+const IMPORTED_SEED_MNEMONIC =
+  "legal winner thank year wave sausage worth useful legal winner thank yellow";
+
+/** Anvil / Foundry default accounts — recognizable private-key imports in dev. */
+const DEV_PRIVATE_KEYS = [
+  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+] as const;
+
+const mainHd: SerializedAccount[] = [
   {
     name: "Account 1",
-    address: "0x1a2B3c4D5e6F7a8B9c0D1e2F3a4B5c6D7e8F9a0B" as const,
+    address: mnemonicToAccount(MAIN_MNEMONIC, { path: "m/44'/60'/0'/0/0" }).address,
     path: "m/44'/60'/0'/0/0",
     index: 0,
-    keyringId: "mock-kr",
+    keyringId: MOCK_KR_MAIN,
   },
   {
     name: "Account 2",
-    address: "0x8f7E6d5C4b3A2918273645FeDcBa0987654321Ab" as const,
+    address: mnemonicToAccount(MAIN_MNEMONIC, { path: "m/44'/60'/0'/0/1" }).address,
     path: "m/44'/60'/0'/0/1",
     index: 1,
-    keyringId: "mock-kr",
+    keyringId: MOCK_KR_MAIN,
   },
 ];
+
+const importedPhraseHd: SerializedAccount[] = [
+  {
+    name: "Imported phrase · 1",
+    address: mnemonicToAccount(IMPORTED_SEED_MNEMONIC, { path: "m/44'/60'/0'/0/0" }).address,
+    path: "m/44'/60'/0'/0/0",
+    index: 0,
+    keyringId: MOCK_KR_IMPORTED_SEED,
+  },
+  {
+    name: "Imported phrase · 2",
+    address: mnemonicToAccount(IMPORTED_SEED_MNEMONIC, { path: "m/44'/60'/0'/0/1" }).address,
+    path: "m/44'/60'/0'/0/1",
+    index: 1,
+    keyringId: MOCK_KR_IMPORTED_SEED,
+  },
+];
+
+const importedPrivateKey: SerializedAccount[] = DEV_PRIVATE_KEYS.map((pk, index) => ({
+  name: index === 0 ? "PK import · Anvil #0" : "PK import · Anvil #1",
+  address: privateKeyToAccount(pk as `0x${string}`).address,
+  path: "imported",
+  index,
+  keyringId: IMPORTED_KEYRING_ID,
+}));
+
+/** Full dev wallet: two HD keyrings + standalone private-key imports. */
+export const DEV_MOCK_ACCOUNTS: SerializedAccount[] = [
+  ...mainHd,
+  ...importedPhraseHd,
+  ...importedPrivateKey,
+];
+
+export const DEV_MOCK_KEYRINGS: KeyringPublic[] = [
+  { id: MOCK_KR_MAIN, label: "Main Wallet", type: "hd" },
+  { id: MOCK_KR_IMPORTED_SEED, label: "Imported wallet", type: "hd" },
+];
+
+/** Same as `DEV_MOCK_ACCOUNTS` — DevToolbar and `mock/state` import this name. */
+export const MOCK_ACCOUNTS = DEV_MOCK_ACCOUNTS;
 
 export const MOCK_SEED_PHRASE = [
   "abandon",

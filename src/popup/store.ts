@@ -1,6 +1,7 @@
 import { CHAINS } from "@shared/constants";
 import { formatUsd, toErrorMessage, tokenColorFromAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
+import { DEV_MOCK_ACCOUNTS, DEV_MOCK_KEYRINGS } from "./mock/data";
 import type {
   ActivityItem,
   ChainMeta,
@@ -139,18 +140,24 @@ function buildInitialNetworks(): ChainMeta[] {
 
 export const ALL_CHAINS = CHAINS;
 
-export const [accounts, setAccounts] = createSignal<SerializedAccount[]>([]);
-export const [activeAccountAddress, setActiveAccountAddress] = createSignal<Address>(zeroAddress);
-export const [keyrings, setKeyrings] = createSignal<KeyringPublic[]>([]);
+const devSeedAccounts = import.meta.env.DEV ? DEV_MOCK_ACCOUNTS : [];
+const devSeedKeyrings = import.meta.env.DEV ? DEV_MOCK_KEYRINGS : [];
+export const [accounts, setAccounts] = createSignal<SerializedAccount[]>(devSeedAccounts);
+export const [activeAccountAddress, setActiveAccountAddress] = createSignal<Address>(
+  import.meta.env.DEV && DEV_MOCK_ACCOUNTS[0] ? DEV_MOCK_ACCOUNTS[0].address : zeroAddress,
+);
+export const [keyrings, setKeyrings] = createSignal<KeyringPublic[]>(devSeedKeyrings);
 export const [activeNetworkId, setActiveNetworkId] = createSignal(1);
 export const [showNetworkSelector, setShowNetworkSelector] = createSignal(false);
 export const [ethBalance, setEthBalance] = createSignal("—");
 /** Per-unit native token USD price; `0` on testnets; `null` if unavailable. */
 export const [nativeUsdPrice, setNativeUsdPrice] = createSignal<number | null>(null);
 export const [tokens, setTokens] = createSignal<TokenInfo[]>([]);
-export const [balanceLoading, setBalanceLoading] = createSignal(true);
+export const [balanceLoading, setBalanceLoading] = createSignal(!import.meta.env.DEV);
 export const [networks, setRawNetworks] = createSignal<ChainMeta[]>(buildInitialNetworks());
-export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">("vault");
+export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">(
+  import.meta.env.DEV ? "keychain" : "vault",
+);
 
 /** Per-chain home list: `null` before first discovery result for this session. */
 export const [homeDiscoveryActiveIndices, setHomeDiscoveryActiveIndices] = createSignal<
@@ -600,7 +607,7 @@ export const walletState = {
       ...(password ? { password } : {}),
     });
     if (!res.ok) {
-      showError("Could not import private key", res.error);
+      showError("Could not add private key", res.error);
       return false;
     }
     await fetchState();
@@ -630,6 +637,50 @@ export const walletState = {
     });
     if (!res.ok) {
       showError("Could not import keyring", res.error);
+      return false;
+    }
+    await fetchState();
+    return true;
+  },
+
+  async renameKeyring(keyringId: string, label: string): Promise<boolean> {
+    const res = await sendMessage({
+      type: "RENAME_KEYRING",
+      keyringId,
+      label: label.trim(),
+    });
+    if (!res.ok) {
+      showError("Could not rename wallet", res.error);
+      return false;
+    }
+    await fetchState();
+    return true;
+  },
+
+  async deleteKeyring(keyringId: string, password?: string): Promise<boolean> {
+    const res = await sendMessage({
+      type: "DELETE_KEYRING",
+      keyringId,
+      ...(password ? { password } : {}),
+    });
+    if (!res.ok) {
+      showError("Could not delete wallet", res.error);
+      return false;
+    }
+    await fetchState();
+    return true;
+  },
+
+  async removeAccount(accountIndex: number, password?: string): Promise<boolean> {
+    const acc = accounts()[accountIndex];
+    if (!acc) return false;
+    const res = await sendMessage({
+      type: "REMOVE_ACCOUNT",
+      address: acc.address,
+      ...(password ? { password } : {}),
+    });
+    if (!res.ok) {
+      showError("Could not remove account", res.error);
       return false;
     }
     await fetchState();

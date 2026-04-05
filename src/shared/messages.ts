@@ -30,6 +30,7 @@ export type MessageRequest =
   | { type: "DELETE_KEYRING"; keyringId: string; password?: string }
   | { type: "DERIVE_ACCOUNT"; keyringId: string; password?: string }
   | { type: "RENAME_ACCOUNT"; address: Address; name: string }
+  | { type: "REMOVE_ACCOUNT"; address: Address; password?: string }
   | { type: "GET_BALANCE"; address: Address; chainId: number }
   | { type: "SWITCH_NETWORK"; chainId: number }
   | { type: "ENSURE_CHAIN_DISCOVERY"; chainId: number }
@@ -92,6 +93,7 @@ export interface MessageDataMap {
   DELETE_KEYRING: undefined;
   DERIVE_ACCOUNT: { account: SerializedAccount };
   RENAME_ACCOUNT: undefined;
+  REMOVE_ACCOUNT: undefined;
   GET_BALANCE: { balance: string; nativeUsdPrice: number | null };
   SWITCH_NETWORK: undefined;
   ENSURE_CHAIN_DISCOVERY: {

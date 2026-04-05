@@ -9,8 +9,13 @@ interface InputProps {
   type?: "text" | "password";
   mono?: boolean;
   error?: string;
+  leftSlot?: JSX.Element;
   rightSlot?: JSX.Element;
   multiline?: boolean;
+  /** When multiline, masks characters (e.g. recovery phrase) until revealed by parent. */
+  secure?: boolean;
+  /** When multiline, e.g. Show + Copy — absolutely positioned bottom-right inside the field. */
+  bottomRightSlot?: JSX.Element;
   rows?: number;
   autoFocus?: boolean;
   class?: string;
@@ -30,16 +35,23 @@ export function Input(props: InputProps) {
   const inputType = () =>
     isPassword() ? (showPassword() ? "text" : "password") : (props.type ?? "text");
 
+  const verticalPad = () => {
+    if (props.multiline && props.bottomRightSlot) return "pt-2.5 pb-10";
+    return "py-2.5";
+  };
+
+  const horizontalPad = () =>
+    `${props.leftSlot ? "pl-10" : "pl-3"} ${verticalPad()} ${props.rightSlot || isPassword() ? "pr-10" : "pr-3"}`;
+
   const inputClass = () => `
-    w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5
+    w-full bg-surface rounded-[var(--radius-card)]
+    ${horizontalPad()}
     text-text-primary text-base
     placeholder:text-text-tertiary
-    outline-none ring-1 ring-transparent
-    focus:ring-accent/40 focus:ring-2
-    transition-shadow duration-150
+    outline-none ring-1 transition-shadow duration-150
+    ${props.error ? "ring-danger" : "ring-divider"}
+    focus:ring-2 focus:ring-accent/40
     ${props.mono ? "font-mono text-sm" : ""}
-    ${props.error ? "ring-danger ring-1" : ""}
-    ${props.rightSlot || isPassword() ? "pr-10" : ""}
   `;
 
   return (
@@ -50,6 +62,15 @@ export function Input(props: InputProps) {
         </label>
       </Show>
       <div class="relative">
+        <Show when={props.leftSlot}>
+          <div
+            class={`absolute left-2.5 z-10 [&_button]:cursor-pointer ${
+              props.multiline ? "top-2.5" : "top-1/2 -translate-y-1/2"
+            }`}
+          >
+            {props.leftSlot}
+          </div>
+        </Show>
         <Show
           when={props.multiline}
           fallback={
@@ -71,8 +92,16 @@ export function Input(props: InputProps) {
             placeholder={props.placeholder}
             value={props.value}
             rows={props.rows ?? 4}
+            style={{
+              ...(props.secure ? { WebkitTextSecurity: "disc" as const } : {}),
+            }}
             onInput={(e) => props.onInput?.(e.currentTarget.value)}
           />
+        </Show>
+        <Show when={props.multiline && props.bottomRightSlot}>
+          <div class="absolute right-2 bottom-2 z-10 flex items-center gap-2.5 text-text-tertiary [&_button]:cursor-pointer">
+            {props.bottomRightSlot}
+          </div>
         </Show>
         <Show when={isPassword()}>
           <button

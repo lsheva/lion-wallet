@@ -97,6 +97,21 @@ export function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+/**
+ * Middle-truncate an address for compact preview rows (single line, obvious ellipsis).
+ * Standard `0x` + 40 hex addresses are always shortened — never shown in full here.
+ */
+export function truncateAddressPreview(address: string): string {
+  if (!address || address.length < 10) return address || "—";
+  const a = address.trim();
+  if (a.length <= 16) return a;
+  if (/^0x[a-fA-F0-9]{40}$/.test(a)) {
+    return `${a.slice(0, 13)}…${a.slice(-11)}`;
+  }
+  if (a.length <= 28) return a;
+  return `${a.slice(0, 14)}…${a.slice(-10)}`;
+}
+
 /** Trim to at most `maxChars` characters; if longer, end with an ellipsis (counts toward the limit). */
 export function truncateWithEllipsis(str: string, maxChars: number): string {
   if (str.length <= maxChars) return str;

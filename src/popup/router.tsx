@@ -1,4 +1,12 @@
-import { type Component, createSignal, type JSX, type ParentProps } from "solid-js";
+import {
+  children,
+  type Component,
+  createSignal,
+  type JSX,
+  onCleanup,
+  onMount,
+  type ParentProps,
+} from "solid-js";
 import { Dynamic } from "solid-js/web";
 
 function hashPath(): string {
@@ -41,18 +49,34 @@ export function HashRouter(props: {
   root?: Component<ParentProps>;
   children?: unknown;
 }): JSX.Element {
-  window.addEventListener("hashchange", () => setPath(hashPath()));
+  /** Solid may pass `children` as a function; reading `props.children` alone yields no routes. */
+  const resolved = children(() => props.children as JSX.Element);
 
-  const raw = props.children;
-  const defs = (Array.isArray(raw) ? raw : [raw]) as RouteDef[];
-  const routeMap: Record<string, Component<any>> = {};
-  let fallback: Component<any> | undefined;
-  for (const d of defs) {
-    if (d.path === "*") fallback = d.component;
-    else routeMap[d.path] = d.component;
-  }
+  onMount(() => {
+    const onHashChange = () => setPath(hashPath());
+    window.addEventListener("hashchange", onHashChange);
+    onCleanup(() => window.removeEventListener("hashchange", onHashChange));
+  });
 
   const content = () => {
+    const defs: RouteDef[] = [];
+    for (const item of resolved.toArray()) {
+      if (
+        item != null &&
+        typeof item === "object" &&
+        "path" in item &&
+        "component" in item &&
+        typeof (item as RouteDef).path === "string"
+      ) {
+        defs.push(item as RouteDef);
+      }
+    }
+    const routeMap: Record<string, Component<any>> = {};
+    let fallback: Component<any> | undefined;
+    for (const d of defs) {
+      if (d.path === "*") fallback = d.component;
+      else routeMap[d.path] = d.component;
+    }
     const comp = routeMap[path()] ?? fallback;
     if (!comp) return undefined;
     return <Dynamic component={comp} />;

@@ -53,6 +53,7 @@ import {
   handleImportWallet,
   handleMultiSend,
   handleRenameAccount,
+  handleRemoveAccount,
   handleRenameKeyring,
   handleResetWallet,
   handleSendToken,
@@ -128,6 +129,8 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       return handleDeriveAccount(message.keyringId, message.password);
     case "RENAME_ACCOUNT":
       return handleRenameAccount(message.address, message.name);
+    case "REMOVE_ACCOUNT":
+      return handleRemoveAccount(message.address, message.password);
     case "GET_PENDING_APPROVAL":
       return handleGetPendingApproval();
     case "ENRICH_APPROVAL":

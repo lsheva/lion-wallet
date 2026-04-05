@@ -1,10 +1,10 @@
-import type { Address, Hex } from "viem";
+import { zeroAddress, type Address, type Hex } from "viem";
 import { getBalance, readContract } from "viem/actions";
 import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits } from "viem/utils";
 import { erc20Abi, feedFaceDisperseAbi } from "../../shared/abis";
 import { IMPORTED_KEYRING_ID } from "../../shared/keyring-constants";
-import { mnemonicFingerprint } from "../../shared/mnemonic-fingerprint";
 import type { MessageResponse } from "../../shared/messages";
+import { mnemonicFingerprint } from "../../shared/mnemonic-fingerprint";
 import type {
   DecodedCall,
   HdKeyringStored,
@@ -18,11 +18,11 @@ import type {
   WalletState,
 } from "../../shared/types";
 import { getActiveAccount } from "../account-utils";
-import { runChainDiscovery } from "../chain-discovery";
 import { broadcastEvent } from "../broadcast";
-import { clearHdDerivedAddresses, resolveHdAddressMap } from "../hd-addresses";
+import { runChainDiscovery } from "../chain-discovery";
 import { clearConnectedOrigins } from "../connected-origins";
 import { fetchNativePrice } from "../etherscan";
+import { clearHdDerivedAddresses, resolveHdAddressMap } from "../hd-addresses";
 import * as keychain from "../keychain";
 import {
   getActiveNetworkId,
@@ -33,6 +33,16 @@ import {
 import { fetchNativePriceCoinGecko, fetchTokenPrice } from "../prices";
 import { fetchTokenMeta } from "../token-meta";
 import { updateTokenBalances } from "../token-store";
+import {
+  clearVault,
+  decryptVault,
+  getStorageMode,
+  isVaultInitialized,
+  loadAccountsMeta,
+  type StorageMode,
+  saveAccountsMeta,
+} from "../vault";
+import * as wallet from "../wallet";
 import {
   buildHdKeyring,
   ensureImportedKeyringPublic,
@@ -47,16 +57,6 @@ import {
   persistVaultModeFull,
   retrieveHdMnemonicForKeyring,
 } from "../wallet-internal";
-import {
-  clearVault,
-  decryptVault,
-  getStorageMode,
-  isVaultInitialized,
-  loadAccountsMeta,
-  type StorageMode,
-  saveAccountsMeta,
-} from "../vault";
-import * as wallet from "../wallet";
 
 export { retrieveHdMnemonicForKeyring };
 
@@ -370,14 +370,15 @@ export async function handleImportPrivateKey(
   return { ok: true, data: { accounts: mergedVault.accounts } };
 }
 
-export async function handleRenameKeyring(keyringId: string, label: string): Promise<MessageResponse> {
+export async function handleRenameKeyring(
+  keyringId: string,
+  label: string,
+): Promise<MessageResponse> {
   const meta = await loadAccountsMeta();
   if (!meta) return { ok: false, error: "No wallet" };
   const trimmed = label.trim();
   if (!trimmed) return { ok: false, error: "Label required" };
-  const keyringsPub = meta.keyrings.map((k) =>
-    k.id === keyringId ? { ...k, label: trimmed } : k,
-  );
+  const keyringsPub = meta.keyrings.map((k) => (k.id === keyringId ? { ...k, label: trimmed } : k));
   await saveAccountsMeta(meta.accounts, meta.activeAccountAddress, keyringsPub);
   return { ok: true };
 }
@@ -392,7 +393,8 @@ export async function handleDeleteKeyring(
   if (keyringId === IMPORTED_KEYRING_ID) {
     return { ok: false, error: "Remove imported accounts individually from Settings" };
   }
-  if (hdCount <= 1) {
+  const hasImportedAccounts = meta.accounts.some((a) => a.path === "imported");
+  if (hdCount <= 1 && !hasImportedAccounts) {
     return { ok: false, error: "Cannot delete the last HD keyring" };
   }
   const mode = await getStorageMode();
@@ -456,7 +458,10 @@ export async function handleDeleteKeyring(
   return { ok: true };
 }
 
-export async function handleRenameAccount(address: Address, name: string): Promise<MessageResponse> {
+export async function handleRenameAccount(
+  address: Address,
+  name: string,
+): Promise<MessageResponse> {
   const meta = await loadAccountsMeta();
   if (!meta) return { ok: false, error: "No wallet" };
   const trimmed = name.trim();
@@ -464,6 +469,113 @@ export async function handleRenameAccount(address: Address, name: string): Promi
     a.address.toLowerCase() === address.toLowerCase() ? { ...a, name: trimmed || a.name } : a,
   );
   await saveAccountsMeta(next, meta.activeAccountAddress, meta.keyrings);
+  return { ok: true };
+}
+
+export async function handleRemoveAccount(
+  address: Address,
+  password: string | undefined,
+): Promise<MessageResponse> {
+  const meta = await loadAccountsMeta();
+  if (!meta) return { ok: false, error: "No wallet" };
+  const lower = address.toLowerCase();
+  const acc = meta.accounts.find((a) => a.address.toLowerCase() === lower);
+  if (!acc) return { ok: false, error: "Account not found" };
+  if (meta.accounts.length <= 1) {
+    return { ok: false, error: "Cannot remove the only account — use Reset wallet" };
+  }
+
+  const remainingAccounts = meta.accounts.filter((a) => a.address.toLowerCase() !== lower);
+  let active = meta.activeAccountAddress;
+  if (active.toLowerCase() === lower) {
+    active = remainingAccounts[0]!.address;
+  }
+
+  const mode = await getStorageMode();
+
+  if (acc.path === "imported") {
+    if (mode === "keychain") {
+      await keychain.deleteImportedKey(acc.address);
+      let kp = meta.keyrings;
+      if (!remainingAccounts.some((a) => a.path === "imported")) {
+        kp = meta.keyrings.filter((k) => k.id !== IMPORTED_KEYRING_ID);
+      }
+      await saveAccountsMeta(remainingAccounts, active, kp);
+      broadcastEvent(
+        "accountsChanged",
+        remainingAccounts.map((a) => a.address),
+      );
+      return { ok: true };
+    }
+    if (!password) return { ok: false, error: "Password required" };
+    let data: VaultData;
+    try {
+      data = await loadVaultForMerge(password);
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+    const nextAccounts = data.accounts.filter((a) => a.address.toLowerCase() !== lower);
+    const mergedImported = { ...(data.importedKeys ?? {}) };
+    delete mergedImported[acc.address.toLowerCase()];
+    const nextImportedKeys = Object.keys(mergedImported).length > 0 ? mergedImported : undefined;
+    let nextKeyrings = data.keyrings;
+    if (!nextAccounts.some((a) => a.path === "imported")) {
+      nextKeyrings = data.keyrings.filter((k) => k.type !== "imported");
+    }
+    const nextVault: VaultData = {
+      keyrings: nextKeyrings,
+      accounts: nextAccounts,
+      activeAccountAddress: active,
+      ...(nextImportedKeys ? { importedKeys: nextImportedKeys } : {}),
+    };
+    const kp = await keyringsPublicWithFingerprints(nextVault.keyrings);
+    const res = await persistMergedVault(nextVault, password, kp);
+    if (!res.ok) return res;
+    broadcastEvent(
+      "accountsChanged",
+      nextAccounts.map((a) => a.address),
+    );
+    return { ok: true };
+  }
+
+  const kid = acc.keyringId;
+  const othersInKr = meta.accounts.filter(
+    (a) => a.path !== "imported" && a.keyringId === kid && a.address.toLowerCase() !== lower,
+  );
+
+  if (othersInKr.length === 0) {
+    return handleDeleteKeyring(kid, password);
+  }
+
+  if (mode === "keychain") {
+    await saveAccountsMeta(remainingAccounts, active, meta.keyrings);
+    broadcastEvent(
+      "accountsChanged",
+      remainingAccounts.map((a) => a.address),
+    );
+    return { ok: true };
+  }
+
+  if (!password) return { ok: false, error: "Password required" };
+  let data: VaultData;
+  try {
+    data = await loadVaultForMerge(password);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+  const nextAccounts = data.accounts.filter((a) => a.address.toLowerCase() !== lower);
+  const nextVault: VaultData = {
+    ...data,
+    accounts: nextAccounts,
+    activeAccountAddress: active,
+  };
+  const kp = await keyringsPublicWithFingerprints(nextVault.keyrings);
+  const res = await persistMergedVault(nextVault, password, kp);
+  if (!res.ok) return res;
+  broadcastEvent(
+    "accountsChanged",
+    nextAccounts.map((a) => a.address),
+  );
   return { ok: true };
 }
 
@@ -475,7 +587,7 @@ async function getWalletState(): Promise<WalletState> {
     storageMode: mode,
     accounts: meta?.accounts ?? [],
     keyrings: meta?.keyrings ?? [],
-    activeAccountAddress: meta?.activeAccountAddress ?? ("0x0000000000000000000000000000000000000000" as Address),
+    activeAccountAddress: meta?.activeAccountAddress ?? zeroAddress,
     activeNetworkId: await getActiveNetworkId(),
   };
 }
@@ -615,7 +727,9 @@ export async function handleSwitchNetwork(chainId: number): Promise<MessageRespo
 export async function handleSwitchAccount(activeAccountAddress: Address): Promise<MessageResponse> {
   const meta = await loadAccountsMeta();
   if (meta) {
-    if (!meta.accounts.some((a) => a.address.toLowerCase() === activeAccountAddress.toLowerCase())) {
+    if (
+      !meta.accounts.some((a) => a.address.toLowerCase() === activeAccountAddress.toLowerCase())
+    ) {
       return { ok: false, error: "Unknown account" };
     }
     await saveAccountsMeta(meta.accounts, activeAccountAddress, meta.keyrings);
@@ -662,7 +776,9 @@ export async function handleExportMnemonic(
   const active = getActiveAccount(meta);
   const kid =
     keyringId ??
-    (active?.path !== "imported" ? active?.keyringId : meta.keyrings.find((k) => k.type === "hd")?.id);
+    (active?.path !== "imported"
+      ? active?.keyringId
+      : meta.keyrings.find((k) => k.type === "hd")?.id);
   if (!kid || kid === IMPORTED_KEYRING_ID) {
     return { ok: false, error: "No HD keyring to export" };
   }
