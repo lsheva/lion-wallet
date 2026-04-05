@@ -91,16 +91,15 @@ export function ImportWallet() {
       if (!res.ok) {
         setError("Import failed");
         showError("Import failed", res.error);
-        setLoading(false);
         return;
       }
 
-      await refreshAll();
       navigate("/api-key-setup");
     } catch (e) {
       const detail = toErrorMessage(e);
       setError("Import failed");
       showError("Import failed", detail);
+    } finally {
       setLoading(false);
     }
   };

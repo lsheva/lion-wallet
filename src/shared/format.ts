@@ -159,7 +159,10 @@ export function toErrorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-function baseGasEstimateMessage(e: unknown): string {
+/**
+ * Best-effort message for viem / HTTP RPC failures (`shortMessage`, `details`, `cause`, HTTP status).
+ */
+export function formatProviderError(e: unknown): string {
   if (e instanceof Error && e.message.trim()) {
     return e.message.trim();
   }
@@ -171,8 +174,13 @@ function baseGasEstimateMessage(e: unknown): string {
     if (typeof o.details === "string" && o.details.trim()) {
       return o.details.trim();
     }
+    const status = o.status;
+    if (typeof status === "number" && Number.isFinite(status)) {
+      const body = typeof o.body === "string" && o.body.trim() ? `: ${o.body.trim().slice(0, 200)}` : "";
+      return `RPC request failed (HTTP ${status})${body}`;
+    }
     if (o.cause) {
-      return baseGasEstimateMessage(o.cause);
+      return formatProviderError(o.cause);
     }
   }
   return toErrorMessage(e);
@@ -183,7 +191,7 @@ function baseGasEstimateMessage(e: unknown): string {
  * When the error chain includes {@link ContractFunctionRevertedError} (e.g. after `simulateContract`), appends `reason` / `signature` / decoded data.
  */
 export function formatGasEstimateError(e: unknown): string {
-  const base = baseGasEstimateMessage(e);
+  const base = formatProviderError(e);
   const revert = formatRevertFingerprintForDisplay(e);
   if (revert) {
     return `${base}\n\n— Revert —\n${revert}`;

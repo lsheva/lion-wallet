@@ -60,8 +60,10 @@ function handleBackgroundPushMessage(msg: unknown): void {
       setPendingQueueSize(m.count);
       break;
     case "BG_LOG":
-      // biome-ignore lint/suspicious/noConsole: this IS the logging utility
-      console.log("[BG]", m.msg);
+      if (!import.meta.env.DEV) {
+        // biome-ignore lint/suspicious/noConsole: this IS the logging utility
+        console.log("[BG]", m.msg);
+      }
       break;
     case "ACTIVITY_UPDATED":
       if (m.chainId != null && m.chainId !== activeNetworkId()) return;

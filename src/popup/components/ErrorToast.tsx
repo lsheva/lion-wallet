@@ -9,6 +9,8 @@ function ToastItem(props: { toast: ToastMessage }) {
     <div
       role="alert"
       class="bg-elevated rounded-[var(--radius-card)] shadow-lg ring-1 ring-danger/20 animate-slide-up overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
     >
       <div class="flex items-start gap-2 p-3">
         <AlertCircle size={16} class="text-danger shrink-0 mt-0.5" />
@@ -17,7 +19,10 @@ function ToastItem(props: { toast: ToastMessage }) {
           <Show when={props.toast.details}>
             <button
               type="button"
-              onClick={() => setExpanded(!expanded())}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded());
+              }}
               class="flex items-center gap-1 mt-1.5 text-[11px] text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
             >
               <ChevronDown
@@ -30,8 +35,12 @@ function ToastItem(props: { toast: ToastMessage }) {
         </div>
         <button
           type="button"
-          onClick={() => dismissToast(props.toast.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            dismissToast(props.toast.id);
+          }}
           class="p-0.5 text-text-tertiary hover:text-text-primary transition-colors cursor-pointer shrink-0"
+          aria-label="Dismiss error"
         >
           <X size={14} />
         </button>

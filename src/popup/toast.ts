@@ -7,14 +7,18 @@ export interface ToastMessage {
 }
 
 let nextId = 0;
-const AUTO_DISMISS_MS = 8000;
 
 export const [toasts, setToasts] = createSignal<ToastMessage[]>([]);
 
 export function showError(message: string, details?: string): void {
+  // biome-ignore lint/suspicious/noConsole: every toast is mirrored to DevTools
+  console.error(
+    "[Error]",
+    details?.trim() ? { message, details: details.trim() } : message,
+  );
+
   const id = nextId++;
   setToasts((prev) => [...prev, { id, message, details }]);
-  setTimeout(() => dismissToast(id), AUTO_DISMISS_MS);
 }
 
 export function dismissToast(id: number): void {

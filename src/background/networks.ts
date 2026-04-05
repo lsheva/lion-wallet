@@ -83,11 +83,11 @@ export function getPublicClient(chainId: number): Client {
   const meta = CHAIN_BY_ID.get(chainId);
   if (!meta) throw new Error(`Unknown chain ID: ${chainId}`);
 
-  const rawUrl = getRpcUrl(chainId) ?? meta.rpcUrl;
-  const rpcUrl = applyDevTabRpcProxy(rawUrl);
+  const privateRpcUrl = getRpcUrl(chainId);
+  const rpcUrl = applyDevTabRpcProxy(privateRpcUrl ?? meta.rpcUrl);
   const client = createClient({
     chain: toViemChain({ ...meta, rpcUrl }),
-    transport: http(rpcUrl, { batch: true }),
+    transport: http(rpcUrl, { batch: !!privateRpcUrl }),
   });
 
   clientCache.set(chainId, client);

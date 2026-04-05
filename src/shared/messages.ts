@@ -205,15 +205,20 @@ export async function sendMessage<M extends MessageRequest>(
     );
   }
 
+  console.log(`-> ${JSON.stringify(message)}`);
+
   const response = await Promise.race([
     pending,
     new Promise<never>((_, reject) =>
       setTimeout(
-        () => reject(new Error("Background not responding — try again")),
+        () =>
+          reject(new Error(`Background not responding — try again: ${JSON.stringify(message)}`)),
         MESSAGE_TIMEOUT_MS,
       ),
     ),
   ]);
+  console.log(`<- ${JSON.stringify(response)}`);
+
   return response as TypedResponse<M["type"]>;
 }
 

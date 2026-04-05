@@ -2,6 +2,7 @@ import { type Address, type Hex, zeroAddress } from "viem";
 import { getBalance, readContract } from "viem/actions";
 import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits } from "viem/utils";
 import { erc20Abi, feedFaceDisperseAbi } from "../../shared/abis";
+import { formatProviderError } from "../../shared/format";
 import { IMPORTED_KEYRING_ID } from "../../shared/keyring-constants";
 import type { MessageResponse } from "../../shared/messages";
 import { mnemonicFingerprint } from "../../shared/mnemonic-fingerprint";
@@ -30,6 +31,7 @@ import {
   saveHdDerivedAddressMap,
 } from "../hd-addresses";
 import * as keychain from "../keychain";
+import { bgLog } from "../log";
 import {
   getActiveNetworkId,
   getNetworkConfig,
@@ -705,10 +707,13 @@ export async function handleEnsureChainDiscovery(chainId: number): Promise<Messa
   }
 
   try {
+    bgLog(`[chain-discovery] started with ${chainId}`);
     const data = await runChainDiscovery(chainId, meta, hdMap);
     return { ok: true, data };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    const msg = formatProviderError(e);
+    bgLog("[chain-discovery]", chainId, msg);
+    return { ok: false, error: msg || "Chain scan failed" };
   }
 }
 
@@ -719,13 +724,19 @@ export async function handleGetBalance(
   const client = getPublicClient(chainId);
   const cfg = getNetworkConfig(chainId);
   const isTestnet = cfg?.testnet === true;
-  const [balance, nativeUsdPrice] = await Promise.all([
-    getBalance(client, { address }),
-    isTestnet
-      ? Promise.resolve(0)
-      : fetchNativePrice(chainId).then((p) => p ?? fetchNativePriceCoinGecko(chainId)),
-  ]);
-  return { ok: true, data: { balance: formatEther(balance), nativeUsdPrice } };
+  try {
+    const [balance, nativeUsdPrice] = await Promise.all([
+      getBalance(client, { address }),
+      isTestnet
+        ? Promise.resolve(0)
+        : fetchNativePrice(chainId).then((p) => p ?? fetchNativePriceCoinGecko(chainId)),
+    ]);
+    return { ok: true, data: { balance: formatEther(balance), nativeUsdPrice } };
+  } catch (e) {
+    const msg = formatProviderError(e);
+    bgLog("[get-balance]", chainId, address, msg);
+    return { ok: false, error: msg || "Could not load balance" };
+  }
 }
 
 export async function handleSwitchNetwork(chainId: number): Promise<MessageResponse> {

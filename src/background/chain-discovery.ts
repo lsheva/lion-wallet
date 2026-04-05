@@ -14,6 +14,27 @@ export interface ChainDiscoveryResult {
   scannedAt: number;
 }
 
+/** Avoid burst RPC (e.g. 20× balance + nonce) that triggers public endpoint rate limits. */
+const CHAIN_DISCOVERY_RPC_CONCURRENCY = 4;
+
+async function runPool<T>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  if (items.length === 0) return;
+  let next = 0;
+  const runWorker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      if (i >= items.length) return;
+      await worker(items[i]!, i);
+    }
+  };
+  const n = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: n }, () => runWorker()));
+}
+
 async function rpcActivity(
   chainId: number,
   address: Address,
@@ -77,15 +98,14 @@ export async function runChainDiscovery(
       await Promise.all(
         addresses.map(async (address, i) => {
           const { balance, nonce } = await rpcActivity(chainId, address);
-          const active = i === 0 || hasOnChainActivity(balance, nonce);
-          slotActive[i] = active;
+          const discovered = hasOnChainActivity(balance, nonce);
+          slotActive[i] = i === 0 || discovered;
 
           let m = hdByKeyringIndex.get(keyringId);
           if (!m) {
             m = new Map();
             hdByKeyringIndex.set(keyringId, m);
           }
-          const discovered = hasOnChainActivity(balance, nonce);
           if (discovered && !m.has(i)) {
             m.set(i, serializedAccountForSlot(i, address, keyringId));
           }
@@ -146,13 +166,11 @@ export async function runChainDiscovery(
   const hd = meta.accounts.filter((a) => a.path !== "imported");
   const slotActive = new Map<string, boolean>();
 
-  await Promise.all(
-    hd.map(async (a) => {
-      const { balance, nonce } = await rpcActivity(chainId, a.address);
-      const active = a.index === 0 || hasOnChainActivity(balance, nonce);
-      slotActive.set(`${a.keyringId}:${a.index}`, active);
-    }),
-  );
+  await runPool(hd, CHAIN_DISCOVERY_RPC_CONCURRENCY, async (a) => {
+    const { balance, nonce } = await rpcActivity(chainId, a.address);
+    const active = a.index === 0 || hasOnChainActivity(balance, nonce);
+    slotActive.set(`${a.keyringId}:${a.index}`, active);
+  });
 
   const activeAccountIndices: number[] = [];
   for (let j = 0; j < meta.accounts.length; j++) {

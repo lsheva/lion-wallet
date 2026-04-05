@@ -47,7 +47,6 @@ export async function handleGetStorageMode(): Promise<MessageResponse> {
 
 export async function handleCheckKeychainAvailable(): Promise<MessageResponse> {
   const probe = await keychain.isKeychainAvailable();
-  bgLog("[CHECK_KEYCHAIN_AVAILABLE] probe:", JSON.stringify(probe));
   return { ok: true, data: { available: probe.available, error: probe.error } };
 }
 

@@ -28,9 +28,6 @@ export interface ProbeResult {
 export async function isKeychainAvailable(): Promise<ProbeResult> {
   try {
     const res = await sendNative({ action: "keychain_status" });
-    if (!res.ok) {
-      bgLog("[keychain] probe failed:", res.error ?? "unknown");
-    }
     return { available: res.ok === true, error: res.error };
   } catch (e) {
     const msg = toErrorMessage(e);

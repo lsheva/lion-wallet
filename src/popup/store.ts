@@ -275,8 +275,10 @@ async function ensureChainDiscoveryForChain(chainId: number): Promise<void> {
       setHomeDiscoveryActiveIndices(res.data.activeAccountIndices);
       await fetchState();
     } else if (!res.ok) {
-      showError("Chain scan failed", res.error);
+      showError("Chain scan failed", res.error?.trim() || "RPC error — try again or use another network");
     }
+  } catch (e) {
+    showError("Chain scan failed", toErrorMessage(e));
   } finally {
     setChainDiscoveryScanning(false);
   }
@@ -331,6 +333,8 @@ export async function fetchBalance(): Promise<void> {
     setEthBalance(balRes.data.balance);
     setNativeUsdPrice(balRes.data.nativeUsdPrice);
     saveNativeBalanceCache(chainId, address, balRes.data.balance, balRes.data.nativeUsdPrice);
+  } else if (!balRes.ok) {
+    showError("Could not load balance", balRes.error);
   }
 
   const balances: Record<string, string> =
