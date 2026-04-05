@@ -13,7 +13,6 @@ import { batch, createMemo, createRoot, createSignal, untrack } from "solid-js";
 import { type Address, type Hex, zeroAddress } from "viem";
 import { formatUnits } from "viem/utils";
 import { CHAIN_COLOR_BY_ID } from "./chain-ui.generated";
-import { DEV_MOCK_ACCOUNTS, DEV_MOCK_KEYRINGS } from "./mock/data";
 import { showError } from "./toast";
 
 export type { ActivityItem, TokenInfo as Token };
@@ -140,24 +139,18 @@ function buildInitialNetworks(): ChainMeta[] {
 
 export const ALL_CHAINS = CHAINS;
 
-const devSeedAccounts = import.meta.env.DEV ? DEV_MOCK_ACCOUNTS : [];
-const devSeedKeyrings = import.meta.env.DEV ? DEV_MOCK_KEYRINGS : [];
-export const [accounts, setAccounts] = createSignal<SerializedAccount[]>(devSeedAccounts);
-export const [activeAccountAddress, setActiveAccountAddress] = createSignal<Address>(
-  import.meta.env.DEV && DEV_MOCK_ACCOUNTS[0] ? DEV_MOCK_ACCOUNTS[0].address : zeroAddress,
-);
-export const [keyrings, setKeyrings] = createSignal<KeyringPublic[]>(devSeedKeyrings);
+export const [accounts, setAccounts] = createSignal<SerializedAccount[]>([]);
+export const [activeAccountAddress, setActiveAccountAddress] = createSignal<Address>(zeroAddress);
+export const [keyrings, setKeyrings] = createSignal<KeyringPublic[]>([]);
 export const [activeNetworkId, setActiveNetworkId] = createSignal(1);
 export const [showNetworkSelector, setShowNetworkSelector] = createSignal(false);
 export const [ethBalance, setEthBalance] = createSignal("—");
 /** Per-unit native token USD price; `0` on testnets; `null` if unavailable. */
 export const [nativeUsdPrice, setNativeUsdPrice] = createSignal<number | null>(null);
 export const [tokens, setTokens] = createSignal<TokenInfo[]>([]);
-export const [balanceLoading, setBalanceLoading] = createSignal(!import.meta.env.DEV);
+export const [balanceLoading, setBalanceLoading] = createSignal(true);
 export const [networks, setRawNetworks] = createSignal<ChainMeta[]>(buildInitialNetworks());
-export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">(
-  import.meta.env.DEV ? "keychain" : "vault",
-);
+export const [storageMode, setStorageMode] = createSignal<"keychain" | "vault">("vault");
 
 /** Per-chain home list: `null` before first discovery result for this session. */
 export const [homeDiscoveryActiveIndices, setHomeDiscoveryActiveIndices] = createSignal<

@@ -47,23 +47,20 @@ function SiteIcon(props: { url?: string }) {
 
 export function Approve() {
   const navigate = useNavigate();
-  const isDev = import.meta.env.DEV;
-
-  const cached = isDev ? null : useNavState<ApprovalData>();
+  const cached = useNavState<ApprovalData>();
   const initialData = cached?.approval ? cached : null;
 
   const [data, setData] = createSignal<ApprovalData | null>(initialData);
   const [gasSpeed, setGasSpeed] = createSignal<GasSpeed>("normal");
   const [showDetails, setShowDetails] = createSignal(false);
   const [showData, setShowData] = createSignal(false);
-  const [loading, setLoading] = createSignal(!isDev && !initialData);
+  const [loading, setLoading] = createSignal(!initialData);
   const [enriching, setEnriching] = createSignal(false);
   const [submitting, setSubmitting] = createSignal(false);
   const [password, setPassword] = createSignal("");
   const [authError, setAuthError] = createSignal("");
 
   function enrichApproval(d: ApprovalData) {
-    if (isDev) return;
     if (CONNECT_METHODS.has(d.approval.method)) return;
     const isTxMethod = TX_METHODS.has(d.approval.method);
     if (!isTxMethod) return;
@@ -79,7 +76,7 @@ export function Approve() {
 
   if (initialData) {
     enrichApproval(initialData);
-  } else if (!isDev) {
+  } else {
     sendMessage({ type: "GET_PENDING_APPROVAL" }).then((res) => {
       if (res.ok && res.data) {
         setData(res.data);
@@ -126,13 +123,6 @@ export function Approve() {
   });
 
   async function handleConfirm() {
-    if (isDev) {
-      navigate("/result", {
-        replace: true,
-        state: { kind: isTx() ? "tx" : "sign", status: "success" },
-      });
-      return;
-    }
     const d = data();
     if (!d) return;
 
@@ -221,10 +211,6 @@ export function Approve() {
   }
 
   async function handleReject() {
-    if (isDev) {
-      navigate("/home", { replace: true });
-      return;
-    }
     const d = data();
     if (d) {
       await sendMessage({ type: "REJECT_REQUEST", id: d.approval.id });

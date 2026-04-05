@@ -1,7 +1,7 @@
 import { sendMessage } from "@shared/messages";
 import type { ActivityItem } from "@shared/types";
 import type { ParentProps } from "solid-js";
-import { createSignal, Show } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 import { ErrorToast } from "./components/ErrorToast";
 import { DevToolbar } from "./mock/DevToolbar";
 import { AddressBook } from "./pages/AddressBook";
@@ -98,24 +98,24 @@ export function closePopup(): void {
 }
 
 function AppLayout(props: ParentProps) {
-  if (!import.meta.env.DEV) {
-    sendMessage({ type: "GET_STATE" }).then((stateRes) => {
+  onMount(() => {
+    void (async () => {
+      const stateRes = await sendMessage({ type: "GET_STATE" });
       if (!stateRes.ok || !stateRes.data?.isInitialized) {
         navigate("/", { replace: true });
         return;
       }
 
-      sendMessage({ type: "GET_PENDING_APPROVAL" }).then((res) => {
-        if (res.ok && res.data) {
-          if (APPROVAL_METHODS.has(res.data.approval.method)) {
-            navigate("/approve", { replace: true, state: res.data });
-            return;
-          }
-        }
-        fetchState().then(() => navigate("/home", { replace: true }));
-      });
-    });
-  }
+      const res = await sendMessage({ type: "GET_PENDING_APPROVAL" });
+      if (res.ok && res.data && APPROVAL_METHODS.has(res.data.approval.method)) {
+        navigate("/approve", { replace: true, state: res.data });
+        return;
+      }
+
+      await fetchState();
+      navigate("/home", { replace: true });
+    })();
+  });
 
   return (
     <div
@@ -124,7 +124,7 @@ function AppLayout(props: ParentProps) {
     >
       <ErrorToast />
       <div class="h-[600px] overflow-y-auto overflow-x-hidden">{props.children}</div>
-      <Show when={import.meta.env.DEV}>
+      <Show when={import.meta.env.VITE_MOCK === "true"}>
         <DevToolbar />
       </Show>
     </div>

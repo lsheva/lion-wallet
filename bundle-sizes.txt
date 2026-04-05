@@ -1,10 +1,10 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 406.8 kB │ gzip: 126.9 kB
+  output: 416.3 kB │ gzip: 129.6 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  376.4 kB  52.2%
+  (project)  376.7 kB  52.2%
     └ src/popup/pages/Settings.tsx  73.1 kB
-    └ src/popup/pages/Send.tsx  38.0 kB
+    └ src/popup/pages/Send.tsx  38.3 kB
     └ src/shared/chains.generated.ts  22.6 kB
   viem  78.7 kB  10.9%
     └ node_modules/viem/_esm/utils/transaction/serializeTransaction.js  6.3 kB
@@ -41,14 +41,14 @@
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 320.1 kB │ gzip: 100.3 kB
+  output: 329.7 kB │ gzip: 102.8 kB
 ──────────────────────────────────────────────────────────────────────────────────
   viem  253.5 kB  42.8%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.9 kB
-  (project)  177.0 kB  29.9%
-    └ src/background/handlers/wallet.ts  30.4 kB
+  (project)  177.4 kB  30.0%
+    └ src/background/handlers/wallet.ts  30.6 kB
     └ src/background/activity.ts  23.9 kB
     └ src/shared/chains.generated.ts  23.7 kB
   @noble/curves  57.6 kB  9.7%
@@ -78,7 +78,7 @@
 
 ══════════════════════════════════════════
   Content Script
-  output: 1.6 kB │ gzip: 664 B
+  output: 10.9 kB │ gzip: 3.2 kB
 ──────────────────────────────────────────
   (project)  2.4 kB  100.0%
     └ src/content/index.ts  2.4 kB

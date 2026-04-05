@@ -8,6 +8,7 @@
   "packageManager": "pnpm@10.28.1",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "VITE_MOCK=true vite",
     "build": "tsgo --noEmit && node scripts/build.ts",
     "typecheck": "tsgo --noEmit",
     "build:ext": "pnpm gen && tsgo --noEmit && tsgo -p tsconfig.scripts.json --noEmit && pnpm icons && node scripts/build.ts",

@@ -1,5 +1,6 @@
 import type { Address, Hex } from "viem";
 
+import { hasBrowserExtensionContext } from "./extension-context";
 import { MESSAGE_TIMEOUT_MS } from "./protocol";
 import type {
   ActivityItem,
@@ -159,8 +160,27 @@ export { MESSAGE_TIMEOUT_MS } from "./protocol";
 export async function sendMessage<M extends MessageRequest>(
   message: M,
 ): Promise<TypedResponse<M["type"]>> {
+  if (import.meta.env.VITE_MOCK === "true") {
+    const { mockSendMessage } = await import("./messages-mock");
+    return (await mockSendMessage(message)) as TypedResponse<M["type"]>;
+  }
+
+  const extId = import.meta.env.VITE_EXTENSION_ID?.trim();
+  let pending: Promise<unknown>;
+  if (hasBrowserExtensionContext()) {
+    pending = browser.runtime.sendMessage(message);
+  } else if (extId) {
+    pending = browser.runtime.sendMessage(extId, message);
+  } else {
+    pending = Promise.reject(
+      new TypeError(
+        "This dev server targets the extension background. Open the popup from the toolbar, add VITE_EXTENSION_ID (unpacked extension id) to .env.development.local, or use pnpm dev:mock.",
+      ),
+    );
+  }
+
   const response = await Promise.race([
-    browser.runtime.sendMessage(message),
+    pending,
     new Promise<never>((_, reject) =>
       setTimeout(
         () => reject(new Error("Background not responding — try again")),

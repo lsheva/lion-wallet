@@ -1,4 +1,5 @@
 import { CHAIN_BY_ID, POPUP_ORIGIN } from "@shared/constants";
+import { hasBrowserExtensionContext } from "@shared/extension-context";
 import { truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
 import type { AddressBookEntry } from "@shared/types";
@@ -31,7 +32,6 @@ const POLL_INTERVAL_MS = 4000;
 
 export function Result() {
   const navigate = useNavigate();
-  const isDev = import.meta.env.DEV;
   const stored = useNavState<ResultNavState>() ?? { kind: "tx", status: "success" };
 
   const isTx = () => stored.kind === "tx";
@@ -80,20 +80,6 @@ export function Result() {
 
   onMount(() => {
     if (!isTx() || isError() || !txHash) return;
-
-    if (isDev) {
-      intervalRef = setInterval(() => {
-        setConfirmations((c) => {
-          if (c >= TARGET_CONFIRMATIONS) {
-            clearInterval(intervalRef);
-            setMined(true);
-            return TARGET_CONFIRMATIONS;
-          }
-          return c + 1;
-        });
-      }, 600);
-      return;
-    }
 
     async function poll() {
       if (receiptBlock === null) {
@@ -210,7 +196,7 @@ export function Result() {
         </Card>
         <div class="w-full space-y-2">
           <Button onClick={dismiss} size="lg">
-            {isDev ? "Back to Wallet" : "Done"}
+            {hasBrowserExtensionContext() ? "Done" : "Back to Wallet"}
           </Button>
           <Show when={queueSize() > 0}>
             <p class="text-xs text-text-tertiary text-center">
