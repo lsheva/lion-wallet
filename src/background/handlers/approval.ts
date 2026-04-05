@@ -5,6 +5,8 @@ import { formatEther } from "viem/utils";
 import type { MessageResponse } from "../../shared/messages";
 import type { GasSpeed, TransactionParams } from "../../shared/types";
 import { getActiveAccount } from "../account-utils";
+import { pushActivityItem } from "../activity";
+import { pushRecentAddress } from "../address-book";
 import {
   getPendingApproval,
   getPendingCount,
@@ -138,26 +140,22 @@ async function executeApproval(
       case "eth_sendTransaction": {
         const txParams = params[0] as TransactionParams;
         result = await sendTransaction(account, chainId, txParams, gasSpeed);
-        import("../activity")
-          .then(({ pushActivityItem }) =>
-            pushActivityItem(account.address, chainId, {
-              hash: result,
-              from: account.address,
-              to: txParams.to ?? "",
-              value: txParams.value ? String(BigInt(txParams.value)) : "0",
-              ts: Math.floor(Date.now() / 1000),
-              error: false,
-              method: txParams.data?.slice(0, 10) ?? "",
-              fn: "",
-              block: 0,
-              transfers: [],
-              decoded: null,
-              events: [],
-            }),
-          )
-          .catch((e) => {
-            bgLog("[activity] pushActivityItem failed:", e);
-          });
+        void pushActivityItem(account.address, chainId, {
+          hash: result,
+          from: account.address,
+          to: txParams.to ?? "",
+          value: txParams.value ? String(BigInt(txParams.value)) : "0",
+          ts: Math.floor(Date.now() / 1000),
+          error: false,
+          method: txParams.data?.slice(0, 10) ?? "",
+          fn: "",
+          block: 0,
+          transfers: [],
+          decoded: null,
+          events: [],
+        }).catch((e) => {
+          bgLog("[activity] pushActivityItem failed:", e);
+        });
         {
           let recipient: Address | undefined;
           if (!txParams.data || txParams.data === "0x") {
@@ -169,11 +167,9 @@ async function executeApproval(
             recipient = `0x${txParams.data.slice(34, 74)}` as Address;
           }
           if (recipient) {
-            import("../address-book")
-              .then(({ pushRecentAddress }) => pushRecentAddress(account.address, recipient))
-              .catch((e) => {
-                bgLog("[address-book] pushRecentAddress failed:", e);
-              });
+            void pushRecentAddress(account.address, recipient).catch((e) => {
+              bgLog("[address-book] pushRecentAddress failed:", e);
+            });
           }
         }
         break;

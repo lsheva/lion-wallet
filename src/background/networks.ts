@@ -2,6 +2,7 @@ import type { Chain, Client } from "viem";
 import { createClient, http } from "viem";
 
 import { CHAIN_BY_ID, CHAINS, DEFAULT_NETWORK_ID } from "../shared/constants";
+import { DEV_RPC_PROXY_PREFIX, encodeRpcUrlForDevProxy } from "../shared/dev-rpc-proxy";
 import type { ChainMeta } from "../shared/types";
 
 const STORAGE_KEY = "activeNetworkId";
@@ -29,6 +30,19 @@ export function getRpcUrl(chainId: number): string | undefined {
     if (slug) return `https://${slug}.g.alchemy.com/v2/${rpcProviderKey}`;
   }
   return undefined;
+}
+
+/** In Vite tab dev, tunnel any RPC URL through the dev server to avoid provider CORS blocks. */
+function applyDevTabRpcProxy(rpcUrl: string | undefined): string | undefined {
+  if (!rpcUrl || !import.meta.env?.DEV) return rpcUrl;
+  const loc =
+    typeof globalThis !== "undefined" && "location" in globalThis
+      ? (globalThis.location as URL | Location)
+      : null;
+  const origin = loc && "origin" in loc ? loc.origin : "";
+  if (!origin || loc?.protocol === "chrome-extension:") return rpcUrl;
+  const seg = encodeURIComponent(encodeRpcUrlForDevProxy(rpcUrl));
+  return `${origin}${DEV_RPC_PROXY_PREFIX}${seg}`;
 }
 
 const clientCache = new Map<number, Client>();
@@ -69,9 +83,11 @@ export function getPublicClient(chainId: number): Client {
   const meta = CHAIN_BY_ID.get(chainId);
   if (!meta) throw new Error(`Unknown chain ID: ${chainId}`);
 
+  const rawUrl = getRpcUrl(chainId) ?? meta.rpcUrl;
+  const rpcUrl = applyDevTabRpcProxy(rawUrl);
   const client = createClient({
-    chain: toViemChain(meta),
-    transport: http(getRpcUrl(chainId) ?? meta.rpcUrl, { batch: true }),
+    chain: toViemChain({ ...meta, rpcUrl }),
+    transport: http(rpcUrl, { batch: true }),
   });
 
   clientCache.set(chainId, client);

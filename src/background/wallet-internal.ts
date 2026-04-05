@@ -18,7 +18,13 @@ import {
 } from "./hd-addresses";
 import * as keychain from "./keychain";
 import { bgLog } from "./log";
-import { decryptVault, encryptVault, type StorageMode, setStorageMode } from "./vault";
+import {
+  decryptVault,
+  encryptVault,
+  type StorageMode,
+  saveAccountsMeta,
+  setStorageMode,
+} from "./vault";
 /** Insert an HD keyring row after existing HD rows, before imported rows. */
 export function insertHdKeyringPublic(
   existing: KeyringPublic[],
@@ -96,7 +102,6 @@ export async function persistVaultModeFull(
 ): Promise<void> {
   await setStorageMode("vault");
   await encryptVault(data, password);
-  const { saveAccountsMeta } = await import("./vault");
   await saveAccountsMeta(data.accounts, data.activeAccountAddress, keyringsPublic);
   const hd = data.keyrings.filter((k): k is HdKeyringStored => k.type === "hd");
   const map = (await loadHdDerivedAddressMap()) ?? {};
@@ -131,7 +136,6 @@ export async function persistKeychainFull(
     }
   }
   await setStorageMode("keychain");
-  const { saveAccountsMeta } = await import("./vault");
   await saveAccountsMeta(data.accounts, data.activeAccountAddress, keyringsPublic);
   const hd = data.keyrings.filter((k): k is HdKeyringStored => k.type === "hd");
   const map = (await loadHdDerivedAddressMap()) ?? {};

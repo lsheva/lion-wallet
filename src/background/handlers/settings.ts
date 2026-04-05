@@ -1,10 +1,13 @@
 import type { Address } from "viem";
 
 import type { MessageResponse } from "../../shared/messages";
-import { getEtherscanApiKey } from "../etherscan";
+import { clearActivityCache, fetchActivity } from "../activity";
+import { clearAbiCache, getEtherscanApiKey } from "../etherscan";
 import * as keychain from "../keychain";
 import { bgLog } from "../log";
 import { setRpcProviderKeyInMemory } from "../networks";
+import { clearTokenImageCache } from "../token-images";
+import { clearTokenStore } from "../token-store";
 import { getStorageMode } from "../vault";
 
 export async function handleGetEtherscanKey(): Promise<MessageResponse> {
@@ -53,16 +56,11 @@ export async function handleGetActivity(
   chainId: number,
   loadMore: boolean,
 ): Promise<MessageResponse> {
-  const { fetchActivity } = await import("../activity");
   const result = await fetchActivity(address, chainId, { loadMore });
   return { ok: true, data: result };
 }
 
 export async function handleClearActivityCache(): Promise<MessageResponse> {
-  const { clearActivityCache } = await import("../activity");
-  const { clearAbiCache } = await import("../etherscan");
-  const { clearTokenStore } = await import("../token-store");
-  const { clearTokenImageCache } = await import("../token-images");
   await Promise.all([
     clearActivityCache(),
     clearAbiCache(),

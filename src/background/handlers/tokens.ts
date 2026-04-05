@@ -1,5 +1,6 @@
 import type { Address } from "viem";
 import type { MessageResponse } from "../../shared/messages";
+import { scanTokens } from "../token-discovery";
 import { fetchTokenMeta } from "../token-meta";
 import { addManualToken, getTokensForChain, hideToken } from "../token-store";
 
@@ -37,7 +38,6 @@ export async function handleScanTokens(
   chainId: number,
   address: Address,
 ): Promise<MessageResponse> {
-  const { scanTokens } = await import("../token-discovery");
   const found = await scanTokens(address, chainId);
   return { ok: true, data: { found } };
 }

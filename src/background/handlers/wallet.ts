@@ -18,11 +18,17 @@ import type {
   WalletState,
 } from "../../shared/types";
 import { getActiveAccount } from "../account-utils";
+import { clearAllPending } from "../approval";
 import { broadcastEvent } from "../broadcast";
 import { runChainDiscovery } from "../chain-discovery";
 import { clearConnectedOrigins } from "../connected-origins";
 import { fetchNativePrice } from "../etherscan";
-import { clearHdDerivedAddresses, resolveHdAddressMap } from "../hd-addresses";
+import {
+  clearHdDerivedAddresses,
+  loadHdDerivedAddressMap,
+  resolveHdAddressMap,
+  saveHdDerivedAddressMap,
+} from "../hd-addresses";
 import * as keychain from "../keychain";
 import {
   getActiveNetworkId,
@@ -31,6 +37,7 @@ import {
   setActiveNetworkId,
 } from "../networks";
 import { fetchNativePriceCoinGecko, fetchTokenPrice } from "../prices";
+import { handleRpc } from "../rpc-handler";
 import { fetchTokenMeta } from "../token-meta";
 import { updateTokenBalances } from "../token-store";
 import {
@@ -409,7 +416,6 @@ export async function handleDeleteKeyring(
     if (!first) return { ok: false, error: "Invalid state" };
     active = first.address;
   }
-  const { loadHdDerivedAddressMap, saveHdDerivedAddressMap } = await import("../hd-addresses");
   const m = (await loadHdDerivedAddressMap()) ?? {};
   delete m[keyringId];
   await saveHdDerivedAddressMap(m);
@@ -816,7 +822,6 @@ export async function handleResetWallet(password?: string): Promise<MessageRespo
       return { ok: false, error: "Wrong password" };
     }
   }
-  const { clearAllPending } = await import("../approval");
   clearAllPending();
   for (const k of meta.keyrings) {
     if (k.type === "hd") await keychain.deleteMnemonicForKeyring(k.id);
@@ -924,7 +929,6 @@ export async function handleSendToken(
     args: [to, parseUnits(amount, decimals)],
   });
 
-  const { handleRpc } = await import("../rpc-handler");
   const result = await handleRpc(
     "eth_sendTransaction",
     [{ from: account.address, to: tokenAddress, data }],
@@ -953,7 +957,6 @@ export async function handleMultiSend(entries: MultiSendEntry[]): Promise<Messag
 
   const chainId = await getActiveNetworkId();
   const network = getNetworkConfig(chainId);
-  const { handleRpc } = await import("../rpc-handler");
 
   const nativeEntries = entries.filter((e) => !e.tokenAddress);
   const erc20ByToken = new Map<Address, MultiSendEntry[]>();

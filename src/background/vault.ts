@@ -1,6 +1,7 @@
 import type { Address } from "viem";
 
 import type { EncryptedVault, KeyringPublic, SerializedAccount, VaultData } from "../shared/types";
+import { normalizeVaultData } from "../shared/vault-migrate";
 
 const VAULT_KEY = "vault";
 const ACCOUNTS_META_KEY = "accountsMeta";
@@ -124,7 +125,6 @@ export async function decryptVault(password: string): Promise<VaultData> {
     throw new Error("Wrong password");
   }
 
-  const { normalizeVaultData } = await import("../shared/vault-migrate");
   return normalizeVaultData(JSON.parse(new TextDecoder().decode(decrypted)));
 }
 

@@ -157,6 +157,30 @@ export type TypedResponse<T extends MessageRequest["type"]> = MessageDataMap[T] 
 
 export { MESSAGE_TIMEOUT_MS } from "./protocol";
 
+async function sendMessageViaDevServiceWorker<M extends MessageRequest>(
+  message: M,
+): Promise<TypedResponse<M["type"]>> {
+  const reg = await navigator.serviceWorker.ready;
+  const sw = reg.active;
+  if (!sw) {
+    throw new TypeError(
+      "Dev background service worker is not active yet — wait for registration or reload.",
+    );
+  }
+  return new Promise((resolve, reject) => {
+    const ch = new MessageChannel();
+    const t = setTimeout(
+      () => reject(new Error("Background not responding — try again")),
+      MESSAGE_TIMEOUT_MS,
+    );
+    ch.port1.onmessage = (e: MessageEvent) => {
+      clearTimeout(t);
+      resolve(e.data as TypedResponse<M["type"]>);
+    };
+    sw.postMessage({ channel: "lion-dev-request", request: message }, [ch.port2]);
+  });
+}
+
 export async function sendMessage<M extends MessageRequest>(
   message: M,
 ): Promise<TypedResponse<M["type"]>> {
@@ -169,12 +193,14 @@ export async function sendMessage<M extends MessageRequest>(
   let pending: Promise<unknown>;
   if (hasBrowserExtensionContext()) {
     pending = browser.runtime.sendMessage(message);
+  } else if (import.meta.env.DEV) {
+    pending = sendMessageViaDevServiceWorker(message);
   } else if (extId) {
     pending = browser.runtime.sendMessage(extId, message);
   } else {
     pending = Promise.reject(
       new TypeError(
-        "This dev server targets the extension background. Open the popup from the toolbar, add VITE_EXTENSION_ID (unpacked extension id) to .env.development.local, or use pnpm dev:mock.",
+        "Not inside the extension UI. For a browser-tab build without a background, use pnpm dev:mock, or load the unpacked extension and open the popup from the toolbar.",
       ),
     );
   }

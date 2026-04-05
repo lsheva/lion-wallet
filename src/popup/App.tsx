@@ -42,38 +42,46 @@ const APPROVAL_METHODS = new Set([
 
 export const [pendingQueueSize, setPendingQueueSize] = createSignal(0);
 
-try {
-  type BgMessage =
-    | { type: "PENDING_COUNT"; count: number }
-    | { type: "BG_LOG"; msg: string }
-    | {
-        type: "ACTIVITY_UPDATED";
-        items: ActivityItem[];
-        source?: string;
-        hasMore?: boolean;
-        chainId?: number;
-      };
+type BgPushMessage =
+  | { type: "PENDING_COUNT"; count: number }
+  | { type: "BG_LOG"; msg: string }
+  | {
+      type: "ACTIVITY_UPDATED";
+      items: ActivityItem[];
+      source?: string;
+      hasMore?: boolean;
+      chainId?: number;
+    };
 
-  browser.runtime.onMessage.addListener((msg: unknown) => {
-    const m = msg as BgMessage;
-    switch (m.type) {
-      case "PENDING_COUNT":
-        setPendingQueueSize(m.count);
-        break;
-      case "BG_LOG":
-        // biome-ignore lint/suspicious/noConsole: this IS the logging utility
-        console.log("[BG]", m.msg);
-        break;
-      case "ACTIVITY_UPDATED":
-        if (m.chainId != null && m.chainId !== activeNetworkId()) return;
-        setActivity(m.items);
-        if (m.source) setActivitySource(m.source as "etherscan" | "rpc" | "cache");
-        if (typeof m.hasMore === "boolean") setActivityHasMore(m.hasMore);
-        break;
-    }
-  });
+function handleBackgroundPushMessage(msg: unknown): void {
+  const m = msg as BgPushMessage;
+  switch (m.type) {
+    case "PENDING_COUNT":
+      setPendingQueueSize(m.count);
+      break;
+    case "BG_LOG":
+      // biome-ignore lint/suspicious/noConsole: this IS the logging utility
+      console.log("[BG]", m.msg);
+      break;
+    case "ACTIVITY_UPDATED":
+      if (m.chainId != null && m.chainId !== activeNetworkId()) return;
+      setActivity(m.items);
+      if (m.source) setActivitySource(m.source as "etherscan" | "rpc" | "cache");
+      if (typeof m.hasMore === "boolean") setActivityHasMore(m.hasMore);
+      break;
+  }
+}
+
+try {
+  browser.runtime.onMessage.addListener((msg: unknown) => handleBackgroundPushMessage(msg));
 } catch {
-  /* dev mode — no extension runtime */
+  /* e.g. webpage without extension APIs */
+}
+
+if (import.meta.env.DEV && import.meta.env.VITE_MOCK !== "true" && "serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (event: MessageEvent) => {
+    handleBackgroundPushMessage(event.data);
+  });
 }
 
 export async function routeToNextApprovalOrClose(fallback: () => void): Promise<void> {
