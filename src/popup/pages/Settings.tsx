@@ -10,11 +10,13 @@ import {
   Check,
   ChevronRight,
   ExternalLink,
+  Eye,
+  EyeOff,
   Fingerprint,
   Globe,
+  Info,
   Key,
   Moon,
-  Pencil,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -32,6 +34,7 @@ import {
   mnemonicToAccount,
   privateKeyToAccount,
 } from "viem/accounts";
+import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { ChainIcon } from "../components/ChainIcon";
@@ -55,103 +58,55 @@ function AccountRow(props: {
   acc: SerializedAccount;
   accountArrayIndex: number;
   isActive: boolean;
-  isEditing: boolean;
-  editName: string;
-  onEditName: (v: string) => void;
-  onConfirmEdit: () => void;
-  onStartEdit: () => void;
-  onCancelEdit: () => void;
-  canRemove: boolean;
-  onRequestRemove: () => void;
-  removeBusy?: boolean;
+  onOpenInfo: () => void;
 }) {
   return (
     <div
       class={`flex items-center gap-1 w-full pl-8 pr-4 py-2.5 hover:bg-base/50 transition-colors
         ${props.isActive ? "bg-accent-light/80" : ""}`}
     >
-      <button
-        type="button"
+      {/** biome-ignore lint/a11y/useSemanticElements: inner button cannot nest inside <button> */}
+      <div
         onClick={() => walletState.switchAccount(props.accountArrayIndex)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            walletState.switchAccount(props.accountArrayIndex);
+          }
+        }}
         class="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer"
+        role="button"
+        tabIndex={0}
       >
         <Identicon address={props.acc.address} size={28} />
         <div class="flex-1 min-w-0">
-          {props.isEditing ? (
-            <div class="flex items-center gap-1">
-              <input
-                class="text-sm font-semibold text-text-primary bg-transparent outline-none w-full py-0 shadow-[0_1px_0_0_var(--color-accent)]"
-                value={props.editName}
-                onClick={(e) => e.stopPropagation()}
-                onInput={(e) => props.onEditName((e.target as HTMLInputElement).value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") props.onConfirmEdit();
-                  if (e.key === "Escape") props.onCancelEdit();
-                }}
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  props.onConfirmEdit();
-                }}
-                class="p-0.5 text-accent hover:text-accent-hover cursor-pointer shrink-0"
-              >
-                <Check size={14} />
-              </button>
-            </div>
-          ) : (
-            <div class="flex items-center gap-1.5">
-              <p class="text-sm font-semibold text-text-primary">{props.acc.name}</p>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  props.onStartEdit();
-                }}
-                class="p-0.5 text-text-tertiary hover:text-accent transition-colors cursor-pointer shrink-0"
-              >
-                <Pencil size={12} />
-              </button>
-            </div>
-          )}
+          <div class="flex items-center gap-1.5 min-w-0">
+            <p class="text-sm font-semibold text-text-primary">{props.acc.name}</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onOpenInfo();
+              }}
+              class="p-0.5 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer shrink-0"
+              aria-label="Account details"
+            >
+              <Info size={12} />
+            </button>
+          </div>
+
           <div class="flex items-center gap-1 mt-0.5">
             <span class="text-[11px] font-mono font-medium text-text-primary/70 truncate">
               {truncateAddress(props.acc.address)}
             </span>
             <CopyButton text={props.acc.address} size={12} />
           </div>
-          <p class="text-[10px] font-mono text-text-tertiary mt-0.5">{props.acc.path}</p>
         </div>
-      </button>
-      <Show when={props.canRemove}>
-        <button
-          type="button"
-          disabled={props.removeBusy}
-          onClick={(e) => {
-            e.stopPropagation();
-            props.onRequestRemove();
-          }}
-          class="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-          aria-label="Remove account"
-        >
-          <Trash2 size={16} />
-        </button>
+      </div>
+
+      <Show when={props.isActive}>
+        <div class="w-2 h-2 rounded-full bg-accent shrink-0" />
       </Show>
     </div>
-  );
-}
-
-function SettingsRow(props: { label: string; onClick?: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      class="flex items-center justify-between w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
-    >
-      <span class="text-sm text-text-primary">{props.label}</span>
-      <ChevronRight size={16} class="text-text-tertiary" />
-    </button>
   );
 }
 
@@ -198,8 +153,6 @@ function applyTheme(pref: ThemePref) {
 }
 
 function Security() {
-  const navigate = useNavigate();
-
   return (
     <Card header="Security" padding={false}>
       <div class="divide-y divide-divider">
@@ -216,14 +169,6 @@ function Security() {
             </>
           )}
         </div>
-        <SettingsRow
-          label="Export Private Key"
-          onClick={() => navigate("/export-key", { replace: true })}
-        />
-        <SettingsRow
-          label="Show Recovery Phrase"
-          onClick={() => navigate("/show-phrase", { replace: true })}
-        />
       </div>
     </Card>
   );
@@ -733,9 +678,8 @@ function ResetWalletRow() {
 }
 
 function WalletAndAccounts() {
-  const isKeyringExpanded = (id: string) => expandedKeyringIds().has(id);
-
   const [expandedKeyringIds, setExpandedKeyringIds] = createSignal<Set<string>>(new Set());
+  const isKeyringExpanded = (id: string) => expandedKeyringIds().has(id);
   const toggleKeyringExpanded = (id: string) => {
     setExpandedKeyringIds((prev) => {
       const next = new Set(prev);
@@ -745,10 +689,25 @@ function WalletAndAccounts() {
     });
   };
 
-  const [renameKrId, setRenameKrId] = createSignal<string | null>(null);
-  const [renameKrLabel, setRenameKrLabel] = createSignal("");
-  const [renameKrBusy, setRenameKrBusy] = createSignal(false);
-  const [renameKrError, setRenameKrError] = createSignal("");
+  const [accountInfoIndex, setAccountInfoIndex] = createSignal<number | null>(null);
+  const [accountInfoName, setAccountInfoName] = createSignal("");
+  const [pkExportPassword, setPkExportPassword] = createSignal("");
+  const [pkExportRevealed, setPkExportRevealed] = createSignal(false);
+  const [pkExportKey, setPkExportKey] = createSignal("");
+  const [pkExportLoading, setPkExportLoading] = createSignal(false);
+  const [pkExportError, setPkExportError] = createSignal("");
+  const [pkShowKey, setPkShowKey] = createSignal(false);
+
+  const [walletInfoKeyringId, setWalletInfoKeyringId] = createSignal<string | null>(null);
+  const [walletInfoLabel, setWalletInfoLabel] = createSignal("");
+  const [walletInfoBusy, setWalletInfoBusy] = createSignal(false);
+  const [walletInfoError, setWalletInfoError] = createSignal("");
+  const [mnExportPassword, setMnExportPassword] = createSignal("");
+  const [mnExportRevealed, setMnExportRevealed] = createSignal(false);
+  const [mnExportWords, setMnExportWords] = createSignal<string[]>([]);
+  const [mnExportLoading, setMnExportLoading] = createSignal(false);
+  const [mnExportError, setMnExportError] = createSignal("");
+  const [mnBlurred, setMnBlurred] = createSignal(true);
 
   const [deleteKrId, setDeleteKrId] = createSignal<string | null>(null);
   const [deleteKrPw, setDeleteKrPw] = createSignal("");
@@ -760,8 +719,6 @@ function WalletAndAccounts() {
   const [removeAccBusy, setRemoveAccBusy] = createSignal(false);
   const [removeAccError, setRemoveAccError] = createSignal("");
 
-  const [editingIndex, setEditingIndex] = createSignal<number | null>(null);
-  const [editName, setEditName] = createSignal("");
   const [deriveForKeyringId, setDeriveForKeyringId] = createSignal<string | null>(null);
   const [derivePassword, setDerivePassword] = createSignal("");
   const [deriveError, setDeriveError] = createSignal("");
@@ -857,30 +814,145 @@ function WalletAndAccounts() {
       setRemoveAccBusy(true);
       const ok = await walletState.removeAccount(idx);
       setRemoveAccBusy(false);
-      if (ok) setEditingIndex(null);
+      if (ok) closeAccountInfo();
     })();
   };
 
-  const closeRenameKr = () => {
-    setRenameKrId(null);
-    setRenameKrLabel("");
-    setRenameKrError("");
-    setRenameKrBusy(false);
+  const closeAccountInfo = () => {
+    setAccountInfoIndex(null);
+    setAccountInfoName("");
+    setPkExportPassword("");
+    setPkExportRevealed(false);
+    setPkExportKey("");
+    setPkExportError("");
+    setPkShowKey(false);
+    setPkExportLoading(false);
   };
 
-  const confirmRenameKr = async () => {
-    const id = renameKrId();
+  const closeWalletInfo = () => {
+    setWalletInfoKeyringId(null);
+    setWalletInfoLabel("");
+    setWalletInfoError("");
+    setMnExportPassword("");
+    setMnExportRevealed(false);
+    setMnExportWords([]);
+    setMnExportError("");
+    setMnBlurred(true);
+    setMnExportLoading(false);
+  };
+
+  const saveAccountInfoName = async () => {
+    const idx = accountInfoIndex();
+    if (idx == null) return;
+    const name = accountInfoName().trim();
+    if (name.length < 1) return;
+    await walletState.renameAccount(idx, name);
+  };
+
+  const saveWalletInfoName = async () => {
+    const id = walletInfoKeyringId();
     if (!id) return;
-    const label = renameKrLabel().trim();
+    const label = walletInfoLabel().trim();
     if (label.length < 1) {
-      setRenameKrError("Enter a name");
+      setWalletInfoError("Enter a name");
       return;
     }
-    setRenameKrError("");
-    setRenameKrBusy(true);
+    setWalletInfoError("");
+    setWalletInfoBusy(true);
     const ok = await walletState.renameKeyring(id, label);
-    setRenameKrBusy(false);
-    if (ok) closeRenameKr();
+    setWalletInfoBusy(false);
+    if (ok) setWalletInfoError("");
+  };
+
+  const revealAccountPrivateKey = async () => {
+    const idx = accountInfoIndex();
+    if (idx == null) return;
+    const acc = walletState.accounts()[idx];
+    if (!acc) return;
+    const isVault = walletState.storageMode() === "vault";
+    if (isVault && pkExportPassword().length < 4) {
+      setPkExportError("Enter your password");
+      return;
+    }
+    setPkExportError("");
+    setPkExportLoading(true);
+    const res = await sendMessage({
+      type: "EXPORT_PRIVATE_KEY",
+      address: acc.address,
+      ...(isVault ? { password: pkExportPassword() } : {}),
+    });
+    setPkExportLoading(false);
+    if (!res.ok) {
+      const friendly =
+        res.error === "Wrong password" || res.error === "Authentication failed or cancelled"
+          ? res.error
+          : "Could not export private key";
+      setPkExportError(friendly);
+      if (friendly !== res.error) showError(friendly, res.error);
+      return;
+    }
+    if (!res.data || !("privateKey" in res.data)) {
+      setPkExportError("Could not export private key");
+      return;
+    }
+    setPkExportKey(res.data.privateKey);
+    setPkExportRevealed(true);
+  };
+
+  const revealWalletMnemonic = async () => {
+    const kid = walletInfoKeyringId();
+    if (!kid) return;
+    const isVault = walletState.storageMode() === "vault";
+    if (isVault && mnExportPassword().length < 4) {
+      setMnExportError("Enter your password");
+      return;
+    }
+    setMnExportError("");
+    setMnExportLoading(true);
+    const res = await sendMessage({
+      type: "EXPORT_MNEMONIC",
+      keyringId: kid,
+      ...(isVault ? { password: mnExportPassword() } : {}),
+    });
+    setMnExportLoading(false);
+    if (!res.ok) {
+      const friendly =
+        res.error === "Wrong password" || res.error === "Authentication failed or cancelled"
+          ? res.error
+          : "Could not export recovery phrase";
+      setMnExportError(friendly);
+      if (friendly !== res.error) showError(friendly, res.error);
+      return;
+    }
+    if (!res.data || !("mnemonic" in res.data)) {
+      setMnExportError("No recovery phrase for this wallet");
+      return;
+    }
+    setMnExportWords(res.data.mnemonic.split(" "));
+    setMnExportRevealed(true);
+  };
+
+  const openAccountInfo = (accountArrayIndex: number) => {
+    const acc = walletState.accounts()[accountArrayIndex];
+    if (!acc) return;
+    setAccountInfoIndex(accountArrayIndex);
+    setAccountInfoName(acc.name);
+    setPkExportPassword("");
+    setPkExportRevealed(false);
+    setPkExportKey("");
+    setPkExportError("");
+    setPkShowKey(false);
+  };
+
+  const openWalletInfo = (kr: KeyringPublic) => {
+    setWalletInfoKeyringId(kr.id);
+    setWalletInfoLabel(kr.label);
+    setWalletInfoError("");
+    setMnExportPassword("");
+    setMnExportRevealed(false);
+    setMnExportWords([]);
+    setMnExportError("");
+    setMnBlurred(true);
   };
 
   const closeDeleteKr = () => {
@@ -925,7 +997,7 @@ function WalletAndAccounts() {
     const ok = await walletState.removeAccount(idx, isVault ? removeAccPw() : undefined);
     setRemoveAccBusy(false);
     if (ok) {
-      setEditingIndex(null);
+      closeAccountInfo();
       closeRemoveAcc();
     }
   };
@@ -1095,14 +1167,13 @@ function WalletAndAccounts() {
                       <button
                         type="button"
                         class="p-0.5 text-text-tertiary hover:text-accent transition-colors cursor-pointer shrink-0"
-                        aria-label="Rename wallet"
-                        onClick={() => {
-                          setRenameKrId(kr.id);
-                          setRenameKrLabel(kr.label);
-                          setRenameKrError("");
+                        aria-label="Wallet details"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openWalletInfo(kr);
                         }}
                       >
-                        <Pencil size={12} />
+                        <Info size={12} />
                       </button>
                     </div>
                     <div class="text-[11px] text-text-tertiary text-left w-full cursor-pointer group-hover:text-text-secondary transition-colors">
@@ -1110,18 +1181,6 @@ function WalletAndAccounts() {
                       {accountsForKeyring(kr.id).length === 1 ? "" : "s"}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    disabled={deleteKrBusy()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      beginDeleteKeyring(kr);
-                    }}
-                    class="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-                    aria-label="Delete wallet"
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
               </div>
               <Show when={isKeyringExpanded(kr.id)}>
@@ -1132,21 +1191,7 @@ function WalletAndAccounts() {
                         acc={acc}
                         accountArrayIndex={i}
                         isActive={i === walletState.activeAccountIndex()}
-                        isEditing={editingIndex() === i}
-                        editName={editName()}
-                        onEditName={setEditName}
-                        onConfirmEdit={() => {
-                          void walletState.renameAccount(i, editName().trim() || acc.name);
-                          setEditingIndex(null);
-                        }}
-                        onStartEdit={() => {
-                          setEditingIndex(i);
-                          setEditName(acc.name);
-                        }}
-                        onCancelEdit={() => setEditingIndex(null)}
-                        canRemove={walletState.accounts().length > 1}
-                        removeBusy={removeAccBusy()}
-                        onRequestRemove={() => beginRemoveAccount(i)}
+                        onOpenInfo={() => openAccountInfo(i)}
                       />
                     )}
                   </For>
@@ -1254,21 +1299,7 @@ function WalletAndAccounts() {
                       acc={acc}
                       accountArrayIndex={i}
                       isActive={i === walletState.activeAccountIndex()}
-                      isEditing={editingIndex() === i}
-                      editName={editName()}
-                      onEditName={setEditName}
-                      onConfirmEdit={() => {
-                        void walletState.renameAccount(i, editName().trim() || acc.name);
-                        setEditingIndex(null);
-                      }}
-                      onStartEdit={() => {
-                        setEditingIndex(i);
-                        setEditName(acc.name);
-                      }}
-                      onCancelEdit={() => setEditingIndex(null)}
-                      canRemove={walletState.accounts().length > 1}
-                      removeBusy={removeAccBusy()}
-                      onRequestRemove={() => beginRemoveAccount(i)}
+                      onOpenInfo={() => openAccountInfo(i)}
                     />
                   )}
                 </For>
@@ -1284,7 +1315,7 @@ function WalletAndAccounts() {
                   setImportPkValue("");
                   setImportPkVaultPw("");
                 }}
-                class="flex items-center gap-2 w-full px-4 py-2.5 text-accent hover:bg-base/50 transition-colors cursor-pointer text-left border-b border-divider/60"
+                class="flex items-center gap-2 w-full pl-8 pr-4 py-2.5 text-accent hover:bg-base/50 transition-colors cursor-pointer text-left border-b border-divider/60"
               >
                 <Key size={16} class="shrink-0" />
                 <span class="text-sm font-medium">Add private key</span>
@@ -1403,27 +1434,220 @@ function WalletAndAccounts() {
           </div>
         </Modal>
 
-        <Modal open={renameKrId() !== null} onClose={closeRenameKr} title="Rename wallet">
-          <div class="p-4 space-y-3">
+        <Modal open={accountInfoIndex() !== null} onClose={closeAccountInfo} title="Account">
+          <div class="p-4 space-y-3 max-h-[min(520px,75vh)] overflow-y-auto">
+            {(() => {
+              const idx = accountInfoIndex();
+              if (idx == null) return null;
+              const acc = walletState.accounts()[idx];
+              if (!acc) return null;
+              return (
+                <>
+                  <Input
+                    label="Name"
+                    placeholder="Account name"
+                    value={accountInfoName()}
+                    onInput={setAccountInfoName}
+                  />
+                  <Button size="sm" variant="secondary" onClick={() => void saveAccountInfoName()}>
+                    Save name
+                  </Button>
+                  <div>
+                    <p class="text-xs text-text-secondary">Address</p>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="text-sm font-mono text-text-primary break-all">
+                        {acc.address}
+                      </span>
+                      <CopyButton text={acc.address} size={14} />
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-xs text-text-secondary">Derivation path</p>
+                    <p class="text-sm font-mono text-text-primary mt-0.5">{acc.path}</p>
+                  </div>
+                  <Banner variant="danger">
+                    Never share your private key. Anyone with this key has full control of this
+                    account.
+                  </Banner>
+                  <Show
+                    when={pkExportRevealed()}
+                    fallback={
+                      <>
+                        <Show when={walletState.storageMode() === "vault"}>
+                          <Input
+                            type="password"
+                            label="Wallet password"
+                            placeholder="Password"
+                            value={pkExportPassword()}
+                            onInput={(v) => {
+                              setPkExportPassword(v);
+                              setPkExportError("");
+                            }}
+                            error={pkExportError() || undefined}
+                          />
+                        </Show>
+                        <Show when={walletState.storageMode() !== "vault" && pkExportError()}>
+                          <Banner variant="danger">{pkExportError()}</Banner>
+                        </Show>
+                        <Button
+                          onClick={() => void revealAccountPrivateKey()}
+                          loading={pkExportLoading()}
+                        >
+                          <Show
+                            when={walletState.storageMode() === "keychain"}
+                            fallback="Reveal private key"
+                          >
+                            <span class="inline-flex items-center gap-1.5">
+                              <Fingerprint size={16} />
+                              Reveal private key
+                            </span>
+                          </Show>
+                        </Button>
+                      </>
+                    }
+                  >
+                    <Card>
+                      <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs text-text-secondary">Private key</p>
+                        <div class="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setPkShowKey(!pkShowKey())}
+                            class="p-1 text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+                          >
+                            <Show when={pkShowKey()} fallback={<Eye size={14} />}>
+                              <EyeOff size={14} />
+                            </Show>
+                          </button>
+                          <CopyButton text={pkExportKey()} size={14} />
+                        </div>
+                      </div>
+                      <p class="font-mono text-xs text-text-primary break-all leading-relaxed select-all">
+                        {pkShowKey() ? pkExportKey() : "\u2022".repeat(66)}
+                      </p>
+                    </Card>
+                  </Show>
+                  <div class="flex flex-wrap gap-2 pt-2 border-t border-divider">
+                    <Button
+                      variant="danger"
+                      onClick={() => {
+                        closeAccountInfo();
+                        beginRemoveAccount(idx);
+                      }}
+                      disabled={walletState.accounts().length < 2}
+                    >
+                      Remove account
+                    </Button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </Modal>
+
+        <Modal
+          open={walletInfoKeyringId() !== null}
+          onClose={closeWalletInfo}
+          title="Mnemonic wallet"
+        >
+          <div class="p-4 space-y-3 max-h-[min(520px,75vh)] overflow-y-auto">
             <Input
               label="Name"
               placeholder="Wallet name"
-              value={renameKrLabel()}
+              value={walletInfoLabel()}
               onInput={(v) => {
-                setRenameKrLabel(v);
-                setRenameKrError("");
+                setWalletInfoLabel(v);
+                setWalletInfoError("");
               }}
-              autoFocus
             />
-            <Show when={renameKrError()}>
-              <p class="text-sm text-danger">{renameKrError()}</p>
+            <Show when={walletInfoError()}>
+              <p class="text-sm text-danger">{walletInfoError()}</p>
             </Show>
-            <div class="flex flex-wrap gap-2 justify-end pt-1">
-              <Button variant="secondary" onClick={closeRenameKr}>
-                Cancel
+            <div class="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                onClick={() => void saveWalletInfoName()}
+                loading={walletInfoBusy()}
+              >
+                Save name
               </Button>
-              <Button onClick={() => void confirmRenameKr()} loading={renameKrBusy()}>
-                Save
+            </div>
+            <Banner variant="danger">
+              Never share your recovery phrase. Anyone with these words can steal your funds.
+            </Banner>
+            <Show
+              when={mnExportRevealed()}
+              fallback={
+                <>
+                  <Show when={walletState.storageMode() === "vault"}>
+                    <Input
+                      type="password"
+                      label="Wallet password"
+                      placeholder="Password"
+                      value={mnExportPassword()}
+                      onInput={(v) => {
+                        setMnExportPassword(v);
+                        setMnExportError("");
+                      }}
+                      error={mnExportError() || undefined}
+                    />
+                  </Show>
+                  <Show when={walletState.storageMode() !== "vault" && mnExportError()}>
+                    <Banner variant="danger">{mnExportError()}</Banner>
+                  </Show>
+                  <Button onClick={() => void revealWalletMnemonic()} loading={mnExportLoading()}>
+                    <Show
+                      when={walletState.storageMode() === "keychain"}
+                      fallback="Reveal recovery phrase"
+                    >
+                      <span class="inline-flex items-center gap-1.5">
+                        <Fingerprint size={16} />
+                        Reveal recovery phrase
+                      </span>
+                    </Show>
+                  </Button>
+                </>
+              }
+            >
+              <div class="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setMnBlurred(!mnBlurred())}
+                  class="flex items-center gap-1.5 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
+                >
+                  {mnBlurred() ? <Eye size={14} /> : <EyeOff size={14} />}
+                  {mnBlurred() ? "Show words" : "Hide words"}
+                </button>
+                <CopyButton text={mnExportWords().join(" ")} size={14} />
+              </div>
+              <div
+                class={`grid grid-cols-3 gap-2 transition-all duration-200 ${
+                  mnBlurred() ? "blur-md select-none" : ""
+                }`}
+              >
+                <For each={mnExportWords()}>
+                  {(word, i) => (
+                    <div class="flex items-center gap-1.5 bg-surface rounded-[var(--radius-chip)] px-2.5 py-2 shadow-sm">
+                      <span class="text-xs text-text-tertiary w-4 text-right">{i() + 1}</span>
+                      <span class="font-mono text-sm text-text-primary">{word}</span>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
+            <div class="flex flex-wrap gap-2 pt-2 border-t border-divider">
+              <Button
+                variant="danger"
+                onClick={() => {
+                  const id = walletInfoKeyringId();
+                  if (!id) return;
+                  const label = walletInfoLabel().trim();
+                  const kr = walletState.keyrings().find((k) => k.id === id);
+                  closeWalletInfo();
+                  beginDeleteKeyring({ id, label: label || kr?.label || "" });
+                }}
+              >
+                Delete wallet
               </Button>
             </div>
           </div>
