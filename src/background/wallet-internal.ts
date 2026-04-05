@@ -1,7 +1,7 @@
 import type { Address, Hex } from "viem";
-
-import type { MessageResponse } from "../shared/messages";
 import { IMPORTED_KEYRING_ID } from "../shared/keyring-constants";
+import type { MessageResponse } from "../shared/messages";
+import { mnemonicFingerprint } from "../shared/mnemonic-fingerprint";
 import type {
   HdKeyringStored,
   ImportedKeyringStored,
@@ -10,18 +10,20 @@ import type {
   SerializedAccount,
   VaultData,
 } from "../shared/types";
-import { mnemonicFingerprint } from "../shared/mnemonic-fingerprint";
-import * as keychain from "./keychain";
 import {
   clearHdDerivedAddresses,
   deriveHdAddressList,
   loadHdDerivedAddressMap,
   saveHdDerivedAddressMap,
 } from "./hd-addresses";
+import * as keychain from "./keychain";
 import { bgLog } from "./log";
-import { decryptVault, encryptVault, setStorageMode, type StorageMode } from "./vault";
+import { decryptVault, encryptVault, type StorageMode, setStorageMode } from "./vault";
 /** Insert an HD keyring row after existing HD rows, before imported rows. */
-export function insertHdKeyringPublic(existing: KeyringPublic[], row: KeyringPublic): KeyringPublic[] {
+export function insertHdKeyringPublic(
+  existing: KeyringPublic[],
+  row: KeyringPublic,
+): KeyringPublic[] {
   const hds = existing.filter((k) => k.type === "hd");
   const imp = existing.filter((k) => k.type === "imported");
   return [...hds, row, ...imp];
@@ -59,17 +61,12 @@ export async function retrieveHdMnemonicForKeyring(
   }
   if (!password) throw new Error("Password required");
   const data = await decryptVault(password);
-  const kr = data.keyrings.find(
-    (k): k is HdKeyringStored => k.type === "hd" && k.id === keyringId,
-  );
+  const kr = data.keyrings.find((k): k is HdKeyringStored => k.type === "hd" && k.id === keyringId);
   if (!kr) throw new Error("HD keyring not found");
   return kr.mnemonic;
 }
 
-export function nextHdIndexForKeyring(
-  accounts: SerializedAccount[],
-  keyringId: string,
-): number {
+export function nextHdIndexForKeyring(accounts: SerializedAccount[], keyringId: string): number {
   const idxs = accounts
     .filter((a) => a.path !== "imported" && a.keyringId === keyringId)
     .map((a) => a.index);
@@ -83,10 +80,7 @@ export function nextImportIndex(accounts: SerializedAccount[]): number {
 
 export function ensureImportedKeyringPublic(keyrings: KeyringPublic[]): KeyringPublic[] {
   if (keyrings.some((k) => k.id === IMPORTED_KEYRING_ID)) return keyrings;
-  return [
-    ...keyrings,
-    { id: IMPORTED_KEYRING_ID, label: "Imported", type: "imported" as const },
-  ];
+  return [...keyrings, { id: IMPORTED_KEYRING_ID, label: "Imported", type: "imported" as const }];
 }
 
 async function storeHdDerivedSlice(keyringId: string, mnemonic: string): Promise<void> {
@@ -193,10 +187,7 @@ export function importedKeyringMeta(label = "Imported"): ImportedKeyringStored {
   };
 }
 
-export async function mergeHdMapAfterImport(
-  keyringId: string,
-  mnemonic: string,
-): Promise<void> {
+export async function mergeHdMapAfterImport(keyringId: string, mnemonic: string): Promise<void> {
   await storeHdDerivedSlice(keyringId, mnemonic);
 }
 

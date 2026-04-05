@@ -83,9 +83,7 @@ export function AddressBook() {
             <div class="flex flex-col items-center justify-center py-12 text-center">
               <Star size={32} class="text-text-tertiary mb-3" />
               <p class="text-sm text-text-secondary">No saved addresses yet</p>
-              <p class="text-xs text-text-tertiary mt-1">
-                Add addresses you send to frequently
-              </p>
+              <p class="text-xs text-text-tertiary mt-1">Add addresses you send to frequently</p>
             </div>
           }
         >
@@ -96,9 +94,7 @@ export function AddressBook() {
                   <div class="flex items-center gap-3 px-4 py-3">
                     <Star size={16} class="text-accent shrink-0" />
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-text-primary truncate">
-                        {entry.name}
-                      </p>
+                      <p class="text-sm font-medium text-text-primary truncate">{entry.name}</p>
                       <div class="flex items-center gap-1 mt-0.5">
                         <span class="text-xs font-mono text-text-tertiary">
                           {truncateAddress(entry.address)}
@@ -145,7 +141,9 @@ export function AddressBook() {
         <div class="p-4 space-y-3">
           <Show when={!editExisting()}>
             <div class="space-y-1.5">
-              <label for="ab-edit-addr" class="block text-sm font-medium text-text-secondary">Address</label>
+              <label for="ab-edit-addr" class="block text-sm font-medium text-text-secondary">
+                Address
+              </label>
               <input
                 id="ab-edit-addr"
                 class={`w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-tertiary outline-none ring-1 transition-shadow ${
@@ -170,7 +168,9 @@ export function AddressBook() {
             </div>
           </Show>
           <div class="space-y-1.5">
-            <label for="ab-edit-name" class="block text-sm font-medium text-text-secondary">Name</label>
+            <label for="ab-edit-name" class="block text-sm font-medium text-text-secondary">
+              Name
+            </label>
             <input
               id="ab-edit-name"
               class="w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none ring-1 ring-transparent focus:ring-accent/40 focus:ring-2 transition-shadow"

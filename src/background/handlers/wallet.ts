@@ -1,4 +1,4 @@
-import { zeroAddress, type Address, type Hex } from "viem";
+import { type Address, type Hex, zeroAddress } from "viem";
 import { getBalance, readContract } from "viem/actions";
 import { encodeFunctionData, formatEther, formatUnits, numberToHex, parseUnits } from "viem/utils";
 import { erc20Abi, feedFaceDisperseAbi } from "../../shared/abis";
@@ -488,7 +488,11 @@ export async function handleRemoveAccount(
   const remainingAccounts = meta.accounts.filter((a) => a.address.toLowerCase() !== lower);
   let active = meta.activeAccountAddress;
   if (active.toLowerCase() === lower) {
-    active = remainingAccounts[0]!.address;
+    const next = remainingAccounts[0];
+    if (next === undefined) {
+      return { ok: false, error: "Could not pick a new active account" };
+    }
+    active = next.address;
   }
 
   const mode = await getStorageMode();

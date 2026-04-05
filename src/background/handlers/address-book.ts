@@ -1,12 +1,7 @@
 import type { Address } from "viem";
 import type { MessageResponse } from "../../shared/messages";
-import {
-  getAddressBook,
-  getRecentAddresses,
-  removeEntry,
-  upsertEntry,
-} from "../address-book";
 import { getActiveAccount } from "../account-utils";
+import { getAddressBook, getRecentAddresses, removeEntry, upsertEntry } from "../address-book";
 import { loadAccountsMeta } from "../vault";
 
 export async function handleGetAddressBook(): Promise<MessageResponse> {

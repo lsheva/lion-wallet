@@ -14,8 +14,7 @@ const MOCK_KR_MAIN = "mock-kr";
 const MOCK_KR_IMPORTED_SEED = "mock-kr-imported";
 
 /** Main HD wallet — standard dev mnemonic. */
-const MAIN_MNEMONIC =
-  "test test test test test test test test test test test junk";
+const MAIN_MNEMONIC = "test test test test test test test test test test test junk";
 
 /** Second HD wallet — simulates a user who imported another recovery phrase. */
 const IMPORTED_SEED_MNEMONIC =

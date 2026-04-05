@@ -1,7 +1,6 @@
 import { CHAINS } from "@shared/constants";
 import { formatUsd, toErrorMessage, tokenColorFromAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import { DEV_MOCK_ACCOUNTS, DEV_MOCK_KEYRINGS } from "./mock/data";
 import type {
   ActivityItem,
   ChainMeta,
@@ -14,6 +13,7 @@ import { batch, createMemo, createRoot, createSignal, untrack } from "solid-js";
 import { type Address, type Hex, zeroAddress } from "viem";
 import { formatUnits } from "viem/utils";
 import { CHAIN_COLOR_BY_ID } from "./chain-ui.generated";
+import { DEV_MOCK_ACCOUNTS, DEV_MOCK_KEYRINGS } from "./mock/data";
 import { showError } from "./toast";
 
 export type { ActivityItem, TokenInfo as Token };
@@ -166,7 +166,10 @@ export const [homeDiscoveryActiveIndices, setHomeDiscoveryActiveIndices] = creat
 export const [chainDiscoveryScanning, setChainDiscoveryScanning] = createSignal(false);
 
 /** Accounts visible on Home / AccountSwitcher for the current chain (lazy discovery). */
-export function homeAccountsForSwitcher(): { account: SerializedAccount; accountArrayIndex: number }[] {
+export function homeAccountsForSwitcher(): {
+  account: SerializedAccount;
+  accountArrayIndex: number;
+}[] {
   const all = accounts();
   const idxSet = homeDiscoveryActiveIndices();
   const scanning = chainDiscoveryScanning();
@@ -571,7 +574,9 @@ export const walletState = {
     });
     if (res.ok) await fetchState();
     else
-      setAccounts(accounts().map((a, i) => (i === index ? { ...a, name: newName.trim() || a.name } : a)));
+      setAccounts(
+        accounts().map((a, i) => (i === index ? { ...a, name: newName.trim() || a.name } : a)),
+      );
   },
 
   async addAccount(password?: string): Promise<void> {

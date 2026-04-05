@@ -7,10 +7,7 @@ function formatContractFunctionReverted(rev: ContractFunctionRevertedError): str
   if (rev.raw) lines.push(`Raw data: ${rev.raw}`);
   if (rev.data && typeof rev.data === "object" && rev.data !== null && "errorName" in rev.data) {
     const d = rev.data as { errorName: string; args?: readonly unknown[] };
-    const argsStr =
-      d.args && d.args.length > 0
-        ? `(${d.args.map(formatArg).join(", ")})`
-        : "";
+    const argsStr = d.args && d.args.length > 0 ? `(${d.args.map(formatArg).join(", ")})` : "";
     lines.push(`Decoded: ${d.errorName}${argsStr}`);
   }
   return lines.join("\n");

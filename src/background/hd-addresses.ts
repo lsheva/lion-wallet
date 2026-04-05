@@ -15,9 +15,7 @@ export async function loadHdDerivedAddressMap(): Promise<HdDerivedAddressMap | n
   if (v && typeof v === "object") {
     const keys = Object.keys(v);
     if (keys.length === 0) return null;
-    const allValid = keys.every(
-      (k) => v[k]?.length === HD_DERIVATION_DEFAULT_CEILING,
-    );
+    const allValid = keys.every((k) => v[k]?.length === HD_DERIVATION_DEFAULT_CEILING);
     if (allValid) return v;
   }
   return null;
@@ -32,8 +30,9 @@ export async function clearHdDerivedAddresses(): Promise<void> {
 }
 
 export function deriveHdAddressList(mnemonic: string, keyringId: string): Address[] {
-  return Array.from({ length: HD_DERIVATION_DEFAULT_CEILING }, (_, i) =>
-    wallet.deriveAccount(mnemonic, i, keyringId).address,
+  return Array.from(
+    { length: HD_DERIVATION_DEFAULT_CEILING },
+    (_, i) => wallet.deriveAccount(mnemonic, i, keyringId).address,
   );
 }
 

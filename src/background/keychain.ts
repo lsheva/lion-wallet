@@ -44,7 +44,10 @@ export interface StoreResult {
   error?: string;
 }
 
-export async function storeMnemonicForKeyring(keyringId: string, mnemonic: string): Promise<StoreResult> {
+export async function storeMnemonicForKeyring(
+  keyringId: string,
+  mnemonic: string,
+): Promise<StoreResult> {
   try {
     const res = await sendNative({
       action: "keychain_store",

@@ -196,12 +196,7 @@ export function ImportWallet() {
       </div>
 
       <div class="px-4 py-4">
-        <Button
-          onClick={handleImport}
-          size="lg"
-          loading={loading()}
-          disabled={!keychainResolved()}
-        >
+        <Button onClick={handleImport} size="lg" loading={loading()} disabled={!keychainResolved()}>
           <Show when={!usePassword()} fallback="Import">
             <span class="inline-flex items-center gap-1.5">
               <Fingerprint size={18} />

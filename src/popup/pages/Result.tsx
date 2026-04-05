@@ -353,7 +353,9 @@ export function Result() {
             {recipient()}
           </div>
           <div class="space-y-1.5">
-            <label for="save-result-name" class="block text-sm font-medium text-text-secondary">Name</label>
+            <label for="save-result-name" class="block text-sm font-medium text-text-secondary">
+              Name
+            </label>
             <input
               id="save-result-name"
               class="w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none ring-1 ring-transparent focus:ring-accent/40 focus:ring-2 transition-shadow"
@@ -361,15 +363,13 @@ export function Result() {
               placeholder="e.g. Alice, Uniswap Router"
               value={saveModalName()}
               onInput={(e) => setSaveModalName(e.currentTarget.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSaveToAddressBook(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveToAddressBook();
+              }}
               autofocus
             />
           </div>
-          <Button
-            onClick={handleSaveToAddressBook}
-            disabled={!saveModalName().trim()}
-            size="lg"
-          >
+          <Button onClick={handleSaveToAddressBook} disabled={!saveModalName().trim()} size="lg">
             Save
           </Button>
         </div>

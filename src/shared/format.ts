@@ -115,7 +115,7 @@ export function truncateAddressPreview(address: string): string {
 /** Trim to at most `maxChars` characters; if longer, end with an ellipsis (counts toward the limit). */
 export function truncateWithEllipsis(str: string, maxChars: number): string {
   if (str.length <= maxChars) return str;
-  return str.slice(0, maxChars - 1) + "…";
+  return `${str.slice(0, maxChars - 1)}…`;
 }
 
 /**

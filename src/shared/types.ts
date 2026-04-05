@@ -1,6 +1,6 @@
 import type { Address, Hex } from "viem";
 
-import { IMPORTED_KEYRING_ID } from "./keyring-constants";
+import type { IMPORTED_KEYRING_ID } from "./keyring-constants";
 
 export interface SerializedAccount {
   name: string;

@@ -8,10 +8,7 @@ export function getActiveAccount(meta: AccountsMeta): SerializedAccount | undefi
   return meta.accounts.find((a) => a.address.toLowerCase() === lower);
 }
 
-export function findAccountIndexByAddress(
-  accounts: SerializedAccount[],
-  address: Address,
-): number {
+export function findAccountIndexByAddress(accounts: SerializedAccount[], address: Address): number {
   const lower = address.toLowerCase();
   return accounts.findIndex((a) => a.address.toLowerCase() === lower);
 }

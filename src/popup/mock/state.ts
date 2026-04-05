@@ -28,9 +28,7 @@ const MOCK_NETWORK_BY_ID = new Map(NETWORKS.map((n) => [n.id, n]));
 
 const mockDerived = createRoot(() => {
   const activeAccountIndex = createMemo(() =>
-    accounts().findIndex(
-      (a) => a.address.toLowerCase() === activeAccountAddress().toLowerCase(),
-    ),
+    accounts().findIndex((a) => a.address.toLowerCase() === activeAccountAddress().toLowerCase()),
   );
   const activeAccount = createMemo(
     () =>

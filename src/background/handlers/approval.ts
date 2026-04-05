@@ -4,6 +4,7 @@ import type { Address, Hex } from "viem";
 import { formatEther } from "viem/utils";
 import type { MessageResponse } from "../../shared/messages";
 import type { GasSpeed, TransactionParams } from "../../shared/types";
+import { getActiveAccount } from "../account-utils";
 import {
   getPendingApproval,
   getPendingCount,
@@ -28,9 +29,8 @@ import {
 } from "../signing";
 import { decodeTx } from "../tx-decoder";
 import { simulateTx } from "../tx-simulator";
-import { getActiveAccount } from "../account-utils";
 import { getStorageMode, loadAccountsMeta } from "../vault";
-import { retrieveImportedKey, retrieveHdMnemonicForKeyring } from "./wallet";
+import { retrieveHdMnemonicForKeyring, retrieveImportedKey } from "./wallet";
 
 function buildSigningReason(method: string, params: unknown[], chainId: number): string {
   const net = getNetworkConfig(chainId);

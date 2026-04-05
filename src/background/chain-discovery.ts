@@ -103,7 +103,10 @@ export async function runChainDiscovery(
     let newActiveAddr = meta.activeAccountAddress;
     if (prevAddr) {
       const idx = updatedAccounts.findIndex((a) => a.address === prevAddr);
-      newActiveAddr = idx >= 0 ? updatedAccounts[idx]!.address : updatedAccounts[0]!.address;
+      const picked = idx >= 0 ? updatedAccounts[idx]?.address : updatedAccounts[0]?.address;
+      if (picked !== undefined) {
+        newActiveAddr = picked;
+      }
     }
 
     const activeAccountIndices: number[] = [];

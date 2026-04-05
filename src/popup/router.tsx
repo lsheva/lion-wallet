@@ -1,6 +1,6 @@
 import {
-  children,
   type Component,
+  children,
   createSignal,
   type JSX,
   onCleanup,
@@ -37,7 +37,7 @@ export function useNavState<T = unknown>(): T | null {
 
 interface RouteDef {
   path: string;
-  component: Component<any>;
+  component: Component;
 }
 
 /** Declarative route definition — returns data for HashRouter to consume. */
@@ -71,8 +71,8 @@ export function HashRouter(props: {
         defs.push(item as RouteDef);
       }
     }
-    const routeMap: Record<string, Component<any>> = {};
-    let fallback: Component<any> | undefined;
+    const routeMap: Record<string, Component> = {};
+    let fallback: Component | undefined;
     for (const d of defs) {
       if (d.path === "*") fallback = d.component;
       else routeMap[d.path] = d.component;
@@ -82,5 +82,5 @@ export function HashRouter(props: {
     return <Dynamic component={comp} />;
   };
 
-  return props.root ? <Dynamic component={props.root}>{content()}</Dynamic> : <>{content()}</>;
+  return props.root ? <Dynamic component={props.root}>{content()}</Dynamic> : content();
 }

@@ -87,7 +87,11 @@ export interface MessageDataMap {
   GET_STATE: WalletState;
   GET_ACCOUNTS: { accounts: SerializedAccount[] };
   ADD_ACCOUNT: { account: SerializedAccount };
-  ADD_KEYRING_CREATE: { mnemonic: string; accounts: SerializedAccount[]; keyrings: KeyringPublic[] };
+  ADD_KEYRING_CREATE: {
+    mnemonic: string;
+    accounts: SerializedAccount[];
+    keyrings: KeyringPublic[];
+  };
   ADD_KEYRING_IMPORT: { accounts: SerializedAccount[]; keyrings: KeyringPublic[] };
   RENAME_KEYRING: undefined;
   DELETE_KEYRING: undefined;

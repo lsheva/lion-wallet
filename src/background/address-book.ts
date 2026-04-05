@@ -37,8 +37,12 @@ export async function upsertEntry(address: Address, name: string): Promise<void>
   const lower = checksummed.toLowerCase();
   const idx = entries.findIndex((e) => e.address.toLowerCase() === lower);
   if (idx >= 0) {
-    const existing = entries[idx]!;
-    entries[idx] = { address: checksummed, name, addedAt: existing.addedAt };
+    const existing = entries[idx];
+    if (existing !== undefined) {
+      entries[idx] = { address: checksummed, name, addedAt: existing.addedAt };
+    } else {
+      entries.push({ address: checksummed, name, addedAt: Date.now() });
+    }
   } else {
     entries.push({ address: checksummed, name, addedAt: Date.now() });
   }
@@ -85,8 +89,16 @@ export async function pushRecentAddress(sender: Address, to: Address): Promise<v
   const idx = list.findIndex((r) => r.address.toLowerCase() === lower);
 
   if (idx >= 0) {
-    const existing = list[idx]!;
-    list[idx] = { address: checksummedTo, lastUsedAt: Date.now(), useCount: existing.useCount + 1 };
+    const existing = list[idx];
+    if (existing !== undefined) {
+      list[idx] = {
+        address: checksummedTo,
+        lastUsedAt: Date.now(),
+        useCount: existing.useCount + 1,
+      };
+    } else {
+      list.push({ address: checksummedTo, lastUsedAt: Date.now(), useCount: 1 });
+    }
   } else {
     list.push({ address: checksummedTo, lastUsedAt: Date.now(), useCount: 1 });
   }

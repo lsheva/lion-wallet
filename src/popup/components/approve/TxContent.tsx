@@ -130,7 +130,9 @@ export function TxContent(props: TxContentProps) {
                 </p>
               </div>
               <div class="rounded-[var(--radius-chip)] border border-divider bg-base px-3 py-2.5">
-                <p class="text-[11px] font-medium text-text-secondary mb-1.5">Simulation / estimate error</p>
+                <p class="text-[11px] font-medium text-text-secondary mb-1.5">
+                  Simulation / estimate error
+                </p>
                 <pre class="font-mono text-[10px] text-text-secondary whitespace-pre-wrap break-words max-h-[200px] overflow-y-auto leading-relaxed">
                   {gasEstimateError()}
                 </pre>

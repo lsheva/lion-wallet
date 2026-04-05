@@ -3,11 +3,7 @@ import type { Address } from "viem";
 import type { VaultData } from "./types";
 
 export function normalizeMnemonicForCompare(mnemonic: string): string {
-  return mnemonic
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .join(" ");
+  return mnemonic.trim().toLowerCase().split(/\s+/).join(" ");
 }
 
 /** Decrypted vault JSON must be v2 (multi-keyring) shape. */

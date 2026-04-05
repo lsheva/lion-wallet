@@ -230,7 +230,8 @@ export function Send() {
         if (g.id !== gId) return g;
         const rs = [...g.recipients];
         while (rs.length <= idx) rs.push(emptyR());
-        rs[idx] = { ...rs[idx]!, amount };
+        const prev = rs[idx] ?? emptyR();
+        rs[idx] = { ...prev, amount };
         return { ...g, recipients: rs };
       }),
     );
@@ -239,9 +240,10 @@ export function Send() {
 
   /* ── display helpers ── */
 
-  function displayRecs(gi: number) {
+  function displayRecs(gi: number): Recipient[] {
     const g = groups();
-    const grp = g[gi]!;
+    const grp = g[gi];
+    if (grp === undefined) return [];
     if (!grp.useSameRecipients || gi === 0) return grp.recipients;
     const first = g[0];
     if (!first) return grp.recipients;
@@ -278,8 +280,12 @@ export function Send() {
     const g = groups();
 
     if (!isMulti()) {
-      const grp = g[0]!;
-      const rec = grp.recipients[0]!;
+      const grp = g[0];
+      const rec = grp?.recipients[0];
+      if (!grp || !rec) {
+        setError("Invalid recipient address");
+        return;
+      }
       if (!isAddress(rec.to)) {
         setError("Invalid recipient address");
         return;
@@ -330,7 +336,8 @@ export function Send() {
     try {
       const entries: MultiSendEntry[] = [];
       for (let gi = 0; gi < g.length; gi++) {
-        const grp = g[gi]!;
+        const grp = g[gi];
+        if (!grp) continue;
         const recs = displayRecs(gi);
         for (const r of recs) {
           entries.push({
@@ -366,7 +373,13 @@ export function Send() {
       <div class="flex-1 px-4 pt-3 overflow-y-auto pb-2">
         <Index each={groups()}>
           {(_, gi) => {
-            const grp = () => groups()[gi]!;
+            const grp = () => {
+              const list = groups();
+              const x = list[gi];
+              if (x !== undefined) return x;
+              const fallback = list[0];
+              return fallback ?? mkGroup(defaultToken());
+            };
             const isFirst = () => gi === 0;
             const recs = () => displayRecs(gi);
 

@@ -6,7 +6,12 @@ import {
   truncateWithEllipsis,
 } from "@shared/format";
 import { sendMessage } from "@shared/messages";
-import type { ActivityItem, AddressBookEntry, DecodedEvent, SerializedAccount } from "@shared/types";
+import type {
+  ActivityItem,
+  AddressBookEntry,
+  DecodedEvent,
+  SerializedAccount,
+} from "@shared/types";
 import { FileCode, Star } from "lucide-solid";
 import { createMemo, createSignal, For, Show } from "solid-js";
 import type { Address } from "viem";
@@ -28,7 +33,10 @@ interface ActivityRowProps {
   onAddressBookSaved?: () => void;
 }
 
-type RowAssetIcon = { kind: "native" } | { kind: "erc20"; address: string; symbol: string } | { kind: "contract" };
+type RowAssetIcon =
+  | { kind: "native" }
+  | { kind: "erc20"; address: string; symbol: string }
+  | { kind: "contract" };
 
 function relativeTime(ts: number): string {
   const diff = Math.floor(Date.now() / 1000) - ts;
@@ -186,7 +194,10 @@ export function ActivityRow(props: ActivityRowProps) {
               </Show>
             </div>
             <div class="flex items-center gap-1 text-xs text-text-tertiary flex-wrap min-w-0">
-              <span class="min-w-0 truncate font-mono text-text-tertiary" title={counterpartyAlias() ?? counterparty}>
+              <span
+                class="min-w-0 truncate font-mono text-text-tertiary"
+                title={counterpartyAlias() ?? counterparty}
+              >
                 {counterpartyDisplay()}
               </span>
               <Show when={showSaveToBook()}>
@@ -244,7 +255,11 @@ export function ActivityRow(props: ActivityRowProps) {
         </div>
       </div>
 
-      <Modal open={saveModalOpen()} onClose={() => setSaveModalOpen(false)} title="Save to Address Book">
+      <Modal
+        open={saveModalOpen()}
+        onClose={() => setSaveModalOpen(false)}
+        title="Save to Address Book"
+      >
         <div class="p-4 space-y-3">
           <div class="text-xs font-mono text-text-secondary bg-surface rounded-[var(--radius-card)] px-3 py-2">
             <Show when={saveCandidate()} keyed>
@@ -252,7 +267,10 @@ export function ActivityRow(props: ActivityRowProps) {
             </Show>
           </div>
           <div class="space-y-1.5">
-            <label for={`ab-activity-${props.item.hash}`} class="block text-sm font-medium text-text-secondary">
+            <label
+              for={`ab-activity-${props.item.hash}`}
+              class="block text-sm font-medium text-text-secondary"
+            >
               Name
             </label>
             <input
