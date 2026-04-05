@@ -1,11 +1,39 @@
 import { truncateAddress } from "@shared/format";
-import { Check, ChevronDown, LoaderCircle } from "lucide-solid";
+import { IMPORTED_KEYRING_ID } from "@shared/keyring-constants";
+import { Check, ChevronDown, ChevronRight, LoaderCircle } from "lucide-solid";
 import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { keyringDotClass } from "../keyring-ui";
 import { fetchActivity, walletState } from "../store";
 import { AddressDisplay } from "./AddressDisplay";
 import { Identicon } from "./Identicon";
 import { BalanceSkeleton } from "./Skeleton";
+
+const EXPANDED_STORAGE_KEY = "lion-account-switcher-expanded-wallets";
+
+function loadExpandedWalletIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(EXPANDED_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as unknown;
+    if (!Array.isArray(arr)) return new Set();
+    const ids = arr.filter((x): x is string => typeof x === "string");
+    /** Only one wallet section open at a time; migrate legacy multi-entry storage. */
+    if (ids.length === 0) return new Set();
+    if (ids.length === 1) return new Set(ids);
+    const first = ids[0];
+    return first !== undefined ? new Set([first]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function persistExpandedWalletIds(ids: Set<string>): void {
+  try {
+    localStorage.setItem(EXPANDED_STORAGE_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* quota / private mode */
+  }
+}
 
 interface AccountSwitcherProps {
   usdTotal: string;
@@ -14,7 +42,9 @@ interface AccountSwitcherProps {
 
 export function AccountSwitcher(props: AccountSwitcherProps) {
   const [open, setOpen] = createSignal(false);
-  const [selectedHdKeyringId, setSelectedHdKeyringId] = createSignal<string | null>(null);
+  const [expandedWalletIds, setExpandedWalletIds] = createSignal<Set<string>>(
+    loadExpandedWalletIds(),
+  );
   let rootRef: HTMLDivElement | undefined;
 
   const rows = () => walletState.homeAccountsForSwitcher();
@@ -24,37 +54,30 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
 
   const hdKeyrings = createMemo(() => walletState.keyrings().filter((k) => k.type === "hd"));
 
-  const importedRows = createMemo(() =>
-    rows().filter((r) => r.account.path === "imported"),
-  );
+  const importedRows = createMemo(() => rows().filter((r) => r.account.path === "imported"));
 
-  const hdRowsForSelectedKeyring = createMemo(() => {
-    const kid = selectedHdKeyringId();
-    if (!kid) return [];
-    return rows().filter(
-      (r) => r.account.path !== "imported" && r.account.keyringId === kid,
-    );
-  });
+  const accountsForKeyring = (keyringId: string) =>
+    rows().filter((r) => r.account.path !== "imported" && r.account.keyringId === keyringId);
+
+  const toggleWalletExpanded = (id: string) => {
+    setExpandedWalletIds((prev) => {
+      let next: Set<string>;
+      if (prev.has(id)) {
+        next = new Set();
+      } else {
+        next = new Set([id]);
+      }
+      persistExpandedWalletIds(next);
+      return next;
+    });
+  };
+
+  const isWalletExpanded = (id: string) => expandedWalletIds().has(id);
 
   const activeKeyringLabel = createMemo(() => {
     const a = active();
     return walletState.keyrings().find((k) => k.id === a.keyringId)?.label ?? "";
   });
-
-  createEffect(
-    on(open, (isOpen) => {
-      if (!isOpen) return;
-      const a = active();
-      const hd = hdKeyrings();
-      if (a.path !== "imported") {
-        setSelectedHdKeyringId(a.keyringId);
-      } else if (hd[0]) {
-        setSelectedHdKeyringId(hd[0].id);
-      } else {
-        setSelectedHdKeyringId(null);
-      }
-    }),
-  );
 
   createEffect(
     on(open, (isOpen) => {
@@ -159,103 +182,134 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
 
       <Show when={open() && multi()}>
         <div
-          class="absolute left-3 right-3 top-full z-[60] mt-0.5 rounded-xl border border-divider bg-surface shadow-lg py-2 max-h-[min(320px,70vh)] overflow-y-auto"
+          class="absolute left-3 right-3 top-full z-[60] mt-0.5 rounded-xl border border-divider bg-surface shadow-lg max-h-[min(360px,70vh)] overflow-y-auto"
           role="listbox"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <Show when={hdKeyrings().length > 0}>
-            <div class="px-3 pb-2">
-              <p class="text-[10px] font-semibold text-text-tertiary uppercase tracking-wide mb-2">
-                Mnemonic wallets
-              </p>
-              <div class="flex flex-wrap gap-1.5 mb-2">
-                <For each={hdKeyrings()}>
-                  {(kr) => (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedHdKeyringId(kr.id)}
-                      class={`inline-flex items-center gap-1.5 max-w-full rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer border ${
-                        selectedHdKeyringId() === kr.id
-                          ? "border-accent bg-accent-light text-text-primary"
-                          : "border-divider/80 bg-base/50 text-text-secondary hover:border-divider"
-                      }`}
-                    >
-                      <span class={`w-2 h-2 rounded-full shrink-0 ${keyringDotClass(kr.id)}`} />
-                      <span class="truncate">{kr.label}</span>
-                    </button>
-                  )}
-                </For>
-              </div>
-              <For each={hdRowsForSelectedKeyring()}>
-                {(row) => {
-                  const isActive = () => row.accountArrayIndex === activeIndex();
-                  return (
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={isActive()}
-                      onClick={() => selectAccount(row.accountArrayIndex)}
-                      class={`
-                  w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors cursor-pointer
-                  ${isActive() ? "bg-divider/50" : "hover:bg-divider/30"}
-                `}
-                    >
-                      <div class="shrink-0 rounded-full overflow-hidden ring-1 ring-divider/60">
-                        <Identicon address={row.account.address} size={28} />
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-text-primary truncate">{row.account.name}</p>
-                        <p class="text-[11px] font-mono text-text-tertiary truncate">
-                          {truncateAddress(row.account.address)}
-                        </p>
-                      </div>
-                      {isActive() && <Check size={16} class="shrink-0 text-accent" />}
-                    </button>
-                  );
-                }}
-              </For>
-            </div>
-          </Show>
+          <div class="divide-y divide-divider">
+            <For each={hdKeyrings()}>
+              {(kr) => (
+                <div class="border-b border-divider last:border-b-0">
+                  <button
+                    type="button"
+                    class="group flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-base/50 transition-colors cursor-pointer"
+                    onClick={() => toggleWalletExpanded(kr.id)}
+                  >
+                    <span class="shrink-0 p-0.5 text-text-tertiary group-hover:text-text-secondary">
+                      <ChevronRight
+                        size={16}
+                        class={`transition-transform ${isWalletExpanded(kr.id) ? "rotate-90" : ""}`}
+                      />
+                    </span>
+                    <span class={`w-2.5 h-2.5 rounded-full shrink-0 ${keyringDotClass(kr.id)}`} />
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-semibold text-text-primary truncate">{kr.label}</p>
+                      <p class="text-[11px] text-text-tertiary">
+                        {accountsForKeyring(kr.id).length} account
+                        {accountsForKeyring(kr.id).length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  </button>
+                  <Show when={isWalletExpanded(kr.id)}>
+                    <div class="border-t border-divider/80 bg-base/20">
+                      <For each={accountsForKeyring(kr.id)}>
+                        {(row) => {
+                          const isSel = () => row.accountArrayIndex === activeIndex();
+                          return (
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={isSel()}
+                              onClick={() => selectAccount(row.accountArrayIndex)}
+                              class={`w-full flex items-center gap-2.5 pl-7 pr-3 py-2 text-left transition-colors cursor-pointer
+                                ${isSel() ? "bg-accent-light/60" : "hover:bg-base/50"}`}
+                            >
+                              <div class="shrink-0 rounded-full overflow-hidden ring-1 ring-divider/60">
+                                <Identicon address={row.account.address} size={28} />
+                              </div>
+                              <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-text-primary truncate">
+                                  {row.account.name}
+                                </p>
+                                <p class="text-[11px] font-mono text-text-tertiary truncate">
+                                  {truncateAddress(row.account.address)}
+                                </p>
+                              </div>
+                              {isSel() && <Check size={16} class="shrink-0 text-accent" />}
+                            </button>
+                          );
+                        }}
+                      </For>
+                    </div>
+                  </Show>
+                </div>
+              )}
+            </For>
 
-          <Show when={importedRows().length > 0}>
-            <div
-              class={`px-3 ${hdKeyrings().length > 0 ? "border-t border-divider pt-3 mt-1" : ""}`}
-            >
-              <p class="text-[10px] font-semibold text-text-tertiary uppercase tracking-wide mb-2">
-                Imported keys
-              </p>
-              <For each={importedRows()}>
-                {(row) => {
-                  const isActive = () => row.accountArrayIndex === activeIndex();
-                  return (
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={isActive()}
-                      onClick={() => selectAccount(row.accountArrayIndex)}
-                      class={`
-                  w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors cursor-pointer
-                  ${isActive() ? "bg-divider/50" : "hover:bg-divider/30"}
-                `}
-                    >
-                      <div class="shrink-0 rounded-full overflow-hidden ring-1 ring-divider/60">
-                        <Identicon address={row.account.address} size={28} />
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-text-primary truncate">{row.account.name}</p>
-                        <p class="text-[11px] font-mono text-text-tertiary truncate">
-                          {truncateAddress(row.account.address)}
-                        </p>
-                      </div>
-                      {isActive() && <Check size={16} class="shrink-0 text-accent" />}
-                    </button>
-                  );
-                }}
-              </For>
-            </div>
-          </Show>
+            <Show when={importedRows().length > 0}>
+              <div class="border-b border-divider last:border-b-0">
+                <button
+                  type="button"
+                  class="group flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-base/50 transition-colors cursor-pointer"
+                  onClick={() => toggleWalletExpanded(IMPORTED_KEYRING_ID)}
+                >
+                  <span class="shrink-0 p-0.5 text-text-tertiary group-hover:text-text-secondary">
+                    <ChevronRight
+                      size={16}
+                      class={`transition-transform ${
+                        isWalletExpanded(IMPORTED_KEYRING_ID) ? "rotate-90" : ""
+                      }`}
+                    />
+                  </span>
+                  <span
+                    class={`w-2.5 h-2.5 rounded-full shrink-0 ${keyringDotClass(IMPORTED_KEYRING_ID)}`}
+                  />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-text-primary truncate">
+                      Private key wallet
+                    </p>
+                    <p class="text-[11px] text-text-tertiary">
+                      {importedRows().length} account{importedRows().length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                </button>
+                <Show when={isWalletExpanded(IMPORTED_KEYRING_ID)}>
+                  <div class="border-t border-divider/80 bg-base/20">
+                    <For each={importedRows()}>
+                      {(row) => {
+                        const isSel = () => row.accountArrayIndex === activeIndex();
+                        return (
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={isSel()}
+                            onClick={() => selectAccount(row.accountArrayIndex)}
+                            class={`w-full flex items-center gap-2.5 pl-7 pr-3 py-2 text-left transition-colors cursor-pointer
+                              ${isSel() ? "bg-accent-light/60" : "hover:bg-base/50"}`}
+                          >
+                            <div class="shrink-0 rounded-full overflow-hidden ring-1 ring-divider/60">
+                              <Identicon address={row.account.address} size={28} />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                              <p class="text-sm font-medium text-text-primary truncate">
+                                {row.account.name}
+                              </p>
+                              <p class="text-[11px] font-mono text-text-tertiary truncate">
+                                {truncateAddress(row.account.address)}
+                              </p>
+                            </div>
+                            {isSel() && <Check size={16} class="shrink-0 text-accent" />}
+                          </button>
+                        );
+                      }}
+                    </For>
+                  </div>
+                </Show>
+              </div>
+            </Show>
+          </div>
         </div>
       </Show>
     </div>
