@@ -31,7 +31,7 @@ export function ExportPrivateKey() {
 
     const res = await sendMessage({
       type: "EXPORT_PRIVATE_KEY",
-      accountIndex: walletState.activeAccountIndex(),
+      address: account().address,
       ...(isVault() ? { password: password() } : {}),
     });
 
@@ -44,6 +44,11 @@ export function ExportPrivateKey() {
           : "Could not export private key";
       setError(friendly);
       if (friendly !== res.error) showError(friendly, res.error);
+      return;
+    }
+
+    if (!res.data || !("privateKey" in res.data)) {
+      setError("Could not export private key");
       return;
     }
 

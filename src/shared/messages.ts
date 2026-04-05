@@ -8,6 +8,7 @@ import type {
   ApprovalEnrichment,
   GasPresets,
   GasSpeed,
+  KeyringPublic,
   MultiSendEntry,
   RecentAddress,
   SerializedAccount,
@@ -23,12 +24,18 @@ export type MessageRequest =
   | { type: "GET_STATE" }
   | { type: "GET_ACCOUNTS" }
   | { type: "ADD_ACCOUNT"; password?: string }
+  | { type: "ADD_KEYRING_CREATE"; password?: string }
+  | { type: "ADD_KEYRING_IMPORT"; mnemonic: string; password?: string }
+  | { type: "RENAME_KEYRING"; keyringId: string; label: string }
+  | { type: "DELETE_KEYRING"; keyringId: string; password?: string }
+  | { type: "DERIVE_ACCOUNT"; keyringId: string; password?: string }
+  | { type: "RENAME_ACCOUNT"; address: Address; name: string }
   | { type: "GET_BALANCE"; address: Address; chainId: number }
   | { type: "SWITCH_NETWORK"; chainId: number }
   | { type: "ENSURE_CHAIN_DISCOVERY"; chainId: number }
-  | { type: "SWITCH_ACCOUNT"; accountIndex: number }
-  | { type: "EXPORT_PRIVATE_KEY"; accountIndex: number; password?: string }
-  | { type: "EXPORT_MNEMONIC"; password?: string }
+  | { type: "SWITCH_ACCOUNT"; activeAccountAddress: Address }
+  | { type: "EXPORT_PRIVATE_KEY"; address: Address; password?: string }
+  | { type: "EXPORT_MNEMONIC"; keyringId?: string; password?: string }
   | {
       type: "RPC_REQUEST";
       id: string;
@@ -79,6 +86,12 @@ export interface MessageDataMap {
   GET_STATE: WalletState;
   GET_ACCOUNTS: { accounts: SerializedAccount[] };
   ADD_ACCOUNT: { account: SerializedAccount };
+  ADD_KEYRING_CREATE: { mnemonic: string; accounts: SerializedAccount[]; keyrings: KeyringPublic[] };
+  ADD_KEYRING_IMPORT: { accounts: SerializedAccount[]; keyrings: KeyringPublic[] };
+  RENAME_KEYRING: undefined;
+  DELETE_KEYRING: undefined;
+  DERIVE_ACCOUNT: { account: SerializedAccount };
+  RENAME_ACCOUNT: undefined;
   GET_BALANCE: { balance: string; nativeUsdPrice: number | null };
   SWITCH_NETWORK: undefined;
   ENSURE_CHAIN_DISCOVERY: {

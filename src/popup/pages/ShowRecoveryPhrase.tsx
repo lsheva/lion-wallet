@@ -26,8 +26,12 @@ export function ShowRecoveryPhrase() {
     setError("");
     setLoading(true);
 
+    const active = walletState.activeAccount();
+    const keyringId = active.path === "imported" ? undefined : active.keyringId;
+
     const res = await sendMessage({
       type: "EXPORT_MNEMONIC",
+      ...(keyringId ? { keyringId } : {}),
       ...(isVault() ? { password: password() } : {}),
     });
 
@@ -43,6 +47,10 @@ export function ShowRecoveryPhrase() {
       return;
     }
 
+    if (!res.data || !("mnemonic" in res.data)) {
+      setError("No recovery phrase for this account");
+      return;
+    }
     setWords(res.data.mnemonic.split(" "));
     setRevealed(true);
   };

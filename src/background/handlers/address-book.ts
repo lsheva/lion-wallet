@@ -6,11 +6,12 @@ import {
   removeEntry,
   upsertEntry,
 } from "../address-book";
+import { getActiveAccount } from "../account-utils";
 import { loadAccountsMeta } from "../vault";
 
 export async function handleGetAddressBook(): Promise<MessageResponse> {
   const meta = await loadAccountsMeta();
-  const sender = meta?.accounts[meta.activeAccountIndex]?.address;
+  const sender = meta ? getActiveAccount(meta)?.address : undefined;
   const [entries, recent] = await Promise.all([
     getAddressBook(),
     sender ? getRecentAddresses(sender) : Promise.resolve([]),

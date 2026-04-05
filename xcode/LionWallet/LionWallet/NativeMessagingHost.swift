@@ -89,6 +89,24 @@ struct NativeMessagingHost {
             let exists = KeychainHelper.has(key: key)
             writeMessage(["ok": true, "exists": exists])
 
+        case "keychain_authenticate":
+            let reason = message["reason"] as? String ?? "Confirm action"
+            let semaphore = DispatchSemaphore(value: 0)
+            var response: [String: Any] = ["ok": false, "error": "Authentication timed out"]
+            let laContext = LAContext()
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authError in
+                if success {
+                    response = ["ok": true]
+                } else {
+                    let msg = authError?.localizedDescription ?? "Authentication failed"
+                    os_log(.error, "LAContext authenticate-only failed: %{public}@", msg)
+                    response = ["ok": false, "error": msg]
+                }
+                semaphore.signal()
+            }
+            semaphore.wait()
+            writeMessage(response)
+
         default:
             writeMessage(["ok": false, "error": "Unknown action: \(action)"])
         }

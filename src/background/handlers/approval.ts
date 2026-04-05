@@ -28,8 +28,9 @@ import {
 } from "../signing";
 import { decodeTx } from "../tx-decoder";
 import { simulateTx } from "../tx-simulator";
+import { getActiveAccount } from "../account-utils";
 import { getStorageMode, loadAccountsMeta } from "../vault";
-import { retrieveImportedKey, retrieveMnemonic } from "./wallet";
+import { retrieveImportedKey, retrieveHdMnemonicForKeyring } from "./wallet";
 
 function buildSigningReason(method: string, params: unknown[], chainId: number): string {
   const net = getNetworkConfig(chainId);
@@ -113,20 +114,23 @@ async function executeApproval(
     const { method, params, chainId } = pending;
     const signingReason = buildSigningReason(method, params, chainId);
 
-    const mnemonic = await retrieveMnemonic(mode, password, signingReason);
-    const active = meta.accounts[meta.activeAccountIndex];
+    const active = getActiveAccount(meta);
+    if (!active) return { ok: false, error: "No active account" };
     let importedKey: Hex | undefined;
-    if (active?.path === "imported") {
+    let hdMnemonic = "";
+    if (active.path === "imported") {
       importedKey =
         (await retrieveImportedKey(mode, active.address, password, signingReason)) ?? undefined;
+    } else {
+      hdMnemonic = await retrieveHdMnemonicForKeyring(
+        mode,
+        active.keyringId,
+        password,
+        signingReason,
+      );
     }
 
-    const account = getAccountForSigning(
-      mnemonic,
-      meta.activeAccountIndex,
-      meta.accounts,
-      importedKey,
-    );
+    const account = getAccountForSigning(active, hdMnemonic, importedKey);
 
     let result: string;
 
@@ -228,7 +232,7 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
   if (!pending) return { ok: true, data: null };
 
   const [meta, mode] = await Promise.all([loadAccountsMeta(), getStorageMode()]);
-  const activeAccount = meta?.accounts[meta.activeAccountIndex];
+  const activeAccount = meta ? getActiveAccount(meta) : undefined;
 
   return {
     ok: true,
@@ -250,7 +254,7 @@ export async function handleEnrichApproval(id: string): Promise<MessageResponse>
   }
 
   const [meta, etherscanKey] = await Promise.all([loadAccountsMeta(), getEtherscanApiKey()]);
-  const activeAccount = meta?.accounts[meta.activeAccountIndex];
+  const activeAccount = meta ? getActiveAccount(meta) : undefined;
 
   let gasPresets = null;
   let gasEstimateError: string | null = null;
@@ -383,7 +387,7 @@ export async function handleEstimateGas(
 ): Promise<MessageResponse> {
   try {
     const meta = await loadAccountsMeta();
-    const fromAddr = meta?.accounts[meta.activeAccountIndex]?.address;
+    const fromAddr = meta ? getActiveAccount(meta)?.address : undefined;
     const presets = await estimateGasPresets(chainId, tx, fromAddr);
     return { ok: true, data: presets };
   } catch (e) {

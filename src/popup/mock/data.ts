@@ -7,11 +7,15 @@ export const MOCK_ACCOUNTS = [
     name: "Account 1",
     address: "0x1a2B3c4D5e6F7a8B9c0D1e2F3a4B5c6D7e8F9a0B" as const,
     path: "m/44'/60'/0'/0/0",
+    index: 0,
+    keyringId: "mock-kr",
   },
   {
     name: "Account 2",
     address: "0x8f7E6d5C4b3A2918273645FeDcBa0987654321Ab" as const,
     path: "m/44'/60'/0'/0/1",
+    index: 1,
+    keyringId: "mock-kr",
   },
 ];
 

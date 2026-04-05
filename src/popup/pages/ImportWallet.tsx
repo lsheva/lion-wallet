@@ -33,6 +33,8 @@ export function ImportWallet() {
     });
   });
 
+  /** Until probe finishes, `null` must not be treated as "Touch ID ok" — that sent imports down the wrong path after reset. */
+  const keychainResolved = () => keychainAvailable() !== null;
   const usePassword = () => keychainAvailable() === false || preferPassword();
 
   const handlePaste = async () => {
@@ -57,6 +59,11 @@ export function ImportWallet() {
         setError("Enter a valid private key (0x + 64 hex characters)");
         return;
       }
+    }
+
+    if (!keychainResolved()) {
+      setError("Checking secure storage… try again in a moment");
+      return;
     }
 
     if (usePassword() && password().length < 4) {
@@ -189,7 +196,12 @@ export function ImportWallet() {
       </div>
 
       <div class="px-4 py-4">
-        <Button onClick={handleImport} size="lg" loading={loading()}>
+        <Button
+          onClick={handleImport}
+          size="lg"
+          loading={loading()}
+          disabled={!keychainResolved()}
+        >
           <Show when={!usePassword()} fallback="Import">
             <span class="inline-flex items-center gap-1.5">
               <Fingerprint size={18} />

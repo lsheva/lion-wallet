@@ -7,13 +7,14 @@ export function createMnemonic(): string {
   return generateMnemonic(english);
 }
 
-export function deriveAccount(mnemonic: string, index: number): SerializedAccount {
+export function deriveAccount(mnemonic: string, index: number, keyringId: string): SerializedAccount {
   const account = mnemonicToAccount(mnemonic, { addressIndex: index });
   return {
     name: `Account ${index + 1}`,
     address: account.address,
     path: `m/44'/60'/0'/0/${index}`,
     index,
+    keyringId,
   };
 }
 

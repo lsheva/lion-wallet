@@ -15,16 +15,15 @@ import * as wallet from "./wallet";
 type Account = ReturnType<typeof wallet.getSigner> | ReturnType<typeof wallet.getSignerFromKey>;
 
 export function getAccountForSigning(
-  mnemonic: string,
-  accountIndex: number,
-  accounts: SerializedAccount[],
+  active: SerializedAccount,
+  hdMnemonic: string,
   importedKey?: Hex,
 ): Account {
-  const active = accounts[accountIndex];
-  if (active?.path === "imported" && importedKey) {
+  if (active.path === "imported") {
+    if (!importedKey) throw new Error("Missing imported private key");
     return wallet.getSignerFromKey(importedKey);
   }
-  return wallet.getSigner(mnemonic, accountIndex);
+  return wallet.getSigner(hdMnemonic, active.index);
 }
 
 export async function estimateGasPresets(

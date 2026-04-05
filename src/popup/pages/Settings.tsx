@@ -1,5 +1,7 @@
 import { toErrorMessage, truncateAddress } from "@shared/format";
+import { IMPORTED_KEYRING_ID } from "@shared/keyring-constants";
 import { sendMessage } from "@shared/messages";
+import type { SerializedAccount } from "@shared/types";
 import {
   AlertTriangle,
   ArrowUpCircle,
@@ -20,9 +22,10 @@ import {
   X,
   Zap,
 } from "lucide-solid";
-import { createSignal, For, onMount, Show } from "solid-js";
+import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { Tabs } from "../components/Tabs";
 import { ChainIcon } from "../components/ChainIcon";
 import { CopyButton } from "../components/CopyButton";
 import { Header } from "../components/Header";
@@ -36,8 +39,80 @@ import {
   showNetworkSelector,
   walletState,
 } from "../store";
+import { keyringDotClass } from "../keyring-ui";
 import { showError } from "../toast";
 import { NetworkSelector } from "./NetworkSelector";
+
+function AccountSettingsRow(props: {
+  acc: SerializedAccount;
+  accountArrayIndex: number;
+  isActive: boolean;
+  isEditing: boolean;
+  editName: string;
+  onEditName: (v: string) => void;
+  onConfirmEdit: () => void;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => walletState.switchAccount(props.accountArrayIndex)}
+      class={`flex items-center gap-3 w-full pl-4 pr-4 py-2.5 hover:bg-base/50 transition-colors cursor-pointer text-left
+        ${props.isActive ? "bg-accent-light/80" : ""}`}
+    >
+      <Identicon address={props.acc.address} size={28} />
+      <div class="flex-1 min-w-0">
+        {props.isEditing ? (
+          <div class="flex items-center gap-1">
+            <input
+              class="text-sm font-semibold text-text-primary bg-transparent outline-none w-full py-0 shadow-[0_1px_0_0_var(--color-accent)]"
+              value={props.editName}
+              onClick={(e) => e.stopPropagation()}
+              onInput={(e) => props.onEditName((e.target as HTMLInputElement).value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") props.onConfirmEdit();
+                if (e.key === "Escape") props.onCancelEdit();
+              }}
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onConfirmEdit();
+              }}
+              class="p-0.5 text-accent hover:text-accent-hover cursor-pointer shrink-0"
+            >
+              <Check size={14} />
+            </button>
+          </div>
+        ) : (
+          <div class="flex items-center gap-1.5">
+            <p class="text-sm font-semibold text-text-primary">{props.acc.name}</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onStartEdit();
+              }}
+              class="p-0.5 text-text-tertiary hover:text-accent transition-colors cursor-pointer shrink-0"
+            >
+              <Pencil size={12} />
+            </button>
+          </div>
+        )}
+        <div class="flex items-center gap-1 mt-0.5">
+          <span class="text-[11px] font-mono font-medium text-text-primary/70 truncate">
+            {truncateAddress(props.acc.address)}
+          </span>
+          <CopyButton text={props.acc.address} size={12} />
+        </div>
+        <p class="text-[10px] font-mono text-text-tertiary mt-0.5">{props.acc.path}</p>
+      </div>
+      {props.isActive && <div class="w-2 h-2 rounded-full bg-accent shrink-0" />}
+    </button>
+  );
+}
 
 function SettingsRow(props: { label: string; onClick?: () => void }) {
   return (
@@ -56,24 +131,143 @@ export function Settings() {
   const navigate = useNavigate();
   const [editingIndex, setEditingIndex] = createSignal<number | null>(null);
   const [editName, setEditName] = createSignal("");
-  const [addingAccount, setAddingAccount] = createSignal(false);
-  const [addPassword, setAddPassword] = createSignal("");
-  const [addError, setAddError] = createSignal("");
+  const [deriveForKeyringId, setDeriveForKeyringId] = createSignal<string | null>(null);
+  const [derivePassword, setDerivePassword] = createSignal("");
+  const [deriveError, setDeriveError] = createSignal("");
+  const [showImportPkModal, setShowImportPkModal] = createSignal(false);
+  const [importPkValue, setImportPkValue] = createSignal("");
+  const [importPkVaultPw, setImportPkVaultPw] = createSignal("");
+  const [importPkBusy, setImportPkBusy] = createSignal(false);
+  const [importPkError, setImportPkError] = createSignal("");
+  const [showAddMnemonicModal, setShowAddMnemonicModal] = createSignal(false);
+  const [addMnemonicTab, setAddMnemonicTab] = createSignal<"generate" | "import">("import");
+  const [addMnemonicPhrase, setAddMnemonicPhrase] = createSignal("");
+  const [addMnemonicVaultPw, setAddMnemonicVaultPw] = createSignal("");
+  const [addMnemonicBusy, setAddMnemonicBusy] = createSignal(false);
+  const [addMnemonicReveal, setAddMnemonicReveal] = createSignal<string | null>(null);
+  const [addMnemonicError, setAddMnemonicError] = createSignal("");
 
-  const handleAddAccount = async () => {
+  const accountRows = createMemo(() =>
+    walletState.accounts().map((account, accountArrayIndex) => ({ account, accountArrayIndex })),
+  );
+  const hdKeyringsList = createMemo(() => walletState.keyrings().filter((k) => k.type === "hd"));
+  const accountsForKeyring = (keyringId: string) =>
+    accountRows().filter(
+      (r) => r.account.path !== "imported" && r.account.keyringId === keyringId,
+    );
+  const importedAccountRows = () => accountRows().filter((r) => r.account.path === "imported");
+
+  const [expandedKeyringIds, setExpandedKeyringIds] = createSignal<Set<string>>(new Set());
+  const toggleKeyringExpanded = (id: string) => {
+    setExpandedKeyringIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const isKeyringExpanded = (id: string) => expandedKeyringIds().has(id);
+
+  const closeAddMnemonicModal = () => {
+    setShowAddMnemonicModal(false);
+    setAddMnemonicTab("import");
+    setAddMnemonicPhrase("");
+    setAddMnemonicVaultPw("");
+    setAddMnemonicBusy(false);
+    setAddMnemonicReveal(null);
+    setAddMnemonicError("");
+  };
+
+  const runAddMnemonicGenerate = async () => {
     const isVault = walletState.storageMode() === "vault";
-    if (isVault && !addingAccount()) {
-      setAddingAccount(true);
+    if (isVault && addMnemonicVaultPw().length < 4) {
+      setAddMnemonicError("Enter your password");
       return;
     }
-    if (isVault && addPassword().length < 4) {
-      setAddError("Enter your password");
+    setAddMnemonicError("");
+    setAddMnemonicBusy(true);
+    const result = await walletState.addKeyringCreate(isVault ? addMnemonicVaultPw() : undefined);
+    setAddMnemonicBusy(false);
+    if (result?.mnemonic) setAddMnemonicReveal(result.mnemonic);
+  };
+
+  const runAddMnemonicImport = async () => {
+    const words = addMnemonicPhrase().trim().split(/\s+/);
+    if (words.length !== 12 && words.length !== 24) {
+      setAddMnemonicError("Enter a valid 12 or 24 word phrase");
       return;
     }
-    setAddError("");
-    await walletState.addAccount(isVault ? addPassword() : undefined);
-    setAddingAccount(false);
-    setAddPassword("");
+    const isVault = walletState.storageMode() === "vault";
+    if (isVault && addMnemonicVaultPw().length < 4) {
+      setAddMnemonicError("Enter your password");
+      return;
+    }
+    setAddMnemonicError("");
+    setAddMnemonicBusy(true);
+    const ok = await walletState.addKeyringImport(
+      addMnemonicPhrase().trim(),
+      isVault ? addMnemonicVaultPw() : undefined,
+    );
+    setAddMnemonicBusy(false);
+    if (ok) closeAddMnemonicModal();
+  };
+
+  const startDeriveInKeyring = (keyringId: string) => {
+    if (walletState.storageMode() !== "vault") {
+      void walletState.deriveInKeyring(keyringId);
+      return;
+    }
+    setDeriveForKeyringId(keyringId);
+    setDerivePassword("");
+    setDeriveError("");
+  };
+
+  const confirmDeriveInKeyring = async (keyringId: string) => {
+    if (derivePassword().length < 4) {
+      setDeriveError("Enter your password");
+      return;
+    }
+    setDeriveError("");
+    const ok = await walletState.deriveInKeyring(keyringId, derivePassword());
+    if (ok) {
+      setDeriveForKeyringId(null);
+      setDerivePassword("");
+    }
+  };
+
+  const cancelDeriveInKeyring = () => {
+    setDeriveForKeyringId(null);
+    setDerivePassword("");
+    setDeriveError("");
+  };
+
+  const closeImportPkModal = () => {
+    setShowImportPkModal(false);
+    setImportPkValue("");
+    setImportPkVaultPw("");
+    setImportPkBusy(false);
+    setImportPkError("");
+  };
+
+  const runImportPrivateKey = async () => {
+    const pk = importPkValue().trim();
+    if (!/^0x[0-9a-fA-F]{64}$/.test(pk)) {
+      setImportPkError("Enter a valid private key (0x + 64 hex characters)");
+      return;
+    }
+    const isVault = walletState.storageMode() === "vault";
+    if (isVault && importPkVaultPw().length < 4) {
+      setImportPkError("Enter your wallet password");
+      return;
+    }
+    setImportPkError("");
+    setImportPkBusy(true);
+    const ok = await walletState.importPrivateKey(
+      pk as `0x${string}`,
+      isVault ? importPkVaultPw() : undefined,
+    );
+    setImportPkBusy(false);
+    if (ok) closeImportPkModal();
   };
 
   return (
@@ -81,116 +275,177 @@ export function Settings() {
       <Header title="Settings" onBack="/home" />
 
       <div class="flex-1 overflow-y-auto px-4 pt-2 space-y-4 pb-4">
-        {/* Accounts */}
+        {/* Accounts & keyrings (accordion: keyrings first; accounts under each when expanded) */}
         <Card header="Accounts" padding={false}>
           <div class="divide-y divide-divider">
-            <For each={walletState.accounts()}>
-              {(acc, i) => (
-                <button
-                  type="button"
-                  onClick={() => walletState.switchAccount(i())}
-                  class={`flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left
-                  ${i() === walletState.activeAccountIndex() ? "bg-accent-light" : ""}`}
-                >
-                  <Identicon address={acc.address} size={32} />
-                  <div class="flex-1 min-w-0">
-                    {editingIndex() === i() ? (
-                      <div class="flex items-center gap-1">
-                        <input
-                          class="text-sm font-semibold text-text-primary bg-transparent outline-none w-full py-0 shadow-[0_1px_0_0_var(--color-accent)]"
-                          value={editName()}
-                          onClick={(e) => e.stopPropagation()}
-                          onInput={(e) => setEditName((e.target as HTMLInputElement).value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              walletState.renameAccount(i(), editName().trim() || acc.name);
-                              setEditingIndex(null);
-                            }
-                            if (e.key === "Escape") setEditingIndex(null);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            walletState.renameAccount(i(), editName().trim() || acc.name);
-                            setEditingIndex(null);
-                          }}
-                          class="p-0.5 text-accent hover:text-accent-hover cursor-pointer shrink-0"
-                        >
-                          <Check size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div class="flex items-center gap-1.5">
-                        <p class="text-sm font-semibold text-text-primary">{acc.name}</p>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingIndex(i());
-                            setEditName(acc.name);
-                          }}
-                          class="p-0.5 text-text-tertiary hover:text-accent transition-colors cursor-pointer shrink-0"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                      </div>
-                    )}
-                    <div class="flex items-center gap-1 mt-0.5">
-                      <span class="text-xs font-mono font-medium text-text-primary/70 truncate">
-                        {truncateAddress(acc.address)}
-                      </span>
-                      <CopyButton text={acc.address} size={12} />
-                    </div>
-                    <p class="text-[10px] font-mono text-text-tertiary mt-1">{acc.path}</p>
-                  </div>
-                  {i() === walletState.activeAccountIndex() && (
-                    <div class="w-2 h-2 rounded-full bg-accent shrink-0" />
-                  )}
-                </button>
-              )}
-            </For>
-            {addingAccount() ? (
-              <div class="px-4 py-3 space-y-2">
-                <Input
-                  type="password"
-                  placeholder="Enter password"
-                  value={addPassword()}
-                  onInput={(v) => {
-                    setAddPassword(v);
-                    setAddError("");
-                  }}
-                  error={addError() || undefined}
-                  autoFocus
-                />
-                <div class="flex gap-2">
-                  <Button size="sm" onClick={handleAddAccount}>
-                    Add
-                  </Button>
+            <For each={hdKeyringsList()}>
+              {(kr) => (
+                <div class="border-b border-divider last:border-b-0">
                   <button
                     type="button"
-                    onClick={() => {
-                      setAddingAccount(false);
-                      setAddPassword("");
-                      setAddError("");
-                    }}
-                    class="text-xs text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+                    onClick={() => toggleKeyringExpanded(kr.id)}
+                    class="flex items-center gap-3 w-full px-4 py-3 hover:bg-base/50 transition-colors cursor-pointer text-left"
                   >
-                    Cancel
+                    <ChevronRight
+                      size={18}
+                      class={`shrink-0 text-text-tertiary transition-transform ${
+                        isKeyringExpanded(kr.id) ? "rotate-90" : ""
+                      }`}
+                    />
+                    <span class={`w-2.5 h-2.5 rounded-full shrink-0 ${keyringDotClass(kr.id)}`} />
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-text-primary truncate">{kr.label}</p>
+                      <p class="text-[11px] text-text-tertiary">
+                        {accountsForKeyring(kr.id).length} account(s)
+                      </p>
+                    </div>
                   </button>
+                  <Show when={isKeyringExpanded(kr.id)}>
+                    <div class="border-t border-divider/80 bg-base/20">
+                      <For each={accountsForKeyring(kr.id)}>
+                        {({ account: acc, accountArrayIndex: i }) => (
+                          <AccountSettingsRow
+                            acc={acc}
+                            accountArrayIndex={i}
+                            isActive={i === walletState.activeAccountIndex()}
+                            isEditing={editingIndex() === i}
+                            editName={editName()}
+                            onEditName={setEditName}
+                            onConfirmEdit={() => {
+                              void walletState.renameAccount(i, editName().trim() || acc.name);
+                              setEditingIndex(null);
+                            }}
+                            onStartEdit={() => {
+                              setEditingIndex(i);
+                              setEditName(acc.name);
+                            }}
+                            onCancelEdit={() => setEditingIndex(null)}
+                          />
+                        )}
+                      </For>
+                      <Show
+                        when={
+                          walletState.storageMode() === "vault" &&
+                          deriveForKeyringId() === kr.id
+                        }
+                      >
+                        <div class="px-4 py-3 space-y-2 border-t border-divider/60">
+                          <Input
+                            type="password"
+                            label="Wallet password"
+                            placeholder="Password"
+                            value={derivePassword()}
+                            onInput={(v) => {
+                              setDerivePassword(v);
+                              setDeriveError("");
+                            }}
+                            error={deriveError() || undefined}
+                            autoFocus
+                          />
+                          <div class="flex gap-2">
+                            <Button size="sm" onClick={() => void confirmDeriveInKeyring(kr.id)}>
+                              Add account
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={cancelDeriveInKeyring}
+                              class="text-xs text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </Show>
+                      <Show
+                        when={
+                          !(
+                            walletState.storageMode() === "vault" &&
+                            deriveForKeyringId() === kr.id
+                          )
+                        }
+                      >
+                        <div class="px-4 py-2 border-t border-divider/60">
+                          <button
+                            type="button"
+                            onClick={() => startDeriveInKeyring(kr.id)}
+                            class="flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-hover cursor-pointer"
+                          >
+                            <Plus size={16} />
+                            Add account
+                          </button>
+                        </div>
+                      </Show>
+                    </div>
+                  </Show>
+                </div>
+              )}
+            </For>
+
+            <div class="border-t border-divider">
+              <div class="px-4 pt-3 pb-1 flex items-start gap-2">
+                <span
+                  class={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${keyringDotClass(IMPORTED_KEYRING_ID)}`}
+                />
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-text-primary">Private key wallet</p>
+                  <p class="text-[11px] text-text-tertiary leading-snug">
+                    Import accounts with a raw private key — not a recovery phrase.
+                  </p>
                 </div>
               </div>
-            ) : (
               <button
                 type="button"
-                onClick={handleAddAccount}
-                class="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-base/50 transition-colors cursor-pointer"
+                onClick={() => {
+                  setShowImportPkModal(true);
+                  setImportPkError("");
+                  setImportPkValue("");
+                  setImportPkVaultPw("");
+                }}
+                class="flex items-center gap-2 w-full px-4 py-2.5 text-accent hover:bg-base/50 transition-colors cursor-pointer text-left"
               >
-                <Plus size={16} />
-                <span class="text-sm font-medium">Add Account</span>
+                <Key size={16} class="shrink-0" />
+                <span class="text-sm font-medium">Import private key</span>
               </button>
-            )}
+              <div class="bg-base/20 border-t border-divider/80">
+                <For each={importedAccountRows()}>
+                  {({ account: acc, accountArrayIndex: i }) => (
+                    <AccountSettingsRow
+                      acc={acc}
+                      accountArrayIndex={i}
+                      isActive={i === walletState.activeAccountIndex()}
+                      isEditing={editingIndex() === i}
+                      editName={editName()}
+                      onEditName={setEditName}
+                      onConfirmEdit={() => {
+                        void walletState.renameAccount(i, editName().trim() || acc.name);
+                        setEditingIndex(null);
+                      }}
+                      onStartEdit={() => {
+                        setEditingIndex(i);
+                        setEditName(acc.name);
+                      }}
+                      onCancelEdit={() => setEditingIndex(null)}
+                    />
+                  )}
+                </For>
+                <Show when={importedAccountRows().length === 0}>
+                  <p class="px-4 py-3 text-xs text-text-tertiary">No private-key accounts yet.</p>
+                </Show>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddMnemonicModal(true);
+                setAddMnemonicReveal(null);
+                setAddMnemonicError("");
+              }}
+              class="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-base/50 transition-colors cursor-pointer border-t border-divider"
+            >
+              <Plus size={16} />
+              <span class="text-sm font-medium">Add mnemonic</span>
+            </button>
           </div>
         </Card>
 
@@ -308,6 +563,131 @@ export function Settings() {
       <Show when={showNetworkSelector()}>
         <NetworkSelector />
       </Show>
+
+      <Modal open={showImportPkModal()} onClose={closeImportPkModal} title="Import private key">
+        <div class="p-4 space-y-3 max-h-[min(360px,70vh)] overflow-y-auto">
+          <Input
+            label="Private key"
+            placeholder="0x..."
+            value={importPkValue()}
+            onInput={(v) => {
+              setImportPkValue(v);
+              setImportPkError("");
+            }}
+            mono
+          />
+          <Show when={walletState.storageMode() === "vault"}>
+            <Input
+              type="password"
+              label="Wallet password"
+              placeholder="Password"
+              value={importPkVaultPw()}
+              onInput={(v) => {
+                setImportPkVaultPw(v);
+                setImportPkError("");
+              }}
+            />
+          </Show>
+          <Show when={importPkError()}>
+            <p class="text-sm text-danger">{importPkError()}</p>
+          </Show>
+          <div class="flex flex-wrap gap-2 justify-end pt-1">
+            <Button variant="secondary" onClick={closeImportPkModal}>
+              Cancel
+            </Button>
+            <Button onClick={() => void runImportPrivateKey()} loading={importPkBusy()}>
+              Import
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showAddMnemonicModal()} onClose={closeAddMnemonicModal} title="Add mnemonic wallet">
+        <div class="p-4 space-y-4 max-h-[min(420px,70vh)] overflow-y-auto">
+          <Show
+            when={!addMnemonicReveal()}
+            fallback={
+              <div class="space-y-3">
+                <p class="text-sm font-medium text-text-primary">Save your recovery phrase</p>
+                <p class="text-xs text-text-secondary">Anyone with this phrase controls this wallet.</p>
+                <div class="rounded-xl bg-base p-3 text-sm font-mono text-text-primary break-words whitespace-pre-wrap max-h-40 overflow-y-auto border border-divider">
+                  {addMnemonicReveal()}
+                </div>
+                <div class="flex justify-end">
+                  <CopyButton text={addMnemonicReveal() ?? ""} />
+                </div>
+                <Button class="w-full" onClick={() => closeAddMnemonicModal()}>
+                  Done
+                </Button>
+              </div>
+            }
+          >
+            <div class="space-y-3">
+              <p class="text-sm text-text-secondary">Generate a new phrase or import an existing wallet.</p>
+              <Tabs
+                items={[
+                  { id: "import", label: "Import phrase" },
+                  { id: "generate", label: "Generate new" },
+                ]}
+                active={addMnemonicTab()}
+                onChange={(id) => {
+                  setAddMnemonicTab(id as "generate" | "import");
+                  setAddMnemonicError("");
+                }}
+              />
+              <Show when={addMnemonicTab() === "import"}>
+                <Input
+                  label="Recovery phrase"
+                  placeholder="12 or 24 words"
+                  value={addMnemonicPhrase()}
+                  onInput={(v) => {
+                    setAddMnemonicPhrase(v);
+                    setAddMnemonicError("");
+                  }}
+                  multiline
+                  rows={4}
+                  mono
+                />
+              </Show>
+              <Show when={addMnemonicTab() === "generate"}>
+                <p class="text-xs text-text-secondary">
+                  A new recovery phrase will be created. You will be asked to back it up before closing.
+                </p>
+              </Show>
+              <Show when={walletState.storageMode() === "vault"}>
+                <Input
+                  type="password"
+                  label="Wallet password"
+                  placeholder="Password"
+                  value={addMnemonicVaultPw()}
+                  onInput={(v) => {
+                    setAddMnemonicVaultPw(v);
+                    setAddMnemonicError("");
+                  }}
+                />
+              </Show>
+              <Show when={addMnemonicError()}>
+                <p class="text-sm text-danger">{addMnemonicError()}</p>
+              </Show>
+              <div class="flex flex-wrap gap-2 justify-end">
+                <Button variant="secondary" onClick={closeAddMnemonicModal}>
+                  Cancel
+                </Button>
+                <Show when={addMnemonicTab() === "import"}>
+                  <Button onClick={runAddMnemonicImport} loading={addMnemonicBusy()}>
+                    Import
+                  </Button>
+                </Show>
+                <Show when={addMnemonicTab() === "generate"}>
+                  <Button onClick={runAddMnemonicGenerate} loading={addMnemonicBusy()}>
+                    Generate
+                  </Button>
+                </Show>
+              </div>
+            </div>
+          </Show>
+        </div>
+      </Modal>
     </div>
   );
 }

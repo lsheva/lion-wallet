@@ -1,6 +1,7 @@
 import { toErrorMessage } from "@shared/format";
 import type { Address, Hex } from "viem";
 
+import { keychainKeyringKey } from "../shared/keyring-constants";
 import { bgLog } from "./log";
 
 const APP_ID = "app.lionwallet";
@@ -43,53 +44,72 @@ export interface StoreResult {
   error?: string;
 }
 
-export async function storeMnemonic(mnemonic: string): Promise<StoreResult> {
+export async function storeMnemonicForKeyring(keyringId: string, mnemonic: string): Promise<StoreResult> {
   try {
     const res = await sendNative({
       action: "keychain_store",
-      key: "mnemonic",
+      key: keychainKeyringKey(keyringId),
       value: mnemonic,
     });
     if (!res.ok) {
-      bgLog("[keychain] storeMnemonic failed:", res.error);
+      bgLog("[keychain] storeMnemonicForKeyring failed:", res.error);
       return { ok: false, error: res.error ?? "store returned ok=false" };
     }
     return { ok: true };
   } catch (e) {
     const msg = toErrorMessage(e);
-    bgLog("[keychain] storeMnemonic exception:", msg);
+    bgLog("[keychain] storeMnemonicForKeyring exception:", msg);
     return { ok: false, error: `exception: ${msg}` };
   }
 }
 
-export async function retrieveMnemonic(reason?: string): Promise<string | null> {
+/** Face ID / Touch ID only — does not read keychain (use for reset, etc.). */
+export async function authenticateUser(reason?: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await sendNative({
+      action: "keychain_authenticate",
+      ...(reason && { reason }),
+    });
+    if (res.ok) return { ok: true };
+    return { ok: false, error: res.error ?? "Authentication failed" };
+  } catch (e) {
+    const msg = toErrorMessage(e);
+    bgLog("[keychain] authenticateUser exception:", msg);
+    return { ok: false, error: msg };
+  }
+}
+
+export async function retrieveMnemonicForKeyring(
+  keyringId: string,
+  reason?: string,
+): Promise<string | null> {
   try {
     const res = await sendNative({
       action: "keychain_retrieve",
-      key: "mnemonic",
+      key: keychainKeyringKey(keyringId),
       ...(reason && { reason }),
     });
     return res.ok ? (res.value ?? null) : null;
   } catch (e) {
-    bgLog("[keychain] retrieveMnemonic exception:", toErrorMessage(e));
+    bgLog("[keychain] retrieveMnemonicForKeyring exception:", toErrorMessage(e));
     return null;
   }
 }
 
-export async function deleteMnemonic(): Promise<void> {
+export async function deleteMnemonicForKeyring(keyringId: string): Promise<void> {
   try {
-    await sendNative({ action: "keychain_delete", key: "mnemonic" });
+    await sendNative({ action: "keychain_delete", key: keychainKeyringKey(keyringId) });
   } catch (e) {
-    bgLog("[keychain] deleteMnemonic exception:", toErrorMessage(e));
+    bgLog("[keychain] deleteMnemonicForKeyring exception:", toErrorMessage(e));
   }
 }
 
-export async function hasMnemonic(): Promise<boolean> {
+export async function hasMnemonicForKeyring(keyringId: string): Promise<boolean> {
   try {
-    const res = await sendNative({ action: "keychain_has", key: "mnemonic" });
+    const res = await sendNative({ action: "keychain_has", key: keychainKeyringKey(keyringId) });
     return res.ok === true && res.exists === true;
   } catch (e) {
-    bgLog("[keychain] hasMnemonic exception:", toErrorMessage(e));
+    bgLog("[keychain] hasMnemonicForKeyring exception:", toErrorMessage(e));
     return false;
   }
 }

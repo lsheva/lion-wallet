@@ -4,12 +4,13 @@ import { sendMessage } from "@shared/messages";
 import type {
   ActivityItem,
   ChainMeta,
+  KeyringPublic,
   SerializedAccount,
   StoredToken,
   TokenInfo,
 } from "@shared/types";
 import { batch, createMemo, createRoot, createSignal, untrack } from "solid-js";
-import { type Address, zeroAddress } from "viem";
+import { type Address, type Hex, zeroAddress } from "viem";
 import { formatUnits } from "viem/utils";
 import { CHAIN_COLOR_BY_ID } from "./chain-ui.generated";
 import { showError } from "./toast";
@@ -139,7 +140,8 @@ function buildInitialNetworks(): ChainMeta[] {
 export const ALL_CHAINS = CHAINS;
 
 export const [accounts, setAccounts] = createSignal<SerializedAccount[]>([]);
-export const [activeAccountIndex, setActiveAccountIndex] = createSignal(0);
+export const [activeAccountAddress, setActiveAccountAddress] = createSignal<Address>(zeroAddress);
+export const [keyrings, setKeyrings] = createSignal<KeyringPublic[]>([]);
 export const [activeNetworkId, setActiveNetworkId] = createSignal(1);
 export const [showNetworkSelector, setShowNetworkSelector] = createSignal(false);
 export const [ethBalance, setEthBalance] = createSignal("—");
@@ -184,15 +186,25 @@ export function setNetworks(chains: ChainMeta[]): void {
 }
 
 const derived = createRoot(() => {
-  const activeAccount = createMemo(
-    () =>
-      accounts()[activeAccountIndex()] ?? {
+  const activeAccountIndex = createMemo(() => {
+    const addr = activeAccountAddress();
+    return accounts().findIndex((a) => a.address.toLowerCase() === addr.toLowerCase());
+  });
+
+  const activeAccount = createMemo(() => {
+    const list = accounts();
+    const addr = activeAccountAddress();
+    const found = list.find((a) => a.address.toLowerCase() === addr.toLowerCase());
+    return (
+      found ?? {
         name: "Account 1",
-        address: "0x0000000000000000000000000000000000000000" as Address,
+        address: zeroAddress,
         path: "m/44'/60'/0'/0/0",
         index: 0,
-      },
-  );
+        keyringId: "default",
+      }
+    );
+  });
 
   const networkMap = createMemo(() => new Map(networks().map((n) => [n.id, n])));
 
@@ -200,10 +212,10 @@ const derived = createRoot(() => {
     () => networkMap().get(activeNetworkId()) ?? (networks()[0] as ChainMeta),
   );
 
-  return { activeAccount, activeNetwork };
+  return { activeAccount, activeNetwork, activeAccountIndex };
 });
 
-export const { activeAccount, activeNetwork } = derived;
+export const { activeAccount, activeNetwork, activeAccountIndex } = derived;
 
 export function chainColor(chainId: number): string {
   return CHAIN_COLOR_BY_ID.get(chainId) ?? DEFAULT_COLOR;
@@ -235,7 +247,8 @@ export async function fetchState(): Promise<void> {
   if (!res.ok || !res.data) return;
   batch(() => {
     setAccounts(res.data.accounts);
-    setActiveAccountIndex(res.data.activeAccountIndex);
+    setKeyrings(res.data.keyrings);
+    setActiveAccountAddress(res.data.activeAccountAddress);
     setActiveNetworkId(res.data.activeNetworkId);
     setStorageMode(res.data.storageMode);
   });
@@ -455,7 +468,8 @@ export function clearPopupCache(): void {
   localStorage.removeItem(NETWORK_IDS_KEY);
   batch(() => {
     setAccounts([]);
-    setActiveAccountIndex(0);
+    setKeyrings([]);
+    setActiveAccountAddress(zeroAddress);
     setActiveNetworkId(1);
     setEthBalance("—");
     setNativeUsdPrice(null);
@@ -480,6 +494,8 @@ export const walletState = {
   activeAccount,
   activeNetwork,
   activeAccountIndex,
+  activeAccountAddress,
+  keyrings,
   activeNetworkId,
   accounts,
   homeDiscoveryActiveIndices,
@@ -527,17 +543,28 @@ export const walletState = {
   },
 
   async switchAccount(index: number): Promise<void> {
-    setActiveAccountIndex(index);
+    const acc = accounts()[index];
+    if (!acc) return;
+    setActiveAccountAddress(acc.address);
     try {
-      await sendMessage({ type: "SWITCH_ACCOUNT", accountIndex: index });
+      await sendMessage({ type: "SWITCH_ACCOUNT", activeAccountAddress: acc.address });
     } catch (e) {
       showError("Failed to switch account", toErrorMessage(e));
     }
     await fetchBalance();
   },
 
-  renameAccount(index: number, newName: string) {
-    setAccounts(accounts().map((acc, i) => (i === index ? { ...acc, name: newName } : acc)));
+  async renameAccount(index: number, newName: string): Promise<void> {
+    const acc = accounts()[index];
+    if (!acc) return;
+    const res = await sendMessage({
+      type: "RENAME_ACCOUNT",
+      address: acc.address,
+      name: newName.trim() || acc.name,
+    });
+    if (res.ok) await fetchState();
+    else
+      setAccounts(accounts().map((a, i) => (i === index ? { ...a, name: newName.trim() || a.name } : a)));
   },
 
   async addAccount(password?: string): Promise<void> {
@@ -550,5 +577,62 @@ export const walletState = {
     } else {
       showError("Failed to add account", res.error);
     }
+  },
+
+  async deriveInKeyring(keyringId: string, password?: string): Promise<boolean> {
+    const res = await sendMessage({
+      type: "DERIVE_ACCOUNT",
+      keyringId,
+      ...(password ? { password } : {}),
+    });
+    if (!res.ok) {
+      showError("Could not add account", res.error);
+      return false;
+    }
+    await fetchState();
+    return true;
+  },
+
+  async importPrivateKey(privateKey: Hex, password?: string): Promise<boolean> {
+    const res = await sendMessage({
+      type: "IMPORT_PRIVATE_KEY",
+      privateKey,
+      ...(password ? { password } : {}),
+    });
+    if (!res.ok) {
+      showError("Could not import private key", res.error);
+      return false;
+    }
+    await fetchState();
+    return true;
+  },
+
+  async addKeyringCreate(password?: string): Promise<{ mnemonic: string } | null> {
+    const res = await sendMessage({
+      type: "ADD_KEYRING_CREATE",
+      ...(password ? { password } : {}),
+    });
+    if (res.ok && res.data?.mnemonic) {
+      await fetchState();
+      return { mnemonic: res.data.mnemonic };
+    }
+    if (!res.ok) {
+      showError("Could not create keyring", res.error);
+    }
+    return null;
+  },
+
+  async addKeyringImport(mnemonic: string, password?: string): Promise<boolean> {
+    const res = await sendMessage({
+      type: "ADD_KEYRING_IMPORT",
+      mnemonic: mnemonic.trim(),
+      ...(password ? { password } : {}),
+    });
+    if (!res.ok) {
+      showError("Could not import keyring", res.error);
+      return false;
+    }
+    await fetchState();
+    return true;
   },
 };

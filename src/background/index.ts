@@ -35,7 +35,11 @@ import {
 } from "./handlers/tokens";
 import {
   handleAddAccount,
+  handleAddKeyringCreate,
+  handleAddKeyringImport,
   handleCreateWallet,
+  handleDeleteKeyring,
+  handleDeriveAccount,
   handleExportMnemonic,
   handleExportPrivateKey,
   handleGetAccounts,
@@ -48,6 +52,8 @@ import {
   handleImportPrivateKey,
   handleImportWallet,
   handleMultiSend,
+  handleRenameAccount,
+  handleRenameKeyring,
   handleResetWallet,
   handleSendToken,
   handleSwitchAccount,
@@ -105,11 +111,23 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
     case "ENSURE_CHAIN_DISCOVERY":
       return handleEnsureChainDiscovery(message.chainId);
     case "SWITCH_ACCOUNT":
-      return handleSwitchAccount(message.accountIndex);
+      return handleSwitchAccount(message.activeAccountAddress);
     case "EXPORT_PRIVATE_KEY":
-      return handleExportPrivateKey(message.accountIndex, message.password);
+      return handleExportPrivateKey(message.address, message.password);
     case "EXPORT_MNEMONIC":
-      return handleExportMnemonic(message.password);
+      return handleExportMnemonic(message.keyringId, message.password);
+    case "ADD_KEYRING_CREATE":
+      return handleAddKeyringCreate(message.password);
+    case "ADD_KEYRING_IMPORT":
+      return handleAddKeyringImport(message.mnemonic, message.password);
+    case "RENAME_KEYRING":
+      return handleRenameKeyring(message.keyringId, message.label);
+    case "DELETE_KEYRING":
+      return handleDeleteKeyring(message.keyringId, message.password);
+    case "DERIVE_ACCOUNT":
+      return handleDeriveAccount(message.keyringId, message.password);
+    case "RENAME_ACCOUNT":
+      return handleRenameAccount(message.address, message.name);
     case "GET_PENDING_APPROVAL":
       return handleGetPendingApproval();
     case "ENRICH_APPROVAL":

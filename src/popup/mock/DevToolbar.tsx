@@ -60,6 +60,7 @@ function mockApproval(method: string, extra: Record<string, unknown> = {}): Appr
       address: (MOCK_ACCOUNTS[0]?.address ?? "0x0") as `0x${string}`,
       path: MOCK_ACCOUNTS[0]?.path ?? "m/44'/60'/0'/0/0",
       index: 0,
+      keyringId: "mock-keyring",
     },
     queueSize: 1,
     storageMode: storageMode(),

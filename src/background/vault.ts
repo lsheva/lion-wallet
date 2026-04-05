@@ -1,4 +1,6 @@
-import type { EncryptedVault, SerializedAccount, VaultData } from "../shared/types";
+import type { Address } from "viem";
+
+import type { EncryptedVault, KeyringPublic, SerializedAccount, VaultData } from "../shared/types";
 
 const VAULT_KEY = "vault";
 const ACCOUNTS_META_KEY = "accountsMeta";
@@ -11,21 +13,34 @@ export type StorageMode = "keychain" | "vault";
 
 export interface AccountsMeta {
   accounts: SerializedAccount[];
-  activeAccountIndex: number;
+  activeAccountAddress: Address;
+  keyrings: KeyringPublic[];
 }
 
 export async function saveAccountsMeta(
   accounts: SerializedAccount[],
-  activeAccountIndex: number,
+  activeAccountAddress: Address,
+  keyrings: KeyringPublic[],
 ): Promise<void> {
   await browser.storage.local.set({
-    [ACCOUNTS_META_KEY]: { accounts, activeAccountIndex } satisfies AccountsMeta,
+    [ACCOUNTS_META_KEY]: { accounts, activeAccountAddress, keyrings } satisfies AccountsMeta,
   });
 }
 
 export async function loadAccountsMeta(): Promise<AccountsMeta | null> {
   const result = await browser.storage.local.get(ACCOUNTS_META_KEY);
-  return (result[ACCOUNTS_META_KEY] as AccountsMeta) ?? null;
+  const raw = result[ACCOUNTS_META_KEY];
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as AccountsMeta;
+  if (
+    !r.accounts?.length ||
+    !r.activeAccountAddress ||
+    !Array.isArray(r.keyrings) ||
+    r.keyrings.length === 0
+  ) {
+    return null;
+  }
+  return r;
 }
 
 // ── Storage mode ────────────────────────────────────────────────────
@@ -39,7 +54,7 @@ export async function setStorageMode(mode: StorageMode): Promise<void> {
   await browser.storage.local.set({ [STORAGE_MODE_KEY]: mode });
 }
 
-// ── Encrypted vault (fallback path) ─────────────────────────────────
+// ── Encrypted vault ─────────────────────────────────────────────────
 
 function toBase64(buffer: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buffer)));
@@ -109,7 +124,8 @@ export async function decryptVault(password: string): Promise<VaultData> {
     throw new Error("Wrong password");
   }
 
-  return JSON.parse(new TextDecoder().decode(decrypted));
+  const { normalizeVaultData } = await import("../shared/vault-migrate");
+  return normalizeVaultData(JSON.parse(new TextDecoder().decode(decrypted)));
 }
 
 export async function isVaultInitialized(): Promise<boolean> {

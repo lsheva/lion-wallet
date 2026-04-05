@@ -1,16 +1,48 @@
 import type { Address, Hex } from "viem";
 
+import { IMPORTED_KEYRING_ID } from "./keyring-constants";
+
 export interface SerializedAccount {
   name: string;
   address: Address;
   path: string;
+  /** BIP-44 address index within this account's keyring (HD); 0 for imports. */
   index: number;
+  /** Parent keyring: HD keyring id, or `imported` for private-key accounts. */
+  keyringId: string;
 }
 
-export interface VaultData {
+/** Public keyring row for UI (stored in plaintext AccountsMeta). */
+export interface KeyringPublic {
+  id: string;
+  label: string;
+  type: "hd" | "imported";
+  /** SHA-256 hex of normalized mnemonic — for duplicate detection (HD only). */
+  mnemonicFingerprint?: string;
+}
+
+export type HdKeyringStored = {
+  type: "hd";
+  id: string;
+  label: string;
   mnemonic: string;
+  nextDerivationIndex: number;
+  createdAt: number;
+};
+
+export type ImportedKeyringStored = {
+  type: "imported";
+  id: typeof IMPORTED_KEYRING_ID; // always IMPORTED_KEYRING_ID
+  label: string;
+  createdAt: number;
+};
+
+export type KeyringStored = HdKeyringStored | ImportedKeyringStored;
+
+export interface VaultData {
+  keyrings: KeyringStored[];
   accounts: SerializedAccount[];
-  activeAccountIndex: number;
+  activeAccountAddress: Address;
   importedKeys?: Record<string, string>;
 }
 
@@ -46,7 +78,8 @@ export interface WalletState {
   isInitialized: boolean;
   storageMode: "keychain" | "vault";
   accounts: SerializedAccount[];
-  activeAccountIndex: number;
+  keyrings: KeyringPublic[];
+  activeAccountAddress: Address;
   activeNetworkId: number;
 }
 

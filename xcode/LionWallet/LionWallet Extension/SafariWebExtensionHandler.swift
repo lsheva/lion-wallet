@@ -89,6 +89,20 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             let exists = KeychainHelper.has(key: key)
             respond(context: context, payload: ["ok": true, "exists": exists])
 
+        /// Device-owner auth only (e.g. reset wallet) — no keychain read, avoids "Item not found" when meta ids drift.
+        case "keychain_authenticate":
+            let reason = dict["reason"] as? String ?? "Confirm action"
+            let laContext = LAContext()
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authError in
+                if success {
+                    self.respond(context: context, payload: ["ok": true])
+                } else {
+                    let msg = authError?.localizedDescription ?? "Authentication failed"
+                    os_log(.error, "LAContext authenticate-only failed: %{public}@", msg)
+                    self.respond(context: context, payload: ["ok": false, "error": msg])
+                }
+            }
+
         default:
             respond(context: context, payload: ["ok": false, "error": "Unknown action: \(action)"])
         }
