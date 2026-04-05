@@ -1,10 +1,15 @@
 import type { Address } from "viem";
 import { getBalance, getTransactionCount } from "viem/actions";
 import { HD_DERIVATION_DEFAULT_CEILING } from "../shared/hd-constants";
+
+/** Stop scanning further derivation indices after this many consecutive zero-balance, zero-nonce accounts. */
+const DISCOVERY_CONSECUTIVE_EMPTY_LIMIT = 3;
+
 import type { SerializedAccount } from "../shared/types";
-import { broadcastEvent } from "./broadcast";
+import { broadcastEvent, notifyChainDiscoveryProgress } from "./broadcast";
 import type { HdDerivedAddressMap } from "./hd-addresses";
 import { serializedAccountForSlot } from "./hd-addresses";
+import { bgLog } from "./log";
 import { getPublicClient } from "./networks";
 import type { AccountsMeta } from "./vault";
 import { saveAccountsMeta } from "./vault";
@@ -14,41 +19,33 @@ export interface ChainDiscoveryResult {
   scannedAt: number;
 }
 
-/** Avoid burst RPC (e.g. 20× balance + nonce) that triggers public endpoint rate limits. */
-const CHAIN_DISCOVERY_RPC_CONCURRENCY = 4;
-
-async function runPool<T>(
-  items: readonly T[],
-  limit: number,
-  worker: (item: T, index: number) => Promise<void>,
-): Promise<void> {
-  if (items.length === 0) return;
-  let next = 0;
-  const runWorker = async () => {
-    while (next < items.length) {
-      const i = next++;
-      if (i >= items.length) return;
-      await worker(items[i]!, i);
-    }
-  };
-  const n = Math.min(limit, items.length);
-  await Promise.all(Array.from({ length: n }, () => runWorker()));
-}
-
 async function rpcActivity(
   chainId: number,
   address: Address,
 ): Promise<{ balance: bigint; nonce: bigint }> {
   const client = getPublicClient(chainId);
-  const [balance, nonce] = await Promise.all([
-    getBalance(client, { address }),
-    getTransactionCount(client, { address }),
-  ]);
-  return { balance, nonce: BigInt(nonce) };
+  try {
+    bgLog("[chain-discovery] rpcActivity started:", chainId, address);
+    const [balance, nonce] = await Promise.all([
+      getBalance(client, { address }),
+      getTransactionCount(client, { address }),
+    ]);
+    return { balance, nonce: BigInt(nonce) };
+  } catch (e) {
+    bgLog("[chain-discovery] rpcActivity failed:", e);
+    throw e;
+  }
 }
 
 function hasOnChainActivity(balance: bigint, nonce: bigint): boolean {
   return balance > 0n || nonce > 0n;
+}
+
+function metaFingerprint(accounts: SerializedAccount[], active: Address): string {
+  return JSON.stringify({
+    addrs: accounts.map((a) => a.address.toLowerCase()),
+    active: active.toLowerCase(),
+  });
 }
 
 /** Merge HD accounts (by keyring + derivation index) with imported accounts; HD sorted per keyring, imported last. */
@@ -74,6 +71,47 @@ function mergeAccountList(
   return [...hdSorted, ...imported];
 }
 
+function computeHdDiscoverySnapshot(
+  hdByKeyringIndex: Map<string, Map<number, SerializedAccount>>,
+  slotActiveByKeyring: Map<string, boolean[]>,
+  imported: SerializedAccount[],
+  keyringOrderHint: string[],
+  initialActiveAddress: Address,
+): {
+  updatedAccounts: SerializedAccount[];
+  activeAccountIndices: number[];
+  newActiveAddr: Address;
+} {
+  const updatedAccounts = mergeAccountList(hdByKeyringIndex, imported, keyringOrderHint);
+  const prevAddr = initialActiveAddress;
+  let newActiveAddr = initialActiveAddress;
+  if (prevAddr) {
+    const idx = updatedAccounts.findIndex((a) => a.address === prevAddr);
+    const picked = idx >= 0 ? updatedAccounts[idx]?.address : updatedAccounts[0]?.address;
+    if (picked !== undefined) {
+      newActiveAddr = picked;
+    }
+  }
+
+  const activeAccountIndices: number[] = [];
+  for (let j = 0; j < updatedAccounts.length; j++) {
+    const acc = updatedAccounts[j];
+    if (!acc) continue;
+    if (acc.path === "imported") {
+      activeAccountIndices.push(j);
+      continue;
+    }
+    const i = acc.index;
+    const slots = slotActiveByKeyring.get(acc.keyringId);
+    if (i >= HD_DERIVATION_DEFAULT_CEILING) {
+      activeAccountIndices.push(j);
+    } else if (slots && i >= 0 && i < HD_DERIVATION_DEFAULT_CEILING && slots[i]) {
+      activeAccountIndices.push(j);
+    }
+  }
+  return { updatedAccounts, activeAccountIndices, newActiveAddr };
+}
+
 export async function runChainDiscovery(
   chainId: number,
   meta: AccountsMeta,
@@ -92,85 +130,126 @@ export async function runChainDiscovery(
     }
 
     const slotActiveByKeyring = new Map<string, boolean[]>();
-
+    const tasks: { keyringId: string; index: number; address: Address }[] = [];
     for (const [keyringId, addresses] of Object.entries(hdAddressMap)) {
-      const slotActive: boolean[] = new Array(HD_DERIVATION_DEFAULT_CEILING).fill(false);
-      await Promise.all(
-        addresses.map(async (address, i) => {
-          const { balance, nonce } = await rpcActivity(chainId, address);
-          const discovered = hasOnChainActivity(balance, nonce);
-          slotActive[i] = i === 0 || discovered;
-
-          let m = hdByKeyringIndex.get(keyringId);
-          if (!m) {
-            m = new Map();
-            hdByKeyringIndex.set(keyringId, m);
-          }
-          if (discovered && !m.has(i)) {
-            m.set(i, serializedAccountForSlot(i, address, keyringId));
-          }
-        }),
-      );
-      slotActiveByKeyring.set(keyringId, slotActive);
+      slotActiveByKeyring.set(keyringId, new Array(HD_DERIVATION_DEFAULT_CEILING).fill(false));
+      for (let i = 0; i < addresses.length; i++) {
+        const address = addresses[i];
+        if (address) tasks.push({ keyringId, index: i, address });
+      }
     }
 
-    const updatedAccounts = mergeAccountList(
+    const keyringOrderHint = meta.keyrings.map((k) => k.id);
+    let lastPersistedFp = metaFingerprint(meta.accounts, meta.activeAccountAddress);
+    let persistChain = Promise.resolve();
+
+    const consecutiveNoActivityByKeyring = new Map<string, number>();
+    const keyringDiscoveryExhausted = new Map<string, boolean>();
+
+    const emitHdProgress = () => {
+      const snap = computeHdDiscoverySnapshot(
+        hdByKeyringIndex,
+        slotActiveByKeyring,
+        imported,
+        keyringOrderHint,
+        meta.activeAccountAddress,
+      );
+      notifyChainDiscoveryProgress(chainId, snap.activeAccountIndices);
+
+      const fp = metaFingerprint(snap.updatedAccounts, snap.newActiveAddr);
+      if (fp === lastPersistedFp) return;
+
+      persistChain = persistChain.then(async () => {
+        try {
+          const latest = computeHdDiscoverySnapshot(
+            hdByKeyringIndex,
+            slotActiveByKeyring,
+            imported,
+            keyringOrderHint,
+            meta.activeAccountAddress,
+          );
+          const latestFp = metaFingerprint(latest.updatedAccounts, latest.newActiveAddr);
+          if (latestFp === lastPersistedFp) return;
+          await saveAccountsMeta(latest.updatedAccounts, latest.newActiveAddr, meta.keyrings);
+          lastPersistedFp = latestFp;
+          broadcastEvent(
+            "accountsChanged",
+            latest.updatedAccounts.map((a) => a.address),
+          );
+        } catch (e) {
+          bgLog("[chain-discovery] persist failed:", e);
+        }
+      });
+    };
+
+    for (const { keyringId, index: i, address } of tasks) {
+      if (keyringDiscoveryExhausted.get(keyringId)) continue;
+
+      const { balance, nonce } = await rpcActivity(chainId, address);
+      const discovered = hasOnChainActivity(balance, nonce);
+      const slots = slotActiveByKeyring.get(keyringId);
+      if (slots && i >= 0 && i < slots.length) {
+        slots[i] = i === 0 || discovered;
+      }
+
+      let m = hdByKeyringIndex.get(keyringId);
+      if (!m) {
+        m = new Map();
+        hdByKeyringIndex.set(keyringId, m);
+      }
+      if (discovered && !m.has(i)) {
+        m.set(i, serializedAccountForSlot(i, address, keyringId));
+      }
+
+      if (discovered) {
+        consecutiveNoActivityByKeyring.set(keyringId, 0);
+      } else {
+        const streak = (consecutiveNoActivityByKeyring.get(keyringId) ?? 0) + 1;
+        consecutiveNoActivityByKeyring.set(keyringId, streak);
+        if (streak >= DISCOVERY_CONSECUTIVE_EMPTY_LIMIT) {
+          keyringDiscoveryExhausted.set(keyringId, true);
+        }
+      }
+
+      emitHdProgress();
+    }
+
+    await persistChain;
+
+    const final = computeHdDiscoverySnapshot(
       hdByKeyringIndex,
+      slotActiveByKeyring,
       imported,
-      meta.keyrings.map((k) => k.id),
+      keyringOrderHint,
+      meta.activeAccountAddress,
     );
-    const prevAddr = meta.activeAccountAddress;
-    let newActiveAddr = meta.activeAccountAddress;
-    if (prevAddr) {
-      const idx = updatedAccounts.findIndex((a) => a.address === prevAddr);
-      const picked = idx >= 0 ? updatedAccounts[idx]?.address : updatedAccounts[0]?.address;
-      if (picked !== undefined) {
-        newActiveAddr = picked;
-      }
-    }
-
-    const activeAccountIndices: number[] = [];
-    for (let j = 0; j < updatedAccounts.length; j++) {
-      const acc = updatedAccounts[j];
-      if (!acc) continue;
-      if (acc.path === "imported") {
-        activeAccountIndices.push(j);
-        continue;
-      }
-      const i = acc.index;
-      const slots = slotActiveByKeyring.get(acc.keyringId);
-      if (i >= HD_DERIVATION_DEFAULT_CEILING) {
-        activeAccountIndices.push(j);
-      } else if (slots && i >= 0 && i < HD_DERIVATION_DEFAULT_CEILING && slots[i]) {
-        activeAccountIndices.push(j);
-      }
-    }
-
-    const changed =
-      updatedAccounts.length !== meta.accounts.length ||
-      updatedAccounts.some((a, i) => a.address !== meta.accounts[i]?.address);
-    const activeChanged = newActiveAddr !== meta.activeAccountAddress;
-
-    if (changed || activeChanged) {
-      await saveAccountsMeta(updatedAccounts, newActiveAddr, meta.keyrings);
-      broadcastEvent(
-        "accountsChanged",
-        updatedAccounts.map((a) => a.address),
-      );
-    }
-
-    return { activeAccountIndices, scannedAt: now };
+    return { activeAccountIndices: final.activeAccountIndices, scannedAt: now };
   }
 
   /** No per-keyring list: scan only addresses already in `accounts`. */
   const hd = meta.accounts.filter((a) => a.path !== "imported");
   const slotActive = new Map<string, boolean>();
 
-  await runPool(hd, CHAIN_DISCOVERY_RPC_CONCURRENCY, async (a) => {
+  const emitFallback = () => {
+    const activeAccountIndices: number[] = [];
+    for (let j = 0; j < meta.accounts.length; j++) {
+      const acc = meta.accounts[j];
+      if (!acc) continue;
+      if (acc.path === "imported") {
+        activeAccountIndices.push(j);
+        continue;
+      }
+      if (slotActive.get(`${acc.keyringId}:${acc.index}`)) activeAccountIndices.push(j);
+    }
+    notifyChainDiscoveryProgress(chainId, activeAccountIndices);
+  };
+
+  for (const a of hd) {
     const { balance, nonce } = await rpcActivity(chainId, a.address);
     const active = a.index === 0 || hasOnChainActivity(balance, nonce);
     slotActive.set(`${a.keyringId}:${a.index}`, active);
-  });
+    emitFallback();
+  }
 
   const activeAccountIndices: number[] = [];
   for (let j = 0; j < meta.accounts.length; j++) {

@@ -57,6 +57,8 @@ export interface ChainMeta {
   name: string;
   nativeCurrency: { name: string; symbol: string; decimals: number };
   testnet?: boolean;
+  /** Preferred public RPCs (longest-first from chainlist at build time, then viem defaults). */
+  rpcUrls?: string[];
   rpcUrl?: string;
   blockExplorerUrl?: string;
   alchemySlug?: string;

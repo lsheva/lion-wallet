@@ -246,7 +246,8 @@ async function proxyToRpc(method: string, params: unknown[] | undefined): Promis
   const chainId = await getActiveNetworkId();
   const client = getPublicClient(chainId);
   const transport = client.transport as { url?: string };
-  const rpcUrl = transport.url ?? getNetworkConfig(chainId)?.rpcUrl;
+  const cfg = getNetworkConfig(chainId);
+  const rpcUrl = transport.url ?? cfg?.rpcUrl ?? cfg?.rpcUrls?.[0];
 
   if (!rpcUrl) {
     return err(-32603, "No RPC URL configured for current chain");

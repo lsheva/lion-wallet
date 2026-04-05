@@ -1,7 +1,9 @@
 import { writeFileSync } from "node:fs";
 import type { Chain } from "viem";
 import * as allChains from "viem/chains";
-import list from "./chain-list.ts";
+import list, { fetchPublicRpcUrlsByChainId } from "./chain-list.ts";
+
+const chainlistRpcs = await fetchPublicRpcUrlsByChainId(10);
 
 const viemName = new Map<number, string>();
 for (const [name, chain] of Object.entries(allChains)) {
@@ -21,7 +23,20 @@ function minimal(chain: Chain, alchemy?: string, trust?: string, disperse?: stri
     nativeCurrency: chain.nativeCurrency,
   };
   if (chain.testnet) o.testnet = true;
-  if (chain.rpcUrls?.default?.http?.[0]) o.rpcUrl = chain.rpcUrls.default.http[0];
+
+  const fromChainlist = chainlistRpcs.get(chain.id);
+  const viemHttp =
+    chain.rpcUrls?.default?.http?.filter(
+      (u) => u.startsWith("http://") || u.startsWith("https://"),
+    ) ?? [];
+  /** chainlist reuses some ids (e.g. 31337 = GoChain testnet) while viem uses them for Hardhat — prefer viem for localhost RPCs. */
+  const viemLocal = viemHttp.some((u) => u.includes("127.0.0.1") || u.includes("localhost"));
+  const rpcUrls = fromChainlist?.length && !viemLocal ? fromChainlist : viemHttp;
+  if (rpcUrls.length > 0) {
+    o.rpcUrls = rpcUrls;
+    o.rpcUrl = rpcUrls[0];
+  }
+
   if (chain.blockExplorers?.default?.url) o.blockExplorerUrl = chain.blockExplorers.default.url;
   if (alchemy) o.alchemySlug = alchemy;
   if (trust) o.trustSlug = trust;
@@ -38,7 +53,7 @@ for (const { chain, alchemy, trust, disperse } of list) {
   chains.push(`  ${JSON.stringify(minimal(chain, alchemy, trust, disperse))},`);
 }
 
-const shared = `// @generated — do not edit. Regenerate with \`pnpm gen:chains\`
+const shared = `// @generated — do not edit. Regenerate with \`pnpm gen\`
 import type { ChainMeta } from "./types";
 
 export const CHAINS: ChainMeta[] = [
@@ -71,7 +86,7 @@ for (const { chain, icon, color } of list) {
   if (color) colorEntries.push(`  [${chain.id}, ${JSON.stringify(color)}],`);
 }
 
-const popup = `// @generated — do not edit. Regenerate with \`pnpm gen:chains\`
+const popup = `// @generated — do not edit. Regenerate with \`pnpm gen\`
 ${imports.join("\n")}
 
 export const CHAIN_ICON_BY_ID = new Map<number, string>([

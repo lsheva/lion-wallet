@@ -271,3 +271,35 @@ export default [
   trust?: string;
   disperse?: string;
 }[];
+
+const CHAINLIST_RPCS_JSON = "https://chainlist.org/rpcs.json";
+
+type ChainlistRow = {
+  chainId: number;
+  rpc?: { url: string }[];
+};
+
+/**
+ * Load up to `limit` HTTP(S) RPC endpoints per chain from chainlist.org (`rpcs.json`).
+ * Used at build time by `gen-chains.ts` (see `pnpm gen`).
+ */
+export async function fetchPublicRpcUrlsByChainId(limit = 10): Promise<Map<number, string[]>> {
+  const res = await fetch(CHAINLIST_RPCS_JSON);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${CHAINLIST_RPCS_JSON}: ${res.status} ${res.statusText}`);
+  }
+  const rows = (await res.json()) as ChainlistRow[];
+  const map = new Map<number, string[]>();
+  for (const row of rows) {
+    const urls: string[] = [];
+    for (const entry of row.rpc ?? []) {
+      if (urls.length >= limit) break;
+      const u = entry.url;
+      if (typeof u !== "string" || (!u.startsWith("https://") && !u.startsWith("http://")))
+        continue;
+      if (!urls.includes(u)) urls.push(u);
+    }
+    if (urls.length > 0) map.set(row.chainId, urls);
+  }
+  return map;
+}

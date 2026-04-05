@@ -1,13 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Connect } from "vite";
 
-import { DEV_RPC_PROXY_PREFIX } from "../src/shared/dev-rpc-proxy";
-
-function decodeBase64UrlSegment(segment: string): string {
-  let b64 = segment.replace(/-/g, "+").replace(/_/g, "/");
-  while (b64.length % 4) b64 += "=";
-  return Buffer.from(b64, "base64").toString("utf8");
-}
+import { DEV_RPC_PROXY_PREFIX, decodeRpcUrlFromDevProxy } from "../src/shared/dev-rpc-proxy";
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -39,7 +33,7 @@ export function devRpcProxyMiddleware(): Connect.NextHandleFunction {
 
     let target: string;
     try {
-      target = decodeBase64UrlSegment(decodeURIComponent(segment));
+      target = decodeRpcUrlFromDevProxy(segment);
     } catch {
       res.statusCode = 400;
       res.end("Invalid __dev_rpc target encoding");
@@ -76,12 +70,22 @@ export function devRpcProxyMiddleware(): Connect.NextHandleFunction {
         });
 
         res.statusCode = upstream.status;
+        const buf = Buffer.from(await upstream.arrayBuffer());
         upstream.headers.forEach((value, key) => {
           const lk = key.toLowerCase();
-          if (lk === "transfer-encoding" || lk === "connection") return;
+          // Node fetch decompresses the body but may still advertise Content-Encoding;
+          // forwarding it causes net::ERR_CONTENT_DECODING_FAILED in the browser.
+          if (
+            lk === "transfer-encoding" ||
+            lk === "connection" ||
+            lk === "content-encoding" ||
+            lk === "content-length"
+          ) {
+            return;
+          }
           res.setHeader(key, value);
         });
-        res.end(Buffer.from(await upstream.arrayBuffer()));
+        res.end(buf);
       } catch (e) {
         res.statusCode = 502;
         res.end(e instanceof Error ? e.message : "RPC proxy error");

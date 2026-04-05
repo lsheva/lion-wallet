@@ -1,5 +1,5 @@
 import type { Chain, Client } from "viem";
-import { createClient, http } from "viem";
+import { createClient, fallback, http } from "viem";
 
 import { CHAIN_BY_ID, CHAINS, DEFAULT_NETWORK_ID } from "../shared/constants";
 import { DEV_RPC_PROXY_PREFIX, encodeRpcUrlForDevProxy } from "../shared/dev-rpc-proxy";
@@ -41,7 +41,7 @@ function applyDevTabRpcProxy(rpcUrl: string | undefined): string | undefined {
       : null;
   const origin = loc && "origin" in loc ? loc.origin : "";
   if (!origin || loc?.protocol === "chrome-extension:") return rpcUrl;
-  const seg = encodeURIComponent(encodeRpcUrlForDevProxy(rpcUrl));
+  const seg = encodeRpcUrlForDevProxy(rpcUrl);
   return `${origin}${DEV_RPC_PROXY_PREFIX}${seg}`;
 }
 
@@ -68,12 +68,20 @@ export async function setActiveNetworkId(chainId: number): Promise<void> {
 }
 
 function toViemChain(meta: ChainMeta): Chain {
+  const httpRpcs = meta.rpcUrls?.length ? meta.rpcUrls : meta.rpcUrl ? [meta.rpcUrl] : [""];
   return {
     id: meta.id,
     name: meta.name,
     nativeCurrency: meta.nativeCurrency,
-    rpcUrls: { default: { http: [meta.rpcUrl ?? ""] } },
+    rpcUrls: { default: { http: httpRpcs } },
   } as Chain;
+}
+
+function publicRpcUrlList(meta: ChainMeta, privateRpcUrl: string | undefined): string[] {
+  if (privateRpcUrl) return [privateRpcUrl];
+  if (meta.rpcUrls?.length) return meta.rpcUrls;
+  if (meta.rpcUrl) return [meta.rpcUrl];
+  return [];
 }
 
 export function getPublicClient(chainId: number): Client {
@@ -84,10 +92,23 @@ export function getPublicClient(chainId: number): Client {
   if (!meta) throw new Error(`Unknown chain ID: ${chainId}`);
 
   const privateRpcUrl = getRpcUrl(chainId);
-  const rpcUrl = applyDevTabRpcProxy(privateRpcUrl ?? meta.rpcUrl);
+  const urls = publicRpcUrlList(meta, privateRpcUrl);
+  if (!urls.length) {
+    throw new Error(`No RPC URL configured for chain ${chainId}`);
+  }
+  const proxied = urls.map((u) => applyDevTabRpcProxy(u) ?? u);
+  const batch = !!privateRpcUrl;
+  const transport =
+    proxied.length === 1
+      ? http(proxied[0], { batch })
+      : fallback(proxied.map((url) => http(url, { batch })));
+
+  const chainMetaForClient =
+    privateRpcUrl != null ? { ...meta, rpcUrl: privateRpcUrl, rpcUrls: [privateRpcUrl] } : meta;
+
   const client = createClient({
-    chain: toViemChain({ ...meta, rpcUrl }),
-    transport: http(rpcUrl, { batch: !!privateRpcUrl }),
+    chain: toViemChain(chainMetaForClient),
+    transport,
   });
 
   clientCache.set(chainId, client);

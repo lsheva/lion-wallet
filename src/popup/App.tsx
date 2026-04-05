@@ -27,6 +27,7 @@ import {
   setActivity,
   setActivityHasMore,
   setActivitySource,
+  setHomeDiscoveryActiveIndices,
 } from "./store";
 
 const APPROVAL_METHODS = new Set([
@@ -51,7 +52,17 @@ type BgPushMessage =
       source?: string;
       hasMore?: boolean;
       chainId?: number;
-    };
+    }
+  | { type: "CHAIN_DISCOVERY_PROGRESS"; chainId: number; activeAccountIndices: number[] };
+
+let chainDiscoveryFetchTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleFetchStateAfterDiscovery(): void {
+  if (chainDiscoveryFetchTimer != null) clearTimeout(chainDiscoveryFetchTimer);
+  chainDiscoveryFetchTimer = setTimeout(() => {
+    chainDiscoveryFetchTimer = null;
+    void fetchState();
+  }, 1000);
+}
 
 function handleBackgroundPushMessage(msg: unknown): void {
   const m = msg as BgPushMessage;
@@ -70,6 +81,11 @@ function handleBackgroundPushMessage(msg: unknown): void {
       setActivity(m.items);
       if (m.source) setActivitySource(m.source as "etherscan" | "rpc" | "cache");
       if (typeof m.hasMore === "boolean") setActivityHasMore(m.hasMore);
+      break;
+    case "CHAIN_DISCOVERY_PROGRESS":
+      if (m.chainId !== activeNetworkId()) return;
+      setHomeDiscoveryActiveIndices(m.activeAccountIndices);
+      scheduleFetchStateAfterDiscovery();
       break;
   }
 }

@@ -28,6 +28,18 @@ export function broadcastPendingCount(): void {
   });
 }
 
+/** Incremental chain-discovery UI: Home account list updates as each address finishes scanning. */
+export function notifyChainDiscoveryProgress(
+  chainId: number,
+  activeAccountIndices: number[],
+): void {
+  browser.runtime
+    .sendMessage({ type: "CHAIN_DISCOVERY_PROGRESS", chainId, activeAccountIndices })
+    .catch(() => {
+      /* popup closed — expected */
+    });
+}
+
 /** RGBA 0–255 — WebKit/Safari often ignores hex strings for badge color. */
 const BADGE_THEME_RGBA: [number, number, number, number] = [217, 119, 6, 255];
 
