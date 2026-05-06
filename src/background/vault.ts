@@ -16,15 +16,28 @@ export interface AccountsMeta {
   accounts: SerializedAccount[];
   activeAccountAddress: Address;
   keyrings: KeyringPublic[];
+  /** Lowercase addresses that have shown balance/nonce in discovery; skip RPC for visible index 0 on new chains. */
+  discoverySeenActivityAddresses?: string[];
 }
 
 export async function saveAccountsMeta(
   accounts: SerializedAccount[],
   activeAccountAddress: Address,
   keyrings: KeyringPublic[],
+  discoverySeenActivityAddresses?: string[],
 ): Promise<void> {
+  const existing = await loadAccountsMeta();
+  const mergedSeen =
+    discoverySeenActivityAddresses !== undefined
+      ? discoverySeenActivityAddresses
+      : existing?.discoverySeenActivityAddresses;
   await browser.storage.local.set({
-    [ACCOUNTS_META_KEY]: { accounts, activeAccountAddress, keyrings } satisfies AccountsMeta,
+    [ACCOUNTS_META_KEY]: {
+      accounts,
+      activeAccountAddress,
+      keyrings,
+      ...(mergedSeen?.length ? { discoverySeenActivityAddresses: mergedSeen } : {}),
+    } satisfies AccountsMeta,
   });
 }
 

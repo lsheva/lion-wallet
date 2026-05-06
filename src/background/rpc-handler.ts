@@ -2,6 +2,7 @@ import { toErrorMessage } from "@shared/format";
 import type { Hex } from "viem";
 import { numberToHex } from "viem/utils";
 import { POPUP_ORIGIN } from "../shared/constants";
+import { visibleAccounts } from "./account-utils";
 import { createPendingApproval, type PendingApprovalExtras } from "./approval";
 import { broadcastEvent } from "./broadcast";
 import {
@@ -75,7 +76,7 @@ export async function handleRpc(
           return err(4100, "Wallet is not set up");
         }
         const meta = await loadAccountsMeta();
-        const accounts = meta?.accounts ?? [];
+        const accounts = visibleAccounts(meta?.accounts ?? []);
         if (accounts.length === 0) {
           return err(4100, "No accounts available");
         }
@@ -109,7 +110,7 @@ export async function handleRpc(
           return ok([]);
         }
         const meta = await loadAccountsMeta();
-        return ok((meta?.accounts ?? []).map((a) => a.address));
+        return ok(visibleAccounts(meta?.accounts ?? []).map((a) => a.address));
       }
 
       case "eth_chainId": {
@@ -166,7 +167,7 @@ export async function handleRpc(
           return err(4100, "Wallet is not set up");
         }
         const meta = await loadAccountsMeta();
-        if (!meta || meta.accounts.length === 0) {
+        if (!meta || visibleAccounts(meta.accounts).length === 0) {
           return err(4100, "No accounts available");
         }
 

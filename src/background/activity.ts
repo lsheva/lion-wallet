@@ -1,4 +1,4 @@
-import type { Abi, Hex } from "viem";
+import type { Abi, Hex, RpcLog } from "viem";
 import { getBlockNumber, getTransaction } from "viem/actions";
 import { decodeEventLog } from "viem/utils";
 import { erc20Abi } from "../shared/abis";
@@ -544,14 +544,6 @@ async function enrichEtherscanAsync(
 
 // ── RPC fallback ─────────────────────────────────────────────────────
 
-interface RpcLog {
-  transactionHash: string;
-  blockNumber: string;
-  address: string;
-  topics: string[];
-  data: string;
-}
-
 function toHex(n: bigint): `0x${string}` {
   return `0x${n.toString(16)}`;
 }
@@ -576,20 +568,20 @@ async function fetchRpcData(
             {
               fromBlock: toHex(from),
               toBlock: toHex(latest),
-              topics: [null, padded] as [null, `0x${string}`],
+              topics: [null, padded],
             },
           ],
-        }) as Promise<RpcLog[]>,
+        }),
         client.request({
           method: "eth_getLogs",
           params: [
             {
               fromBlock: toHex(from),
               toBlock: toHex(latest),
-              topics: [null, null, padded] as [null, null, `0x${string}`],
+              topics: [null, null, padded],
             },
           ],
-        }) as Promise<RpcLog[]>,
+        }),
       ]);
       allLogs = [...t1, ...t2];
       break;
@@ -620,13 +612,13 @@ async function fetchRpcData(
     try {
       const decoded = decodeEventLog({
         abi: erc20Abi,
-        data: log.data as `0x${string}`,
-        topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
+        data: log.data,
+        topics: log.topics,
       });
       if (decoded.eventName === "Transfer") {
         const args = decoded.args as { from: string; to: string; value: bigint };
         rawTransfers.push({
-          hash: log.transactionHash.toLowerCase(),
+          hash: log.transactionHash?.toLowerCase() ?? "",
           token: log.address,
           from: args.from,
           to: args.to,

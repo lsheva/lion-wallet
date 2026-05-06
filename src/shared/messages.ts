@@ -191,12 +191,12 @@ export async function sendMessage<M extends MessageRequest>(
 
   const extId = import.meta.env.VITE_EXTENSION_ID?.trim();
   let pending: Promise<unknown>;
-  if (hasBrowserExtensionContext()) {
+  if (extId) {
+    pending = browser.runtime.sendMessage(extId, message);
+  } else if (hasBrowserExtensionContext()) {
     pending = browser.runtime.sendMessage(message);
   } else if (import.meta.env.DEV) {
     pending = sendMessageViaDevServiceWorker(message);
-  } else if (extId) {
-    pending = browser.runtime.sendMessage(extId, message);
   } else {
     pending = Promise.reject(
       new TypeError(
@@ -218,6 +218,19 @@ export async function sendMessage<M extends MessageRequest>(
     ),
   ]);
   console.log(`<- ${JSON.stringify(response)}`);
+
+  if (
+    response === undefined ||
+    response === null ||
+    typeof response !== "object" ||
+    !("ok" in response)
+  ) {
+    return {
+      ok: false,
+      error:
+        "No response from wallet background — reload the extension or open the popup from the toolbar.",
+    } as TypedResponse<M["type"]>;
+  }
 
   return response as TypedResponse<M["type"]>;
 }

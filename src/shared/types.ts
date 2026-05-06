@@ -10,6 +10,8 @@ export interface SerializedAccount {
   index: number;
   /** Parent keyring: HD keyring id, or `imported` for private-key accounts. */
   keyringId: string;
+  /** HD soft-remove: kept for chain-discovery tombstones; never set on imported accounts. */
+  hidden?: boolean;
 }
 
 /** Public keyring row for UI (stored in plaintext AccountsMeta). */

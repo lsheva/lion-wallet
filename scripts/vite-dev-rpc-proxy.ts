@@ -65,7 +65,7 @@ export function devRpcProxyMiddleware(): Connect.NextHandleFunction {
         const upstream = await fetch(target, {
           method: req.method ?? "POST",
           headers: forwardHeaders,
-          body: body.length > 0 ? body : undefined,
+          body: body.length > 0 ? body.toString() : undefined,
           redirect: "manual",
         });
 

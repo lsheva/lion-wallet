@@ -4,7 +4,7 @@ import type { Address, Hex } from "viem";
 import { formatEther } from "viem/utils";
 import type { MessageResponse } from "../../shared/messages";
 import type { GasSpeed, TransactionParams } from "../../shared/types";
-import { getActiveAccount } from "../account-utils";
+import { getActiveAccount, visibleAccounts } from "../account-utils";
 import { pushActivityItem } from "../activity";
 import { pushRecentAddress } from "../address-book";
 import {
@@ -77,7 +77,7 @@ async function executeApproval(
       const meta = await loadAccountsMeta();
       if (!meta) return { ok: false, error: "No accounts found" };
       await addConnectedOrigin(pending.origin);
-      const addresses = meta.accounts.map((a) => a.address);
+      const addresses = visibleAccounts(meta.accounts).map((a) => a.address);
       resolvePendingApproval(id, addresses);
       updateBadge();
       broadcastPendingCount();

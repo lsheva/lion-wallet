@@ -18,7 +18,7 @@ import type {
   VaultData,
   WalletState,
 } from "../../shared/types";
-import { getActiveAccount } from "../account-utils";
+import { getActiveAccount, visibleAccounts } from "../account-utils";
 import { clearAllPending } from "../approval";
 import { broadcastEvent } from "../broadcast";
 import { runChainDiscovery } from "../chain-discovery";
@@ -91,7 +91,7 @@ function mergePlaintextMetaIntoVaultData(
   const accBy = new Map(meta.accounts.map((a) => [a.address.toLowerCase(), a]));
   const accounts = data.accounts.map((a) => {
     const m = accBy.get(a.address.toLowerCase());
-    return m ? { ...a, name: m.name } : a;
+    return m ? { ...a, ...m } : a;
   });
   const labelById = new Map(meta.keyrings.map((k) => [k.id, k.label]));
   const keyrings = data.keyrings.map((k) => {
@@ -472,6 +472,8 @@ export async function handleRenameAccount(
 ): Promise<MessageResponse> {
   const meta = await loadAccountsMeta();
   if (!meta) return { ok: false, error: "No wallet" };
+  const acc = meta.accounts.find((a) => a.address.toLowerCase() === address.toLowerCase());
+  if (!acc || acc.hidden) return { ok: false, error: "Account not found" };
   const trimmed = name.trim();
   const next = meta.accounts.map((a) =>
     a.address.toLowerCase() === address.toLowerCase() ? { ...a, name: trimmed || a.name } : a,
@@ -489,23 +491,23 @@ export async function handleRemoveAccount(
   const lower = address.toLowerCase();
   const acc = meta.accounts.find((a) => a.address.toLowerCase() === lower);
   if (!acc) return { ok: false, error: "Account not found" };
-  if (meta.accounts.length <= 1) {
+  if (acc.hidden) return { ok: false, error: "Account not found" };
+  if (visibleAccounts(meta.accounts).length <= 1) {
     return { ok: false, error: "Cannot remove the only account — use Reset wallet" };
   }
 
   const remainingAccounts = meta.accounts.filter((a) => a.address.toLowerCase() !== lower);
-  let active = meta.activeAccountAddress;
-  if (active.toLowerCase() === lower) {
-    const next = remainingAccounts[0];
-    if (next === undefined) {
-      return { ok: false, error: "Could not pick a new active account" };
-    }
-    active = next.address;
-  }
 
   const mode = await getStorageMode();
 
   if (acc.path === "imported") {
+    let active = meta.activeAccountAddress;
+    if (active.toLowerCase() === lower) {
+      const next = visibleAccounts(remainingAccounts)[0];
+      if (next === undefined) return { ok: false, error: "Could not pick a new active account" };
+      active = next.address;
+    }
+
     if (mode === "keychain") {
       await keychain.deleteImportedKey(acc.address);
       let kp = meta.keyrings;
@@ -515,7 +517,7 @@ export async function handleRemoveAccount(
       await saveAccountsMeta(remainingAccounts, active, kp);
       broadcastEvent(
         "accountsChanged",
-        remainingAccounts.map((a) => a.address),
+        visibleAccounts(remainingAccounts).map((a) => a.address),
       );
       return { ok: true };
     }
@@ -545,25 +547,26 @@ export async function handleRemoveAccount(
     if (!res.ok) return res;
     broadcastEvent(
       "accountsChanged",
-      nextAccounts.map((a) => a.address),
+      visibleAccounts(nextAccounts).map((a) => a.address),
     );
     return { ok: true };
   }
 
-  const kid = acc.keyringId;
-  const othersInKr = meta.accounts.filter(
-    (a) => a.path !== "imported" && a.keyringId === kid && a.address.toLowerCase() !== lower,
+  const nextAccountsHd = meta.accounts.map((a) =>
+    a.address.toLowerCase() === lower ? { ...a, hidden: true } : a,
   );
-
-  if (othersInKr.length === 0) {
-    return handleDeleteKeyring(kid, password);
+  let activeHd = meta.activeAccountAddress;
+  if (activeHd.toLowerCase() === lower) {
+    const next = visibleAccounts(nextAccountsHd)[0];
+    if (next === undefined) return { ok: false, error: "Could not pick a new active account" };
+    activeHd = next.address;
   }
 
   if (mode === "keychain") {
-    await saveAccountsMeta(remainingAccounts, active, meta.keyrings);
+    await saveAccountsMeta(nextAccountsHd, activeHd, meta.keyrings);
     broadcastEvent(
       "accountsChanged",
-      remainingAccounts.map((a) => a.address),
+      visibleAccounts(nextAccountsHd).map((a) => a.address),
     );
     return { ok: true };
   }
@@ -575,18 +578,20 @@ export async function handleRemoveAccount(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
-  const nextAccounts = data.accounts.filter((a) => a.address.toLowerCase() !== lower);
+  const nextVaultAccounts = data.accounts.map((a) =>
+    a.address.toLowerCase() === lower ? { ...a, hidden: true } : a,
+  );
   const nextVault: VaultData = {
     ...data,
-    accounts: nextAccounts,
-    activeAccountAddress: active,
+    accounts: nextVaultAccounts,
+    activeAccountAddress: activeHd,
   };
   const kp = await keyringsPublicWithFingerprints(nextVault.keyrings);
   const res = await persistMergedVault(nextVault, password, kp);
   if (!res.ok) return res;
   broadcastEvent(
     "accountsChanged",
-    nextAccounts.map((a) => a.address),
+    visibleAccounts(nextVaultAccounts).map((a) => a.address),
   );
   return { ok: true };
 }
@@ -594,10 +599,34 @@ export async function handleRemoveAccount(
 async function getWalletState(): Promise<WalletState> {
   const meta = await loadAccountsMeta();
   const mode = await getStorageMode();
+  if (meta && meta.accounts.length > 0) {
+    const visible = visibleAccounts(meta.accounts);
+    const row = meta.accounts.find(
+      (a) => a.address.toLowerCase() === meta.activeAccountAddress.toLowerCase(),
+    );
+    const activePointsToHiddenOrMissing = !row || row.hidden === true;
+    const firstVis = visible[0];
+    if (firstVis && activePointsToHiddenOrMissing) {
+      const fixed = firstVis.address;
+      await saveAccountsMeta(meta.accounts, fixed, meta.keyrings);
+      broadcastEvent(
+        "accountsChanged",
+        visible.map((a) => a.address),
+      );
+      return {
+        isInitialized: await isVaultInitialized(),
+        storageMode: mode,
+        accounts: visible,
+        keyrings: meta.keyrings,
+        activeAccountAddress: fixed,
+        activeNetworkId: await getActiveNetworkId(),
+      };
+    }
+  }
   return {
     isInitialized: await isVaultInitialized(),
     storageMode: mode,
-    accounts: meta?.accounts ?? [],
+    accounts: visibleAccounts(meta?.accounts ?? []),
     keyrings: meta?.keyrings ?? [],
     activeAccountAddress: meta?.activeAccountAddress ?? zeroAddress,
     activeNetworkId: await getActiveNetworkId(),
@@ -610,7 +639,7 @@ export async function handleGetState(): Promise<MessageResponse> {
 
 export async function handleGetAccounts(): Promise<MessageResponse> {
   const meta = await loadAccountsMeta();
-  return { ok: true, data: { accounts: meta?.accounts ?? [] } };
+  return { ok: true, data: { accounts: visibleAccounts(meta?.accounts ?? []) } };
 }
 
 export async function handleDeriveAccount(
@@ -691,20 +720,18 @@ export async function handleEnsureChainDiscovery(chainId: number): Promise<Messa
   const meta = await loadAccountsMeta();
   if (!meta?.accounts.length) return { ok: false, error: "Wallet not initialized" };
 
-  if (meta.accounts.every((a) => a.path === "imported")) {
-    return { ok: true, data: { activeAccountIndices: [0], scannedAt: Date.now() } };
-  }
-
-  const hdMap = await resolveHdAddressMap();
-  if (!hdMap) {
+  const visForDiscovery = visibleAccounts(meta.accounts);
+  if (visForDiscovery.length > 0 && visForDiscovery.every((a) => a.path === "imported")) {
     return {
       ok: true,
       data: {
-        activeAccountIndices: meta.accounts.map((_, i) => i),
+        activeAccountIndices: visForDiscovery.map((_, i) => i),
         scannedAt: Date.now(),
       },
     };
   }
+
+  const hdMap = await resolveHdAddressMap();
 
   try {
     bgLog(`[chain-discovery] started with ${chainId}`);
@@ -749,14 +776,16 @@ export async function handleSwitchAccount(activeAccountAddress: Address): Promis
   const meta = await loadAccountsMeta();
   if (meta) {
     if (
-      !meta.accounts.some((a) => a.address.toLowerCase() === activeAccountAddress.toLowerCase())
+      !visibleAccounts(meta.accounts).some(
+        (a) => a.address.toLowerCase() === activeAccountAddress.toLowerCase(),
+      )
     ) {
       return { ok: false, error: "Unknown account" };
     }
     await saveAccountsMeta(meta.accounts, activeAccountAddress, meta.keyrings);
     broadcastEvent(
       "accountsChanged",
-      meta.accounts.map((a) => a.address),
+      visibleAccounts(meta.accounts).map((a) => a.address),
     );
   }
   return { ok: true };
@@ -770,7 +799,7 @@ export async function handleExportPrivateKey(
   const meta = await loadAccountsMeta();
   if (!meta) return { ok: false, error: "Wallet not initialized" };
   const acc = meta.accounts.find((a) => a.address.toLowerCase() === address.toLowerCase());
-  if (!acc) return { ok: false, error: "Account not found" };
+  if (!acc || acc.hidden) return { ok: false, error: "Account not found" };
   if (acc.path === "imported") {
     const pk =
       (await retrieveImportedKey(mode, acc.address, password, "Export private key")) ?? null;
