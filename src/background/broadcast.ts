@@ -1,5 +1,5 @@
 import type { Tabs } from "webextension-polyfill/namespaces/tabs";
-import { CHANNEL } from "../shared/messages";
+import { CHANNEL } from "../shared/protocol";
 import { getPendingCount } from "./approval";
 import { bgLog } from "./log";
 

@@ -234,5 +234,3 @@ export async function sendMessage<M extends MessageRequest>(
 
   return response as TypedResponse<M["type"]>;
 }
-
-export { CHANNEL } from "./protocol";

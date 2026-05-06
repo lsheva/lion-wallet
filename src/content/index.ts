@@ -1,4 +1,4 @@
-import { CHANNEL } from "../shared/messages";
+import { CHANNEL } from "../shared/protocol";
 
 const script = document.createElement("script");
 script.src = browser.runtime.getURL("inpage.js");
