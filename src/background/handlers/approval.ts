@@ -7,12 +7,7 @@ import type { GasSpeed, TransactionParams } from "../../shared/types";
 import { getActiveAccount, visibleAccounts } from "../account-utils";
 import { pushActivityItem } from "../activity";
 import { pushRecentAddress } from "../address-book";
-import {
-  getPendingApproval,
-  getPendingCount,
-  rejectPendingApproval,
-  resolvePendingApproval,
-} from "../approval";
+import * as approval from "../approval";
 import { broadcastPendingCount, updateBadge } from "../broadcast";
 import { addConnectedOrigin } from "../connected-origins";
 import { getEtherscanApiKey } from "../etherscan";
@@ -20,15 +15,7 @@ import { bgLog } from "../log";
 import { getNetworkConfig, hasRpcProviderKey } from "../networks";
 import { fetchPrices } from "../prices";
 import { handleRpc } from "../rpc-handler";
-import {
-  estimateGasPresets,
-  ethSign,
-  getAccountForSigning,
-  personalSign,
-  sendTransaction,
-  signTransaction,
-  signTypedDataV4,
-} from "../signing";
+import * as signing from "../signing";
 import { decodeTx } from "../tx-decoder";
 import { simulateTx } from "../tx-simulator";
 import { getStorageMode, loadAccountsMeta } from "../vault";
@@ -67,7 +54,7 @@ async function executeApproval(
   gasSpeed: GasSpeed = "normal",
   password?: string,
 ): Promise<MessageResponse> {
-  const pending = getPendingApproval();
+  const pending = approval.getPendingApproval();
   if (!pending || pending.id !== id) {
     return { ok: false, error: "No matching pending approval" };
   }
@@ -78,13 +65,13 @@ async function executeApproval(
       if (!meta) return { ok: false, error: "No accounts found" };
       await addConnectedOrigin(pending.origin);
       const addresses = visibleAccounts(meta.accounts).map((a) => a.address);
-      resolvePendingApproval(id, addresses);
+      approval.resolvePendingApproval(id, addresses);
       updateBadge();
       broadcastPendingCount();
       return { ok: true, data: { result: addresses } };
     } catch (e) {
       const msg = toErrorMessage(e);
-      rejectPendingApproval(id, msg);
+      approval.rejectPendingApproval(id, msg);
       updateBadge();
       broadcastPendingCount();
       return { ok: false, error: msg };
@@ -95,13 +82,13 @@ async function executeApproval(
     try {
       await addConnectedOrigin(pending.origin);
       const perms = [{ parentCapability: "eth_accounts" as const }];
-      resolvePendingApproval(id, perms);
+      approval.resolvePendingApproval(id, perms);
       updateBadge();
       broadcastPendingCount();
       return { ok: true, data: { result: perms } };
     } catch (e) {
       const msg = toErrorMessage(e);
-      rejectPendingApproval(id, msg);
+      approval.rejectPendingApproval(id, msg);
       updateBadge();
       broadcastPendingCount();
       return { ok: false, error: msg };
@@ -132,14 +119,14 @@ async function executeApproval(
       );
     }
 
-    const account = getAccountForSigning(active, hdMnemonic, importedKey);
+    const account = signing.getAccountForSigning(active, hdMnemonic, importedKey);
 
     let result: string;
 
     switch (method) {
       case "eth_sendTransaction": {
         const txParams = params[0] as TransactionParams;
-        result = await sendTransaction(account, chainId, txParams, gasSpeed);
+        result = await signing.sendTransaction(account, chainId, txParams, gasSpeed);
         void pushActivityItem(account.address, chainId, {
           hash: result,
           from: account.address,
@@ -176,36 +163,36 @@ async function executeApproval(
       }
       case "eth_signTransaction": {
         const txParams = params[0] as TransactionParams;
-        result = await signTransaction(account, chainId, txParams, gasSpeed);
+        result = await signing.signTransaction(account, chainId, txParams, gasSpeed);
         break;
       }
       case "personal_sign": {
         const [message] = params as [string, Address];
-        result = await personalSign(account, message);
+        result = await signing.personalSign(account, message);
         break;
       }
       case "eth_sign": {
         const [, hash] = params as [Address, `0x${string}`];
-        result = await ethSign(account, hash);
+        result = await signing.ethSign(account, hash);
         break;
       }
       case "eth_signTypedData_v4":
       case "eth_signTypedData": {
-        result = await signTypedDataV4(account, params as [Address, string]);
+        result = await signing.signTypedDataV4(account, params as [Address, string]);
         break;
       }
       default:
-        rejectPendingApproval(id, `Unsupported method: ${method}`);
+        approval.rejectPendingApproval(id, `Unsupported method: ${method}`);
         return { ok: false, error: `Unsupported signing method: ${method}` };
     }
 
-    resolvePendingApproval(id, result);
+    approval.resolvePendingApproval(id, result);
     updateBadge();
     broadcastPendingCount();
     return { ok: true, data: { result } };
   } catch (e) {
     const msg = toErrorMessage(e);
-    rejectPendingApproval(id, msg);
+    approval.rejectPendingApproval(id, msg);
     updateBadge();
     broadcastPendingCount();
     return { ok: false, error: msg };
@@ -224,7 +211,7 @@ export async function handleRpcRequest(
 }
 
 export async function handleGetPendingApproval(): Promise<MessageResponse> {
-  const pending = getPendingApproval();
+  const pending = approval.getPendingApproval();
   if (!pending) return { ok: true, data: null };
 
   const [meta, mode] = await Promise.all([loadAccountsMeta(), getStorageMode()]);
@@ -235,14 +222,14 @@ export async function handleGetPendingApproval(): Promise<MessageResponse> {
     data: {
       approval: pending,
       account: activeAccount,
-      queueSize: getPendingCount(),
+      queueSize: approval.getPendingCount(),
       storageMode: mode,
     },
   };
 }
 
 export async function handleEnrichApproval(id: string): Promise<MessageResponse> {
-  const pending = getPendingApproval();
+  const pending = approval.getPendingApproval();
   if (!pending || pending.id !== id) return { ok: true, data: null };
 
   if (pending.method === "eth_requestAccounts" || pending.method === "wallet_requestPermissions") {
@@ -281,7 +268,11 @@ export async function handleEnrichApproval(id: string): Promise<MessageResponse>
     );
 
     try {
-      gasPresets = await estimateGasPresets(pending.chainId, txParams, activeAccount?.address);
+      gasPresets = await signing.estimateGasPresets(
+        pending.chainId,
+        txParams,
+        activeAccount?.address,
+      );
       _debug.push("gas: OK");
     } catch (e) {
       gasEstimateError = formatGasEstimateError(e);
@@ -370,7 +361,7 @@ export async function handleApproveRequest(
 }
 
 export async function handleRejectRequest(id: string): Promise<MessageResponse> {
-  const rejected = rejectPendingApproval(id);
+  const rejected = approval.rejectPendingApproval(id);
   updateBadge();
   broadcastPendingCount();
   if (!rejected) return { ok: false, error: "No matching pending approval" };
@@ -384,7 +375,7 @@ export async function handleEstimateGas(
   try {
     const meta = await loadAccountsMeta();
     const fromAddr = meta ? getActiveAccount(meta)?.address : undefined;
-    const presets = await estimateGasPresets(chainId, tx, fromAddr);
+    const presets = await signing.estimateGasPresets(chainId, tx, fromAddr);
     return { ok: true, data: presets };
   } catch (e) {
     return { ok: false, error: formatGasEstimateError(e) };

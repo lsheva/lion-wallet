@@ -25,7 +25,7 @@ export function bootstrapBackground(): void {
         broadcastEvent("approvalPending", { count: getPendingCount() });
       }
       try {
-        (browser.action as { openPopup?: () => void }).openPopup?.();
+        browser.action.openPopup();
       } catch {
         /* popup couldn't be opened programmatically */
       }

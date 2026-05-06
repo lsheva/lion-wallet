@@ -1,6 +1,4 @@
-import { toFunctionSelector } from "viem";
-
-export const ERC20_TRANSFER_SELECTOR = toFunctionSelector("transfer(address,uint256)");
+export const ERC20_TRANSFER_SELECTOR = "0xa9059cbb"; // transfer(address,uint256)
 
 export const erc20Abi = [
   {

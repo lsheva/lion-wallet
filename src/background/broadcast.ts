@@ -46,5 +46,5 @@ const BADGE_THEME_RGBA: [number, number, number, number] = [217, 119, 6, 255];
 export function updateBadge(): void {
   const count = getPendingCount();
   browser.action.setBadgeText({ text: count > 0 ? String(count) : "" });
-  void browser.action.setBadgeBackgroundColor({ color: BADGE_THEME_RGBA });
+  browser.action.setBadgeBackgroundColor({ color: BADGE_THEME_RGBA });
 }

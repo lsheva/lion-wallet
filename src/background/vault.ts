@@ -1,5 +1,4 @@
 import type { Address } from "viem";
-
 import type { EncryptedVault, KeyringPublic, SerializedAccount, VaultData } from "../shared/types";
 import { normalizeVaultData } from "../shared/vault-migrate";
 

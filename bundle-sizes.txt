@@ -1,31 +1,31 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 430.7 kB │ gzip: 132.5 kB
+  output: 429.2 kB │ gzip: 131.9 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  404.1 kB  54.0%
+  (project)  404.1 kB  54.3%
     └ src/popup/pages/Settings.tsx  73.1 kB
     └ src/shared/chains.generated.ts  48.1 kB
     └ src/popup/pages/Send.tsx  38.3 kB
-  viem  78.7 kB  10.5%
+  viem  76.8 kB  10.3%
     └ node_modules/viem/_esm/utils/transaction/serializeTransaction.js  6.3 kB
     └ node_modules/viem/_esm/errors/node.js  5.8 kB
     └ node_modules/viem/_esm/utils/abi/encodeAbiParameters.js  5.8 kB
-  @noble/curves  56.3 kB  7.5%
+  @noble/curves  56.3 kB  7.6%
     └ node_modules/@noble/curves/esm/abstract/weierstrass.js  25.9 kB
     └ node_modules/@noble/curves/esm/abstract/modular.js  7.1 kB
     └ node_modules/@noble/curves/esm/secp256k1.js  6.8 kB
-  @web3icons/core  49.8 kB  6.6%
+  @web3icons/core  49.8 kB  6.7%
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/mantle.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/sei-network.svg.js  2.3 kB
     └ node_modules/@web3icons/core/dist/svgs/networks/branded/metis-andromeda.svg.js  2.0 kB
   solid-js  46.8 kB  6.3%
     └ node_modules/solid-js/dist/solid.js  26.6 kB
     └ node_modules/solid-js/web/dist/web.js  20.3 kB
-  @noble/hashes  31.0 kB  4.1%
+  @noble/hashes  31.0 kB  4.2%
     └ node_modules/@noble/hashes/esm/sha2.js  8.7 kB
     └ node_modules/@noble/hashes/esm/sha3.js  5.2 kB
     └ node_modules/@noble/hashes/esm/utils.js  5.1 kB
-  lucide-solid  25.0 kB  3.3%
+  lucide-solid  25.0 kB  3.4%
     └ node_modules/lucide-solid/dist/source/Icon.jsx  2.3 kB
   uqr  19.4 kB  2.6%
     └ node_modules/uqr/dist/index.mjs  19.4 kB
@@ -36,18 +36,17 @@
     └ node_modules/@scure/base/lib/esm/index.js  13.6 kB
   @scure/bip32  6.9 kB  0.9%
     └ node_modules/@scure/bip32/lib/esm/index.js  6.9 kB
-  abitype  2.5 kB  0.3%
 ══════════════════════════════════════════════════════════════════════════════════════════════
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 343.0 kB │ gzip: 105.1 kB
+  output: 343.1 kB │ gzip: 105.2 kB
 ──────────────────────────────────────────────────────────────────────────────────
   viem  247.9 kB  40.5%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.9 kB
-  (project)  203.6 kB  33.3%
+  (project)  203.7 kB  33.3%
     └ src/shared/chains.generated.ts  48.1 kB
     └ src/background/handlers/wallet.ts  31.6 kB
     └ src/background/activity.ts  23.4 kB
