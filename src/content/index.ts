@@ -5,6 +5,72 @@ script.src = browser.runtime.getURL("inpage.js");
 script.onload = () => script.remove();
 (document.head || document.documentElement).appendChild(script);
 
+type BrowserRuntimeResponse = { ok: true; data?: RPCResult } | { ok: false; error: string };
+
+type RPCResult = { result: unknown } | { error: { code: number; message: string; data?: unknown } };
+
+browser.runtime.onMessage.addListener((message: unknown) => {
+  if (isValidEvent(message)) {
+    window.postMessage(message, "*");
+  }
+});
+
+window.addEventListener("message", async (event: MessageEvent) => {
+  if (event.source !== window) return;
+  const msg = event.data;
+  if (!isValidRequest(msg)) return;
+
+  const origin = window.location.origin;
+  const faviconUrl = getPageFaviconUrl();
+
+  try {
+    const res: BrowserRuntimeResponse = await browser.runtime.sendMessage({
+      type: "RPC_REQUEST",
+      id: msg.id,
+      method: msg.method,
+      params: msg.params,
+      origin,
+      ...(faviconUrl ? { faviconUrl } : {}),
+    });
+
+    if (!res.ok) {
+      // postMessage uses "*" because content → inpage is same-window; no cross-origin
+      // frame can access this window object. A tighter targetOrigin isn't possible here
+      // since the page origin varies per site.
+      void sendResponse(msg.id, undefined, { code: -32603, message: res.error });
+      return;
+    }
+
+    const rpcResult = res.data;
+
+    if (rpcResult && "error" in rpcResult) {
+      void sendResponse(msg.id, undefined, rpcResult.error);
+      return;
+    }
+
+    void sendResponse(msg.id, rpcResult?.result);
+  } catch (err) {
+    void sendResponse(msg.id, undefined, { code: -32603, message: (err as Error).message });
+  }
+});
+
+function sendResponse(
+  id: string,
+  result: unknown,
+  error?: { code: number; message: string; data?: unknown },
+): void {
+  window.postMessage(
+    {
+      type: CHANNEL,
+      direction: "response",
+      id,
+      ...(result ? { result } : {}),
+      ...(error ? { error } : {}),
+    },
+    "*",
+  );
+}
+
 function getPageFaviconUrl(): string | undefined {
   const links = document.querySelectorAll(
     'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]',
@@ -42,84 +108,6 @@ function isValidRequest(msg: unknown): msg is {
   );
 }
 
-window.addEventListener("message", (event: MessageEvent) => {
-  if (event.source !== window) return;
-  const msg = event.data;
-  if (!isValidRequest(msg)) return;
-
-  const origin = window.location.origin;
-  const faviconUrl = getPageFaviconUrl();
-
-  browser.runtime
-    .sendMessage({
-      type: "RPC_REQUEST",
-      id: msg.id,
-      method: msg.method,
-      params: msg.params,
-      origin,
-      ...(faviconUrl ? { faviconUrl } : {}),
-    })
-    .then((response: unknown) => {
-      const res = response as
-        | { ok: true; data?: { result?: unknown; error?: unknown } }
-        | { ok: false; error: string };
-
-      if (!res.ok) {
-        // postMessage uses "*" because content → inpage is same-window; no cross-origin
-        // frame can access this window object. A tighter targetOrigin isn't possible here
-        // since the page origin varies per site.
-        window.postMessage(
-          {
-            type: CHANNEL,
-            direction: "response",
-            id: msg.id,
-            error: { code: -32603, message: res.error },
-          },
-          "*",
-        );
-        return;
-      }
-
-      const rpcResult = res.data as
-        | { result: unknown }
-        | { error: { code: number; message: string; data?: unknown } }
-        | undefined;
-
-      if (rpcResult && "error" in rpcResult) {
-        window.postMessage(
-          {
-            type: CHANNEL,
-            direction: "response",
-            id: msg.id,
-            error: rpcResult.error,
-          },
-          "*",
-        );
-      } else {
-        window.postMessage(
-          {
-            type: CHANNEL,
-            direction: "response",
-            id: msg.id,
-            result: rpcResult?.result,
-          },
-          "*",
-        );
-      }
-    })
-    .catch((err: Error) => {
-      window.postMessage(
-        {
-          type: CHANNEL,
-          direction: "response",
-          id: msg.id,
-          error: { code: -32603, message: err.message },
-        },
-        "*",
-      );
-    });
-});
-
 function isValidEvent(msg: unknown): msg is {
   type: string;
   direction: string;
@@ -130,9 +118,3 @@ function isValidEvent(msg: unknown): msg is {
   const m = msg as Record<string, unknown>;
   return m.type === CHANNEL && m.direction === "event" && typeof m.event === "string";
 }
-
-browser.runtime.onMessage.addListener((message: unknown) => {
-  if (isValidEvent(message)) {
-    window.postMessage(message, "*");
-  }
-});

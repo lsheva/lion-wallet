@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
+export interface ImportMetaEnv {
   /** `pnpm dev:mock` sets `VITE_MOCK=true` — popup in a normal tab, seeded UI, no background. */
   readonly VITE_MOCK?: string;
   /**
