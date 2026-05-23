@@ -1,8 +1,8 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 429.7 kB │ gzip: 132.3 kB
+  output: 430.6 kB │ gzip: 132.4 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  405.9 kB  54.4%
+  (project)  407.2 kB  54.5%
     └ src/popup/pages/settings/WalletsAndAccounts.tsx  50.1 kB
     └ src/shared/chains.generated.ts  48.1 kB
     └ src/popup/pages/Send.tsx  36.2 kB
@@ -25,7 +25,7 @@
     └ node_modules/@noble/hashes/esm/sha2.js  8.7 kB
     └ node_modules/@noble/hashes/esm/sha3.js  5.2 kB
     └ node_modules/@noble/hashes/esm/utils.js  5.1 kB
-  lucide-solid  25.0 kB  3.4%
+  lucide-solid  25.0 kB  3.3%
     └ node_modules/lucide-solid/dist/source/Icon.jsx  2.3 kB
   uqr  19.4 kB  2.6%
     └ node_modules/uqr/dist/index.mjs  19.4 kB
@@ -77,10 +77,10 @@
 
 ══════════════════════════════════════════
   Content Script
-  output: 1.4 kB │ gzip: 693 B
+  output: 1.6 kB │ gzip: 807 B
 ──────────────────────────────────────────
-  (project)  2.2 kB  100.0%
-    └ src/content/index.ts  2.2 kB
+  (project)  2.7 kB  100.0%
+    └ src/content/index.ts  2.7 kB
 ══════════════════════════════════════════
 
 ══════════════════════════════════════════

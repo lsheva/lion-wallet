@@ -1,7 +1,15 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import type { Chain } from "viem";
 import * as allChains from "viem/chains";
 import list, { fetchPublicRpcUrlsByChainId } from "./chain-list.ts";
+
+const CHAINS_OUT = "src/shared/chains.generated.ts";
+const ICONS_OUT = "src/popup/chain-ui.generated.ts";
+
+if (existsSync(CHAINS_OUT) && existsSync(ICONS_OUT)) {
+  console.log("Chains already present — skipping generation.");
+  process.exit(0);
+}
 
 const chainlistRpcs = await fetchPublicRpcUrlsByChainId(10);
 

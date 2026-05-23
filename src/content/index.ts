@@ -9,6 +9,32 @@ type BrowserRuntimeResponse = { ok: true; data?: RPCResult } | { ok: false; erro
 
 type RPCResult = { result: unknown } | { error: { code: number; message: string; data?: unknown } };
 
+// ── sendMessage with service-worker wake-up retry ───────────────────
+// When the background worker is terminated (MV3 idle), the first
+// `sendMessage` wakes it but may fail or return `undefined` before the
+// `onMessage` listener is registered. Retry a few times with backoff.
+
+const WAKE_RETRY_DELAY_MS = 200;
+const WAKE_RETRY_MAX = 3;
+
+async function sendToBackground(msg: unknown): Promise<BrowserRuntimeResponse> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < WAKE_RETRY_MAX; attempt++) {
+    try {
+      const res = (await browser.runtime.sendMessage(msg)) as BrowserRuntimeResponse | undefined;
+      if (res !== undefined) return res;
+      // `undefined` means the worker received the message but didn't
+      // respond — likely it's still booting. Retry.
+    } catch (e) {
+      lastError = e;
+    }
+    await new Promise((r) => setTimeout(r, WAKE_RETRY_DELAY_MS * (attempt + 1)));
+  }
+  throw lastError ?? new Error("Extension background is not responding");
+}
+
+// ────────────────────────────────────────────────────────────────────
+
 browser.runtime.onMessage.addListener((message: unknown) => {
   if (isValidEvent(message)) {
     window.postMessage(message, "*");
@@ -24,7 +50,7 @@ window.addEventListener("message", async (event: MessageEvent) => {
   const faviconUrl = getPageFaviconUrl();
 
   try {
-    const res: BrowserRuntimeResponse = await browser.runtime.sendMessage({
+    const res: BrowserRuntimeResponse = await sendToBackground({
       type: "RPC_REQUEST",
       id: msg.id,
       method: msg.method,
@@ -37,7 +63,10 @@ window.addEventListener("message", async (event: MessageEvent) => {
       // postMessage uses "*" because content → inpage is same-window; no cross-origin
       // frame can access this window object. A tighter targetOrigin isn't possible here
       // since the page origin varies per site.
-      void sendResponse(msg.id, undefined, { code: -32603, message: res.error });
+      void sendResponse(msg.id, undefined, {
+        code: -32603,
+        message: res.error,
+      });
       return;
     }
 
@@ -50,7 +79,10 @@ window.addEventListener("message", async (event: MessageEvent) => {
 
     void sendResponse(msg.id, rpcResult?.result);
   } catch (err) {
-    void sendResponse(msg.id, undefined, { code: -32603, message: (err as Error).message });
+    void sendResponse(msg.id, undefined, {
+      code: -32603,
+      message: (err as Error).message,
+    });
   }
 });
 
