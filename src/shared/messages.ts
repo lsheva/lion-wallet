@@ -205,7 +205,10 @@ export async function sendMessage<M extends MessageRequest>(
     );
   }
 
-  console.log(`-> ${JSON.stringify(message)}`);
+  if (import.meta.env.DEV) {
+    // biome-ignore lint/suspicious/noConsole: dev-only RPC trace
+    console.log(`-> ${JSON.stringify(message)}`);
+  }
 
   const response = await Promise.race([
     pending,
@@ -217,7 +220,10 @@ export async function sendMessage<M extends MessageRequest>(
       ),
     ),
   ]);
-  console.log(`<- ${JSON.stringify(response)}`);
+  if (import.meta.env.DEV) {
+    // biome-ignore lint/suspicious/noConsole: dev-only RPC trace
+    console.log(`<- ${JSON.stringify(response)}`);
+  }
 
   if (
     response === undefined ||

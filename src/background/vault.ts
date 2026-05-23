@@ -1,3 +1,15 @@
+/**
+ * Vault + accounts-meta storage.
+ *
+ * Two storage modes (see AGENTS.md → "Storage modes"):
+ * - `keychain`: secrets live in macOS Keychain; this module only stores public meta.
+ * - `vault`:    PBKDF2(600k) + AES-GCM blob in `browser.storage.local` keyed by
+ *               `VAULT_KEY`; password required for every signing/export op.
+ *
+ * `AccountsMeta` (unencrypted) mirrors the public account/keyring rows so the
+ * popup can render without authentication; `VaultData` (encrypted) carries the
+ * mnemonics and imported private keys.
+ */
 import type { Address } from "viem";
 import type { EncryptedVault, KeyringPublic, SerializedAccount, VaultData } from "../shared/types";
 import { normalizeVaultData } from "../shared/vault-migrate";

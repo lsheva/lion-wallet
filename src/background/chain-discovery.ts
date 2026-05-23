@@ -1,3 +1,12 @@
+/**
+ * Per-chain "which derived addresses have activity" scan.
+ *
+ * Triggered lazily from the popup via `ENSURE_CHAIN_DISCOVERY` when the user
+ * opens a chain. For each HD address up to `HD_DERIVATION_DEFAULT_CEILING`,
+ * checks balance and transaction count; reports back the indices that are
+ * "active" so Home can hide empty derivations. Streams progress via
+ * `notifyChainDiscoveryProgress` so the UI updates incrementally.
+ */
 import type { Address } from "viem";
 import { getBalance, getTransactionCount } from "viem/actions";
 import { HD_DERIVATION_DEFAULT_CEILING } from "../shared/hd-constants";

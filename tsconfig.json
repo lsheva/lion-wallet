@@ -16,7 +16,9 @@
     "noEmit": true,
     "paths": {
       "@/*": ["./src/popup/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@popup/*": ["./src/popup/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@background/*": ["./src/background/*"]
     }
   },
   "include": ["src"]

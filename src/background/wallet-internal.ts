@@ -1,3 +1,12 @@
+/**
+ * Shared keyring/vault primitives used by `handlers/wallet/*`.
+ *
+ * The "load → mutate → persist + broadcast" shape that keychain-mode and
+ * vault-mode handlers used to open-code is centralized here:
+ * `mutateVaultByMode`, `persistFreshWallet`, `persistMergedVault`,
+ * `keyringsPublicWithFingerprints`, plus small helpers (`buildHdKeyring`,
+ * `nextHdIndexForKeyring`, `nextImportIndex`, ...).
+ */
 import type { Address, Hex } from "viem";
 import { IMPORTED_KEYRING_ID } from "../shared/keyring-constants";
 import type { MessageResponse } from "../shared/messages";

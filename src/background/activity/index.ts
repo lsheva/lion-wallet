@@ -1,7 +1,18 @@
+/**
+ * Activity orchestrator.
+ *
+ * Pulls a per-(address, chain) view of recent transactions from Etherscan
+ * (preferred when an API key is configured) or RPC (`eth_getLogs` fallback),
+ * dedupes against the cache in [`./cache`](./cache.ts), and asynchronously
+ * enriches each tx with token metadata, decoded calldata, and event logs.
+ *
+ * Public entry points: `fetchActivity`, `pushActivityItem`,
+ * `clearActivityCache`. All other helpers stay private to this folder.
+ */
 import type { Abi, Hex, RpcLog } from "viem";
 import { getBlockNumber, getTransaction } from "viem/actions";
 import { decodeEventLog } from "viem/utils";
-import { erc20Abi } from "../shared/abis";
+import { erc20Abi } from "../../shared/abis";
 
 import type {
   ActivityItem,
@@ -9,81 +20,36 @@ import type {
   DecodedCall,
   DecodedEvent,
   TokenMovement,
-} from "../shared/types";
-import { ETHERSCAN_BASE_URL, getEtherscanApiKey, resolveAbis } from "./etherscan";
-import { bgLog } from "./log";
-import { getPublicClient } from "./networks";
-import { StorageCache } from "./storage-cache";
-import { clearTokenMetaCache, fetchTokenMetaBatch, type TokenMeta } from "./token-meta";
-import { addDiscoveredTokens } from "./token-store";
-import { stringify, tryDecode } from "./tx-decoder";
+} from "../../shared/types";
+import { ETHERSCAN_BASE_URL, getEtherscanApiKey, resolveAbis } from "../etherscan";
+import { bgLog } from "../log";
+import { getPublicClient } from "../networks";
+import { clearTokenMetaCache, fetchTokenMetaBatch, type TokenMeta } from "../token-meta";
+import { addDiscoveredTokens } from "../token-store";
+import { stringify, tryDecode } from "../tx-decoder";
+import {
+  actCacheKey,
+  activityStore,
+  type CacheEntry,
+  dedup,
+  lastFetchTs,
+  loadActivityCache,
+  persistActivityCache,
+} from "./cache";
+import {
+  type ActivitySource,
+  ENRICH_BATCH,
+  ETHERSCAN_LOGS_PAGE_SIZE,
+  ETHERSCAN_TOKENTX_DISCOVERY_SIZE,
+  FETCH_PAGE_SIZE,
+  INITIAL_BLOCK_RANGE,
+  MIN_BLOCK_RANGE,
+  RATE_LIMIT_MS,
+  TOKEN_DISCOVERY_BLOCK_RANGE,
+  TRANSFER_TOPIC,
+} from "./constants";
 
-const STORAGE_KEY = "activityCache";
-/** Etherscan/RPC page size per request */
-const FETCH_PAGE_SIZE = 50;
-/** Max transactions kept in cache (load more appends until this cap) */
-const MAX_CACHED_ITEMS = 250;
-const ENRICH_BATCH = 5;
-const ETHERSCAN_LOGS_PAGE_SIZE = 1000;
-const RATE_LIMIT_MS = 60_000;
-const INITIAL_BLOCK_RANGE = 10_000;
-const TOKEN_DISCOVERY_BLOCK_RANGE = 50_000;
-const MIN_BLOCK_RANGE = 500;
-const ETHERSCAN_TOKENTX_DISCOVERY_SIZE = 1000;
-const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-
-export type ActivitySource = "etherscan" | "rpc" | "cache";
-
-// Token metadata is resolved via the shared token-meta module (fetchTokenMetaBatch)
-
-// ── Activity cache ───────────────────────────────────────────────────
-
-interface CacheEntry {
-  items: ActivityItem[];
-  pendingHashes: string[];
-  pendingTransfers: Record<string, TokenMovement[]>;
-  source: ActivitySource;
-  /** Last Etherscan txlist fetch returned a full page — older txs may exist */
-  etherscanHasMore?: boolean;
-}
-
-const activityStore = new StorageCache<Record<string, CacheEntry>>(STORAGE_KEY, "activity");
-const lastFetchTs = new Map<string, number>();
-
-function actCacheKey(address: string, chainId: number): string {
-  return `${chainId}:${address.toLowerCase()}`;
-}
-
-async function loadCache() {
-  return activityStore.load();
-}
-
-async function persist() {
-  return activityStore.persist();
-}
-
-function mergeActivityItems(a: ActivityItem, b: ActivityItem): ActivityItem {
-  const transfers = a.transfers.length >= b.transfers.length ? a.transfers : b.transfers;
-  const events = a.events.length >= b.events.length ? a.events : b.events;
-  const decoded = a.decoded ?? b.decoded;
-  const fn = decoded?.functionName ?? (a.fn || b.fn);
-  return {
-    ...a,
-    transfers,
-    events,
-    decoded,
-    fn,
-  };
-}
-
-function dedup(items: ActivityItem[]): ActivityItem[] {
-  const seen = new Map<string, ActivityItem>();
-  for (const item of items) {
-    const prev = seen.get(item.hash);
-    seen.set(item.hash, prev ? mergeActivityItems(prev, item) : item);
-  }
-  return [...seen.values()].sort((a, b) => b.ts - a.ts).slice(0, MAX_CACHED_ITEMS);
-}
+export type { ActivitySource };
 
 // ── Etherscan: fetch all events ─────────────────────────────────────
 
@@ -512,7 +478,7 @@ async function enrichEtherscanAsync(
     );
 
     const enriched = await enrichWithDecoding(phase1.txResults, eventsByHash, chainId, address);
-    const cache = await loadCache();
+    const cache = await loadActivityCache();
     const k = actCacheKey(address, chainId);
     const prev = cache[k];
     const merged = dedup([...(prev?.items ?? []), ...enriched]);
@@ -523,7 +489,7 @@ async function enrichEtherscanAsync(
       source: "etherscan",
       etherscanHasMore: prev?.etherscanHasMore,
     };
-    await persist();
+    await persistActivityCache();
 
     bgLog("[activity] enrichment complete, broadcasting update");
     browser.runtime
@@ -837,7 +803,7 @@ async function drainPendingHashes(
   for (const h of batch) delete cleanPt[h];
   const merged = dedup([...entry.items, ...enriched]);
   cache[k] = { ...entry, items: merged, pendingHashes: rest, pendingTransfers: cleanPt };
-  await persist();
+  await persistActivityCache();
   return { items: merged, hasMore: rest.length > 0, source: entry.source };
 }
 
@@ -863,14 +829,14 @@ async function fetchOlderEtherscan(
   );
   if (oldest === Number.MAX_SAFE_INTEGER || oldest <= 1) {
     cache[k] = { ...entry, etherscanHasMore: false };
-    await persist();
+    await persistActivityCache();
     return { items: entry.items, hasMore: false, source: "etherscan" };
   }
 
   const phase1 = await fetchEtherscanTxlist(address, chainId, { endBlock: oldest - 1 });
   if (!phase1 || phase1.txResults.length === 0) {
     cache[k] = { ...entry, etherscanHasMore: false };
-    await persist();
+    await persistActivityCache();
     bgLog("[activity] loadMore: no older txs");
     return { items: entry.items, hasMore: false, source: "etherscan" };
   }
@@ -885,7 +851,7 @@ async function fetchOlderEtherscan(
     source: "etherscan",
     etherscanHasMore: fullPage,
   };
-  await persist();
+  await persistActivityCache();
   enrichEtherscanAsync(address, chainId, phase1).catch((e) => {
     bgLog("[activity] enrichEtherscanAsync (loadMore) failed:", e);
   });
@@ -926,7 +892,7 @@ async function fetchViaRpc(
     source: "rpc",
     etherscanHasMore: false,
   };
-  await persist();
+  await persistActivityCache();
   return { items: merged, hasMore: pendingHashes.length > 0, source: "rpc" };
 }
 
@@ -937,7 +903,7 @@ export async function fetchActivity(
 ): Promise<ActivityResult> {
   const loadMore = opts?.loadMore === true;
   bgLog("[activity] fetchActivity", loadMore ? "loadMore" : "refresh", address, "chain", chainId);
-  const cache = await loadCache();
+  const cache = await loadActivityCache();
   const k = actCacheKey(address, chainId);
   const entry = cache[k];
 
@@ -973,7 +939,7 @@ export async function fetchActivity(
         source: "etherscan",
         etherscanHasMore: fullPage,
       };
-      await persist();
+      await persistActivityCache();
       enrichEtherscanAsync(address, chainId, phase1).catch((e) => {
         bgLog("[activity] enrichEtherscanAsync failed:", e);
       });
@@ -1010,7 +976,7 @@ export async function pushActivityItem(
   chainId: number,
   item: ActivityItem,
 ): Promise<void> {
-  const cache = await loadCache();
+  const cache = await loadActivityCache();
   const k = actCacheKey(address, chainId);
   const entry = cache[k] ?? {
     items: [],
@@ -1020,7 +986,7 @@ export async function pushActivityItem(
   };
   entry.items = dedup([item, ...entry.items]);
   cache[k] = entry;
-  await persist();
+  await persistActivityCache();
 }
 
 export async function clearActivityCache(): Promise<void> {

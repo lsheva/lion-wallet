@@ -1,0 +1,40 @@
+---
+description: Background service-worker (handlers, vault, signing).
+globs: src/background/**/*.ts
+alwaysApply: false
+---
+
+# Background service worker
+
+The background runs as an MV3 service worker. Code here cannot use DOM APIs, localStorage, or React/Solid primitives. Use `browser.storage.local` (or `browser.storage.session`) for persistence.
+
+## Adding a new RPC
+
+Wire the message in **all four** places (see [`AGENTS.md`](mdc:AGENTS.md) → "Message protocol"):
+
+1. `MessageRequest` shape in [`src/shared/messages.ts`](mdc:src/shared/messages.ts).
+2. `MessageDataMap` entry in the same file.
+3. `handle<Verb>(...)` in the appropriate [`src/background/handlers/<domain>.ts`](mdc:src/background/handlers).
+4. New `case` in [`src/background/message-router.ts`](mdc:src/background/message-router.ts).
+5. Mock branch in [`src/shared/messages-mock.ts`](mdc:src/shared/messages-mock.ts) so `pnpm dev:mock` keeps working.
+
+## Vault / keychain branching
+
+Most state-mutating handlers branch on `mode === "keychain"` vs vault. The shared "load → mutate → persist + broadcast" shape lives in [`src/background/wallet-internal.ts`](mdc:src/background/wallet-internal.ts) (`mutateVaultByMode`, `persistFreshWallet`, `persistMergedVault`). Re-use it instead of open-coding the branching for new handlers.
+
+## Approvals
+
+dApp signing flows go through the queue in [`src/background/approval.ts`](mdc:src/background/approval.ts). The popup polls via `GET_PENDING_APPROVAL` / `ENRICH_APPROVAL` and resolves with `APPROVE_REQUEST` / `REJECT_REQUEST`.
+
+## Logging
+
+Use `bgLog(...)` from [`src/background/log.ts`](mdc:src/background/log.ts) — it mirrors to the popup DevTools via a runtime message. Errors should be passed as Errors so the stack trace is preserved.
+
+## Networking
+
+- Always go through `getPublicClient(chainId)` from [`src/background/networks.ts`](mdc:src/background/networks.ts). It handles Alchemy key routing, fallbacks, and the dev-tab CORS proxy.
+- Honor `cfg.testnet === true` — skip price lookups (return `0`), don't fetch CoinGecko, etc.
+
+## Browser APIs
+
+Use the `webextension-polyfill`-style global `browser.*` (already typed via `@types/webextension-polyfill`). Do not import `chrome.*`.

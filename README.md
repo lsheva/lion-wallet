@@ -26,12 +26,11 @@ The entire crypto wallet ecosystem is built around Chrome. Safari users — hund
 
 | Layer | Choice | Why |
 |---|---|---|
-| Framework | Preact | 3 KB runtime vs React's 40 KB+ |
-| State | Signals | Fine-grained updates, no VDOM diffing |
+| Framework | Solid.js | Fine-grained signals, ~7 KB runtime, no VDOM diffing |
 | Styling | Tailwind CSS v4 | Compiled away, zero runtime |
 | EVM | viem | Type-safe, tree-shakeable |
 | Crypto | @noble/hashes | Audited, pure JS |
-| Build | Vite + Rolldown | Vite for popup, Rolldown for background/content scripts |
+| Build | Vite + Rolldown | Vite for popup, Rolldown for background/content/inpage bundles |
 | Types | tsgo | Native-speed type checking (Go port of tsc) |
 | Lint | Biome | Single tool for linting + formatting |
 | Native | Swift / Xcode | Safari Web Extension container app |

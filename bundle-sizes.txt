@@ -1,16 +1,16 @@
 ══════════════════════════════════════════════════════════════════════════════════════════════
   Popup
-  output: 429.2 kB │ gzip: 131.9 kB
+  output: 429.7 kB │ gzip: 132.3 kB
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  (project)  404.1 kB  54.3%
-    └ src/popup/pages/Settings.tsx  73.1 kB
+  (project)  405.9 kB  54.4%
+    └ src/popup/pages/settings/WalletsAndAccounts.tsx  50.1 kB
     └ src/shared/chains.generated.ts  48.1 kB
-    └ src/popup/pages/Send.tsx  38.3 kB
+    └ src/popup/pages/Send.tsx  36.2 kB
   viem  76.8 kB  10.3%
     └ node_modules/viem/_esm/utils/transaction/serializeTransaction.js  6.3 kB
     └ node_modules/viem/_esm/errors/node.js  5.8 kB
     └ node_modules/viem/_esm/utils/abi/encodeAbiParameters.js  5.8 kB
-  @noble/curves  56.3 kB  7.6%
+  @noble/curves  56.3 kB  7.5%
     └ node_modules/@noble/curves/esm/abstract/weierstrass.js  25.9 kB
     └ node_modules/@noble/curves/esm/abstract/modular.js  7.1 kB
     └ node_modules/@noble/curves/esm/secp256k1.js  6.8 kB
@@ -40,16 +40,16 @@
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 343.1 kB │ gzip: 105.2 kB
+  output: 342.4 kB │ gzip: 105.4 kB
 ──────────────────────────────────────────────────────────────────────────────────
-  viem  247.9 kB  40.5%
+  viem  247.9 kB  40.6%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.9 kB
-  (project)  203.7 kB  33.3%
+  (project)  202.9 kB  33.2%
     └ src/shared/chains.generated.ts  48.1 kB
-    └ src/background/handlers/wallet.ts  31.6 kB
-    └ src/background/activity.ts  23.4 kB
+    └ src/background/activity/index.ts  22.0 kB
+    └ src/background/chain-discovery.ts  11.4 kB
   @noble/curves  57.6 kB  9.4%
     └ node_modules/@noble/curves/esm/abstract/weierstrass.js  26.1 kB
     └ node_modules/@noble/curves/esm/secp256k1.js  7.4 kB
@@ -77,10 +77,10 @@
 
 ══════════════════════════════════════════
   Content Script
-  output: 1.6 kB │ gzip: 664 B
+  output: 1.4 kB │ gzip: 693 B
 ──────────────────────────────────────────
-  (project)  2.4 kB  100.0%
-    └ src/content/index.ts  2.4 kB
+  (project)  2.2 kB  100.0%
+    └ src/content/index.ts  2.2 kB
 ══════════════════════════════════════════
 
 ══════════════════════════════════════════

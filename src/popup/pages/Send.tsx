@@ -1,3 +1,13 @@
+/**
+ * Send / Multi-send page.
+ *
+ * Shape: N "token groups" × M recipients each. `N=1, M=1` is the classic
+ * single send; everything else is multi-send. When the active chain has a
+ * `disperseAddress`, multi-send is batched into one `disperse(...)` call;
+ * otherwise each recipient becomes its own approval.
+ *
+ * Pure helpers, types, and the small modals live under [`./send/`](./send/).
+ */
 import { POPUP_ORIGIN } from "@shared/constants";
 import { isAddress, toErrorMessage, truncateAddress } from "@shared/format";
 import { sendMessage } from "@shared/messages";
@@ -20,40 +30,21 @@ import { Banner } from "../components/Banner";
 import { Button } from "../components/Button";
 import { ChainIcon } from "../components/ChainIcon";
 import { Header } from "../components/Header";
-import { Modal } from "../components/Modal";
 import { TokenImage } from "../components/TokenImage";
 import { useNavigate } from "../router";
 import { accounts, activeAccountIndex, type Token, walletState } from "../store";
 import { showError } from "../toast";
-
-const isNative = (token: Token) => !token.address;
-
-interface Recipient {
-  id: number;
-  to: string;
-  amount: string;
-}
-
-interface TokenGroup {
-  id: number;
-  token: Token;
-  useSameRecipients: boolean;
-  uniformAmount: boolean;
-  singleAmount: string;
-  recipients: Recipient[];
-}
-
-let nextRId = 0;
-let nextGId = 0;
-const emptyR = (): Recipient => ({ id: nextRId++, to: "", amount: "" });
-const mkGroup = (token: Token, same = false): TokenGroup => ({
-  id: nextGId++,
-  token,
-  useSameRecipients: same,
-  uniformAmount: true,
-  singleAmount: "",
-  recipients: [emptyR()],
-});
+import { SaveToAddressBookModal } from "./send/SaveToAddressBookModal";
+import {
+  displayRecs as displayRecsFor,
+  emptyR,
+  getAmount,
+  isNative,
+  mkGroup,
+  type Recipient,
+  relativeTime,
+  type TokenGroup,
+} from "./send/utils";
 
 export function Send() {
   const navigate = useNavigate();
@@ -240,23 +231,7 @@ export function Send() {
 
   /* ── display helpers ── */
 
-  function displayRecs(gi: number): Recipient[] {
-    const g = groups();
-    const grp = g[gi];
-    if (grp === undefined) return [];
-    if (!grp.useSameRecipients || gi === 0) return grp.recipients;
-    const first = g[0];
-    if (!first) return grp.recipients;
-    return first.recipients.map((r, i) => ({
-      id: r.id,
-      to: r.to,
-      amount: grp.recipients[i]?.amount ?? "",
-    }));
-  }
-
-  function getAmount(grp: TokenGroup, rec: Recipient) {
-    return grp.uniformAmount ? grp.singleAmount : rec.amount;
-  }
+  const displayRecs = (gi: number): Recipient[] => displayRecsFor(groups(), gi);
 
   /* ── validation ── */
 
@@ -561,17 +536,6 @@ export function Send() {
                             filteredBook().length > 0 ||
                             filteredRecent().length > 0 ||
                             filteredAccounts().length > 0;
-
-                          const relativeTime = (ts: number) => {
-                            const diff = Date.now() - ts;
-                            const mins = Math.floor(diff / 60_000);
-                            if (mins < 1) return "just now";
-                            if (mins < 60) return `${mins}m ago`;
-                            const hrs = Math.floor(mins / 60);
-                            if (hrs < 24) return `${hrs}h ago`;
-                            const days = Math.floor(hrs / 24);
-                            return `${days}d ago`;
-                          };
 
                           return (
                             <div data-addr-picker class="relative">
@@ -995,37 +959,13 @@ export function Send() {
         </Button>
       </div>
 
-      <Modal
-        open={saveModalAddr() !== null}
+      <SaveToAddressBookModal
+        address={saveModalAddr()}
+        name={saveModalName()}
+        onNameChange={setSaveModalName}
         onClose={() => setSaveModalAddr(null)}
-        title="Save to Address Book"
-      >
-        <div class="p-4 space-y-3">
-          <div class="text-xs font-mono text-text-secondary bg-surface rounded-[var(--radius-card)] px-3 py-2">
-            {saveModalAddr()}
-          </div>
-          <div class="space-y-1.5">
-            <label for="save-addr-name" class="block text-sm font-medium text-text-secondary">
-              Name
-            </label>
-            <input
-              id="save-addr-name"
-              class="w-full bg-surface rounded-[var(--radius-card)] px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none ring-1 ring-transparent focus:ring-accent/40 focus:ring-2 transition-shadow"
-              type="text"
-              placeholder="e.g. Alice, Uniswap Router"
-              value={saveModalName()}
-              onInput={(e) => setSaveModalName(e.currentTarget.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveToAddressBook();
-              }}
-              autofocus
-            />
-          </div>
-          <Button onClick={handleSaveToAddressBook} disabled={!saveModalName().trim()} size="lg">
-            Save
-          </Button>
-        </div>
-      </Modal>
+        onSave={handleSaveToAddressBook}
+      />
     </div>
   );
 }

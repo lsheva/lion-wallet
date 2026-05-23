@@ -1,3 +1,11 @@
+/**
+ * Pending-approval queue.
+ *
+ * Holds RPC requests from dApps that need user confirmation (signing,
+ * connection, etc.). Each entry stores the unresolved RPC promise so that
+ * approving or rejecting from the popup can complete the original
+ * `inpage` provider call. See AGENTS.md → "Signing & approvals".
+ */
 import type { DecodedCall, PendingApproval, TokenTransfer } from "../shared/types";
 import type { RpcError } from "./rpc-handler";
 

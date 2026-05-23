@@ -6,6 +6,7 @@ function ToastItem(props: { toast: ToastMessage }) {
   const [expanded, setExpanded] = createSignal(false);
 
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: handlers only stop propagation; no interactive action
     <div
       role="alert"
       class="bg-elevated rounded-[var(--radius-card)] shadow-lg ring-1 ring-danger/20 animate-slide-up overflow-hidden"

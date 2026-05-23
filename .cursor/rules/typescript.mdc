@@ -1,0 +1,38 @@
+---
+description: TypeScript and EVM rules across all .ts/.tsx files.
+globs: src/**/*.ts,src/**/*.tsx
+alwaysApply: false
+---
+
+# TypeScript / EVM rules
+
+These mirror [`docs/STYLE_GUIDE.md`](mdc:docs/STYLE_GUIDE.md). Keep them in sync if you add new bullets to the style guide.
+
+## Addresses
+
+- Compare addresses with `eqAddress(a, b)` from [`src/shared/format.ts`](mdc:src/shared/format.ts) (or viem `isAddressEqual`). Never `a.toLowerCase() === b.toLowerCase()`.
+- Persist user-facing addresses in checksummed form using viem `getAddress`. Migrate legacy lowercase entries on read.
+- Restrict "recent recipient" caches to true transfer destinations: native sends and ERC-20 `transfer` recipients decoded from calldata. Do not record arbitrary contract `to` targets.
+
+## ABIs / selectors
+
+- Never hardcode EVM 4-byte function selectors (raw `0x…`). Derive with viem `toFunctionSelector("name(types)")`, or import a named constant from [`src/shared/abis.ts`](mdc:src/shared/abis.ts) (e.g. `ERC20_TRANSFER_SELECTOR`).
+- Avoid magic numbers in constants when they can be generated from structured data (event signatures, ABI, etc.).
+
+## Error handling
+
+- Avoid unhandled promise rejections. Always show a user-friendly error message to the user via `showError(message, details?)` from [`src/popup/toast.ts`](mdc:src/popup/toast.ts). Optionally also `console.log` for diagnostics.
+- Use `toErrorMessage(e)` / `formatProviderError(e)` from `@shared/format` to extract a readable string from `unknown`.
+
+## Lookups
+
+- Avoid `array.find(... === id)` when accessing by id or other unique field. Build a `Map` once and look up by key.
+
+## Type checking
+
+- Use `pnpm typecheck` (which runs `tsgo --noEmit`). Do not invoke raw `tsc`.
+
+## Package management
+
+- Use `pnpm` exclusively. Check `package.json` `scripts` before inventing new ones; add new scripts there rather than ad-hoc shell snippets.
+- Do not add new dependencies without discussion (Philosophy principle 3 — every dependency is a liability).

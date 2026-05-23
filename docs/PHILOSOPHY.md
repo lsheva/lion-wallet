@@ -34,7 +34,7 @@ A beginner should be able to send ETH in under a minute. A developer should be a
 
 ### 3. Lightweight by conviction
 
-Every dependency is a liability. Every kilobyte is latency. Lion Wallet treats bundle size and runtime overhead as first-class concerns — not things to optimize later, but constraints that shape every decision from the start. Preact over React. Signals over reducers. Tailwind over runtime CSS-in-JS. No heavy abstraction layers, no framework tourism. The extension should load before you finish clicking the icon.
+Every dependency is a liability. Every kilobyte is latency. Lion Wallet treats bundle size and runtime overhead as first-class concerns — not things to optimize later, but constraints that shape every decision from the start. Solid over React. Signals over reducers. Tailwind over runtime CSS-in-JS. No heavy abstraction layers, no framework tourism. The extension should load before you finish clicking the icon.
 
 ### 4. Performance is trust
 
@@ -81,12 +81,11 @@ Every choice is made with weight and speed in mind. If a lighter alternative exi
 
 | Layer        | Choice          | Why                                      |
 |------------- |---------------- |----------------------------------------- |
-| Framework    | Preact          | 3KB runtime vs React's 40KB+, same API   |
-| State        | Signals         | Fine-grained updates, no virtual DOM diffing overhead |
+| Framework    | Solid.js        | Fine-grained signals, ~7KB runtime, no virtual DOM diffing |
 | Styling      | Tailwind CSS v4 | Compiled away at build time, zero runtime |
 | EVM          | viem            | Type-safe, tree-shakeable, no legacy bloat |
 | Crypto       | @noble/hashes   | Audited, pure JS, no native bindings     |
-| Build        | Vite + esbuild  | Sub-second builds, aggressive tree-shaking |
+| Build        | Vite + Rolldown | Vite for popup, Rolldown for background/content/inpage |
 | Types        | tsgo            | Native-speed type checking, 10x faster than tsc |
 
 ## The Promise

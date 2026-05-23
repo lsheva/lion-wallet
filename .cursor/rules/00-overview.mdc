@@ -1,0 +1,12 @@
+---
+description: Lion Wallet repo orientation. Always loaded.
+alwaysApply: true
+---
+
+# Lion Wallet — orientation
+
+You are working in **Lion Wallet**, a Solid.js + viem EVM browser-extension wallet (Safari-first, cross-browser). Read [`AGENTS.md`](mdc:AGENTS.md) for full architecture, the message protocol, and where to add things.
+
+Source of truth for stack: [`package.json`](mdc:package.json). It is **Solid**, not React or Preact. **Vite + Rolldown**, not esbuild. **tsgo**, not tsc. **pnpm**, not npm/yarn.
+
+Canonical project conventions live in [`docs/STYLE_GUIDE.md`](mdc:docs/STYLE_GUIDE.md) (append-only). Per-glob enforcement of those rules is split across the other files in this directory.

@@ -4,7 +4,6 @@ import type { MessageResponse } from "../../shared/messages";
 import { clearActivityCache, fetchActivity } from "../activity";
 import { clearAbiCache, getEtherscanApiKey } from "../etherscan";
 import * as keychain from "../keychain";
-import { bgLog } from "../log";
 import { setRpcProviderKeyInMemory } from "../networks";
 import { clearTokenImageCache } from "../token-images";
 import { clearTokenStore } from "../token-store";

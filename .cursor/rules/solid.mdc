@@ -1,0 +1,36 @@
+---
+description: Solid.js + popup UI rules.
+globs: src/popup/**/*.tsx
+alwaysApply: false
+---
+
+# Solid.js / popup UI
+
+This UI is **Solid**, not React or Preact. Use Solid primitives: `createSignal`, `createMemo`, `createEffect`, `For`, `Show`, `Switch/Match`, `onMount`, `onCleanup`. JSX uses `class=` (not `className=`).
+
+## Buttons & interactivity
+
+- Every `<button>` MUST have `type="button"` (Biome `useButtonType` is enforced).
+- Avoid `<div role="button">`. If you absolutely need it (nested-button case), pair `role`, `tabIndex={0}`, and `onKeyDown` (Enter/Space) handlers. Suppress Biome's `useSemanticElements` only with a `biome-ignore` comment that explains the nesting constraint.
+- All clickable elements need a hover/focus affordance — match existing Tailwind patterns (`hover:bg-base/50`, `transition-colors`, `cursor-pointer`).
+
+## `<Show>` narrowing
+
+- For `<Show when={…}>` where the body needs the truthy value, put the value last in `when` and use `keyed` so the callback receives the narrowed type. Avoid `value() ?? ""` placeholders inside the branch.
+
+## Addresses
+
+- All contract / wallet addresses rendered to the user must have a copy button next to them. Use `<CopyButton text={address} size={…} />` from `@/components/CopyButton`.
+
+## State
+
+- Component-local state: `createSignal`. Cross-page state: per-domain stores under [`src/popup/store/`](mdc:src/popup/store).
+- Prefer named imports from a specific store module (`import { activeAccount } from "@/store/accounts"`) over the catch-all `walletState` god-object.
+
+## localStorage
+
+- Do **not** roll your own try/JSON.parse/catch boilerplate. Use `defineLocalStore<T>(key, default)` from [`src/popup/lib/local-cache.ts`](mdc:src/popup/lib/local-cache.ts).
+
+## Errors
+
+- On any user-initiated failure, surface it via `showError(message, details?)` from [`src/popup/toast.ts`](mdc:src/popup/toast.ts).

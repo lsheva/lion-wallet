@@ -1,0 +1,13 @@
+---
+description: Build / dev scripts and pnpm conventions.
+globs: scripts/**/*.ts,scripts/**/*.sh,package.json,vite.config.ts
+alwaysApply: false
+---
+
+# Scripts & pnpm
+
+- Use **pnpm** exclusively. The repo pins it via `packageManager` in [`package.json`](mdc:package.json).
+- Always check existing `scripts` in [`package.json`](mdc:package.json) before adding new ones — extend or compose, don't reinvent.
+- Type-check with **tsgo** (`pnpm typecheck`), not raw `tsc`. Scripts use `tsgo -p tsconfig.scripts.json`.
+- Bundling: Vite owns the popup; [`scripts/build.ts`](mdc:scripts/build.ts) drives Rolldown for the background/content/inpage worlds. Mirror their logging/output conventions when adding a new build target.
+- `console.*` is allowed in `scripts/**` (Biome override). It is NOT allowed in `src/**` outside the dedicated logging utilities (`src/background/log.ts`, `src/popup/toast.ts`).

@@ -8,7 +8,6 @@ import { Header } from "../components/Header";
 import { Input } from "../components/Input";
 import { Tabs } from "../components/Tabs";
 import { useNavigate } from "../router";
-import { refreshAll } from "../store";
 import { showError } from "../toast";
 
 const TABS = [

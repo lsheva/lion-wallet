@@ -23,6 +23,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@shared": resolve(__dirname, "src/shared"),
+      "@background": resolve(__dirname, "src/background"),
+      "@popup": resolve(__dirname, "src/popup"),
       "@": resolve(__dirname, "src/popup"),
     },
   },

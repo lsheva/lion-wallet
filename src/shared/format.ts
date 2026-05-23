@@ -91,6 +91,19 @@ export function isAddress(value: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(value);
 }
 
+/**
+ * Case-insensitive Ethereum address equality.
+ *
+ * Use this everywhere instead of `a.toLowerCase() === b.toLowerCase()`. Accepts
+ * `undefined`/`null` so call sites don't need pre-checks; mismatched falsy
+ * inputs return `false`. Equivalent to viem's `isAddressEqual` but tolerant of
+ * unchecked strings (no `InvalidAddressError`).
+ */
+export function eqAddress(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  return a.toLowerCase() === b.toLowerCase();
+}
+
 /** Truncate an Ethereum address to `0x1234…abcd` form. */
 export function truncateAddress(address: string): string {
   if (!address || address.length < 10) return address || "—";
@@ -176,7 +189,8 @@ export function formatProviderError(e: unknown): string {
     }
     const status = o.status;
     if (typeof status === "number" && Number.isFinite(status)) {
-      const body = typeof o.body === "string" && o.body.trim() ? `: ${o.body.trim().slice(0, 200)}` : "";
+      const body =
+        typeof o.body === "string" && o.body.trim() ? `: ${o.body.trim().slice(0, 200)}` : "";
       return `RPC request failed (HTTP ${status})${body}`;
     }
     if (o.cause) {
