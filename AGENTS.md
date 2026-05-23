@@ -57,12 +57,12 @@ The protocol is a discriminated union in [`src/shared/messages.ts`](./src/shared
 - `MessageDataMap` — per-`type` success-payload type
 - `TypedResponse<T>` — typed `{ ok: true, data } | { ok: false, error }` per request
 
-Add a new wallet RPC by editing **all four** in this order:
+Add a new wallet RPC by editing **all five** in this order:
 
 1. Add `{ type: "MY_NEW_RPC"; ... }` to `MessageRequest` in `src/shared/messages.ts`.
 2. Add `MY_NEW_RPC: { result: ... }` to `MessageDataMap` in the same file.
 3. Implement `handleMyNewRpc(...)` in the appropriate `src/background/handlers/<domain>.ts`.
-4. Wire it in `src/background/message-router.ts`.
+4. Add a new entry to the `handlers` table in `src/background/message-router.ts`. The table is typed with `satisfies HandlerTable`, so missing entries are caught at compile time.
 5. (Mock) Update `src/shared/messages-mock.ts` so `pnpm dev:mock` works.
 
 ## Signing & approvals
