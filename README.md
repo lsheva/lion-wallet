@@ -39,33 +39,72 @@ The entire crypto wallet ecosystem is built around Chrome. Safari users — hund
 
 ```bash
 pnpm install
-pnpm dev           # Vite dev server for popup UI
-pnpm build         # type-check + build to dist/
-pnpm run:safari    # build + launch in Safari
+task dev           # Vite dev server for popup UI
+task build         # type-check + build to dist/
+task run-safari    # build + launch in Safari
 ```
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for full setup, project structure, and code style guidelines.
 
-## Installing the Unsigned Extension
+## Install
 
-Safari requires a native container app to load web extensions. Since Lion Wallet isn't on the App Store yet, you need to allow unsigned extensions manually.
+The published app is **ad-hoc signed, not notarized**. macOS 15+ will often
+block the first launch of a download. If that happens: open the app once,
+then **System Settings → Privacy & Security → Open Anyway**.
+
+### Homebrew
+
+```bash
+brew tap lsheva/tap
+brew install --cask lion-wallet
+```
+
+Already installed:
+
+```bash
+brew update
+brew upgrade --cask lion-wallet
+```
+
+That installs `LionWallet.app` into `/Applications`. Then enable the
+extension: **Safari → Settings → Extensions → Lion Wallet**, and allow
+unsigned extensions in Safari's Developer settings (this setting resets
+each time Safari relaunches).
 
 ### From a release build
 
-1. Download `LionWallet-vX.X.X-macOS.dmg` (or `.zip`) from the [latest release](https://github.com/lsheva/lion-wallet/releases/latest)
-2. Open the `.dmg` and drag `LionWallet.app` to `/Applications` (or unzip the `.zip`)
+1. Download `LionWallet-x.y.z.zip` from the [latest release](https://github.com/lsheva/lion-wallet/releases/latest)
+2. Unzip and drag `LionWallet.app` to `/Applications`
 3. Open the app once — it registers the extension with Safari
 4. Enable the extension: **Safari → Settings → Extensions → Lion Wallet** → check the box
 5. Allow unsigned extensions: **Safari → Settings → Advanced → Show features for web developers** → then **Developer → Allow unsigned extensions** (re-enable each Safari launch)
 
+If macOS refuses to open it, strip quarantine, then try again:
+
+```bash
+xattr -cr /Applications/LionWallet.app
+open /Applications/LionWallet.app
+```
+
 ### From source
 
 1. Clone the repo and run `pnpm install`
-2. Run `pnpm run:safari` — builds the extension and launches the container app
+2. Run `task run-safari` — builds the extension and launches the container app
 3. Enable the extension in Safari Settings → Extensions
 4. Allow unsigned extensions in Developer menu (same as above)
 
 > **Note:** The "Allow unsigned extensions" setting resets every time Safari restarts. This is an Apple restriction for non-App Store extensions during development.
+
+## Release
+
+On an Apple Silicon Mac with `gh` logged in as lsheva and push access to `lsheva/lion-wallet` and `lsheva/homebrew-tap`:
+
+```bash
+task brew-release -- 0.1.6
+task brew-release -- 0.1.6 --notes 'What changed.'
+```
+
+That bumps `package.json`, builds an ad-hoc zip (`task dist`), tags `v0.1.6`, uploads it to GitHub Releases, and updates the `lion-wallet` cask.
 
 ## Security Model
 

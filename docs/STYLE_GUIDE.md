@@ -12,3 +12,4 @@
 - persist user-facing Ethereum addresses in checksummed form: use viem `getAddress` when writing to storage or comparing canonical form; migrate existing lowercase entries on read if needed.
 - for SolidJS `<Show when={…}>`, when the child needs a value that is only valid when the condition is truthy (e.g. optional `recipient()`), put the truthy value last in the `when` expression and use the `keyed` prop so the callback receives the narrowed value—avoid `recipient() ?? ""` or other fake defaults inside the branch.
 - “recent recipient” caches should only record addresses that are real transfer destinations (plain native sends and ERC-20 `transfer` recipients decoded from calldata), not arbitrary contract `to` targets from other interactions.
+- Dev, build, lint, and release commands live in `Taskfile.yml` (run `task --list`). Do not add a `scripts` block to `package.json`; extend or compose Taskfile tasks instead.

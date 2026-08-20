@@ -1,25 +1,28 @@
 import { execSync } from "node:child_process";
-import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { build, type RolldownOutput } from "rolldown";
 import { type Rollup, build as viteBuild } from "vite";
-import { analyzeRolldown, analyzeVite, formatReport, formatSummaryLine } from "./bundle-sizes.ts";
+import {
+  analyzeRolldown,
+  analyzeVite,
+  formatReport,
+  formatSummaryLine,
+} from "./bundle-sizes.ts";
 
 const isChrome = process.argv.includes("--chrome");
 const chromeBanner = isChrome
-  ? readFileSync("node_modules/webextension-polyfill/dist/browser-polyfill.min.js", "utf8")
+  ? readFileSync(
+      "node_modules/webextension-polyfill/dist/browser-polyfill.min.js",
+      "utf8",
+    )
   : "";
 
 rmSync("dist", { recursive: true, force: true });
 
-if (!existsSync("src/shared/chains.generated.ts")) {
-  await import("./gen-chains.ts");
-}
-if (!existsSync("src/icons/icon.generated.svg")) {
-  await import("./optimize-svg.ts");
-}
-
 const popupResult = (await viteBuild({
-  build: isChrome ? { rollupOptions: { output: { banner: chromeBanner } } } : undefined,
+  build: isChrome
+    ? { rollupOptions: { output: { banner: chromeBanner } } }
+    : undefined,
 })) as Rollup.RollupOutput;
 
 const shared: Rollup.BuildOptions = {
@@ -81,9 +84,6 @@ const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 manifest.version = version;
 writeFileSync("dist/manifest.json", JSON.stringify(manifest, null, 2));
 
-if (!existsSync("src/icons/generated")) {
-  await import("./icons.ts");
-}
 cpSync("src/icons/generated", "dist/icons", { recursive: true });
 
 if (isChrome) {

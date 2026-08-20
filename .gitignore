@@ -4,6 +4,7 @@ build
 *.tsbuildinfo
 *.generated.ts
 .vscode/
+.task/
 
 # Xcode
 xcode/**/build/

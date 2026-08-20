@@ -7,8 +7,9 @@ For product philosophy see [`docs/PHILOSOPHY.md`](./docs/PHILOSOPHY.md). Coding 
 Quick reference (same as AGENTS.md):
 - Framework: **Solid.js**, not React or Preact
 - Build: **Vite** (popup) + **Rolldown** (background/content/inpage)
-- Type-check: **tsgo** (`pnpm typecheck`), not `tsc`
+- Type-check: **tsgo** (`task typecheck`), not `tsc`
 - Package manager: **pnpm** only
-- Lint/format: **Biome** (`pnpm lint`, `pnpm lint:fix`)
+- Commands: **Task** (`Taskfile.yml`), not `package.json` scripts
+- Lint/format: **Biome** (`task lint`, `task lint-fix`)
 
-Always run `pnpm typecheck` and `pnpm lint` before opening a PR.
+Always run `task typecheck` and `task lint` before opening a PR.

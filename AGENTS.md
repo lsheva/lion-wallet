@@ -17,8 +17,8 @@ Lion Wallet is a free, open-source EVM wallet browser extension built natively f
 | EVM | viem | Always derive selectors via `toFunctionSelector` — never hardcode 4-byte hex |
 | Crypto | `@noble/hashes` | Pure JS, audited |
 | Build | Vite (popup) + **Rolldown** (background/content/inpage) | See [scripts/build.ts](./scripts/build.ts) |
-| Type-checker | **tsgo** (`@typescript/native-preview`) | Use `pnpm typecheck`, not `tsc` |
-| Lint + format | Biome | `pnpm lint`, `pnpm lint:fix`, `pnpm format` |
+| Type-checker | **tsgo** (`@typescript/native-preview`) | Use `task typecheck`, not `tsc` |
+| Lint + format | Biome | `task lint`, `task lint-fix`, `task format` |
 | Package manager | **pnpm only** | See `packageManager` in `package.json` |
 | Native | Swift / Xcode | Safari Web Extension container app under `xcode/` |
 
@@ -63,7 +63,7 @@ Add a new wallet RPC by editing **all five** in this order:
 2. Add `MY_NEW_RPC: { result: ... }` to `MessageDataMap` in the same file.
 3. Implement `handleMyNewRpc(...)` in the appropriate `src/background/handlers/<domain>.ts`.
 4. Add a new entry to the `handlers` table in `src/background/message-router.ts`. The table is typed with `satisfies HandlerTable`, so missing entries are caught at compile time.
-5. (Mock) Update `src/shared/messages-mock.ts` so `pnpm dev:mock` works.
+5. (Mock) Update `src/shared/messages-mock.ts` so `task dev-mock` works.
 
 ## Signing & approvals
 
@@ -101,23 +101,23 @@ Most handler code that mutates state branches on `mode === "keychain"` early. Th
 
 ```bash
 pnpm install
-pnpm dev                # Vite dev server for popup UI (extension stub via service worker)
-pnpm dev:mock           # popup-only dev with mocked background (no extension required)
-pnpm typecheck          # tsgo --noEmit (use this, not tsc)
-pnpm lint               # biome check
-pnpm lint:fix           # biome check --write
-pnpm build              # typecheck + popup + background bundles into dist/
-pnpm build:safari       # build extension + Xcode project under build/safari
-pnpm run:safari         # build:safari + open the container app
-pnpm build:chrome:ext   # Chrome bundle (+ MV3 manifest)
+task dev                # Vite dev server for popup UI (extension stub via service worker)
+task dev-mock           # popup-only dev with mocked background (no extension required)
+task typecheck          # tsgo --noEmit (use this, not tsc)
+task lint               # biome check
+task lint-fix           # biome check --write
+task build              # typecheck + popup + background bundles into dist/
+task build-safari       # build extension + Xcode project under build/safari
+task run-safari         # build-safari + open the container app
+task build-chrome       # Chrome bundle (+ MV3 manifest)
 ```
 
-Always run `pnpm typecheck` and `pnpm lint` before opening a PR.
+Always run `task typecheck` and `task lint` before opening a PR.
 
 ## House rules (recap; canonical list lives in [`docs/STYLE_GUIDE.md`](./docs/STYLE_GUIDE.md))
 
-- Use `pnpm` exclusively. Check `package.json` scripts before inventing new ones.
-- Use `tsgo` (`pnpm typecheck`) for type-checking, never raw `tsc`.
+- Use `pnpm` exclusively. Check [`Taskfile.yml`](./Taskfile.yml) before inventing new commands (`task --list`).
+- Use `tsgo` (`task typecheck`) for type-checking, never raw `tsc`.
 - Every `<button>` needs `type="button"`. Avoid `<div role="button">`.
 - Avoid `array.find` for id lookups; build a `Map` once.
 - Compare addresses with `eqAddress(a, b)` from `@shared/format` (or viem `isAddressEqual`), not `.toLowerCase()` on both sides.

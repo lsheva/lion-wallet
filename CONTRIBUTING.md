@@ -8,15 +8,15 @@ Thanks for your interest in contributing. Lion Wallet is a small, focused projec
 git clone <repo-url>
 cd safari-evm-wallet
 pnpm install
-pnpm dev          # Vite dev server for popup UI
-pnpm build        # type-check + build extension to dist/
+task dev          # Vite dev server for popup UI
+task build        # type-check + build extension to dist/
 ```
 
 ### Safari testing
 
 ```bash
-pnpm build:safari    # build extension + Xcode project
-pnpm run:safari      # build + launch the app
+task build-safari    # build extension + Xcode project
+task run-safari      # build + launch the app
 ```
 
 Enable the extension in Safari > Settings > Extensions.
@@ -36,14 +36,15 @@ xcode/             Safari Web Extension Xcode project
 
 ## Code Style
 
-- **Linter:** Biome — run `pnpm lint` to check, `pnpm lint:fix` to auto-fix
-- **Type checking:** `pnpm typecheck` (uses tsgo)
+- **Linter:** Biome — run `task lint` to check, `task lint-fix` to auto-fix
+- **Type checking:** `task typecheck` (uses tsgo)
+- **Commands:** Task (`task --list`) — see `Taskfile.yml`
 - **Package manager:** pnpm only
 - See [STYLE_GUIDE.md](./docs/STYLE_GUIDE.md) for project-specific conventions
 
 ## Before Submitting a PR
 
-1. Run `pnpm lint` and `pnpm typecheck` — both must pass
+1. Run `task lint` and `task typecheck` — both must pass
 2. Test the extension in Safari if your change touches background/content/inpage code
 3. Keep commits focused — one logical change per commit
 4. Don't add new dependencies without discussion. Every dependency is a liability (see philosophy, principle 3)

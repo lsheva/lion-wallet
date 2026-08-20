@@ -16,7 +16,7 @@ Wire the message in **all five** places (see [`AGENTS.md`](mdc:AGENTS.md) → "M
 2. `MessageDataMap` entry in the same file.
 3. `handle<Verb>(...)` in the appropriate [`src/background/handlers/<domain>.ts`](mdc:src/background/handlers).
 4. New entry in the `handlers` table in [`src/background/message-router.ts`](mdc:src/background/message-router.ts). The table is typed with `satisfies HandlerTable`, so forgetting to register a handler is a compile-time error.
-5. Mock branch in [`src/shared/messages-mock.ts`](mdc:src/shared/messages-mock.ts) so `pnpm dev:mock` keeps working.
+5. Mock branch in [`src/shared/messages-mock.ts`](mdc:src/shared/messages-mock.ts) so `task dev-mock` keeps working.
 
 ## Vault / keychain branching
 

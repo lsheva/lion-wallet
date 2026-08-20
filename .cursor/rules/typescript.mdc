@@ -30,7 +30,7 @@ These mirror [`docs/STYLE_GUIDE.md`](mdc:docs/STYLE_GUIDE.md). Keep them in sync
 
 ## Type checking
 
-- Use `pnpm typecheck` (which runs `tsgo --noEmit`). Do not invoke raw `tsc`.
+- Use `pnpm typecheck` / `task typecheck` (which runs `tsgo --noEmit`). Do not invoke raw `tsc`.
 
 ## Package management
 

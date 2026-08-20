@@ -1,6 +1,15 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import sharp from "sharp";
+
+if (
+  existsSync("src/icons/generated") &&
+  existsSync("brand/store-icon-128.png") &&
+  existsSync("xcode/LionWallet/LionWallet/Assets.xcassets/AppIcon.appiconset")
+) {
+  console.log("Icons already present — skipping generation.");
+  process.exit(0);
+}
 
 /** Full-color lion — app icon, marketing, LargeIcon, Resources. */
 const SVG_APP = "brand/lion.svg";
@@ -24,8 +33,10 @@ const XCODE_APP_ICON_SIZES = [16, 32, 128, 256, 512];
 const TOOLBAR_PT = 48;
 
 const MANIFEST_OUT = "src/icons/generated";
-const XCODE_APP_ICON_DIR = "xcode/LionWallet/LionWallet/Assets.xcassets/AppIcon.appiconset";
-const XCODE_LARGE_ICON_DIR = "xcode/LionWallet/LionWallet/Assets.xcassets/LargeIcon.imageset";
+const XCODE_APP_ICON_DIR =
+  "xcode/LionWallet/LionWallet/Assets.xcassets/AppIcon.appiconset";
+const XCODE_LARGE_ICON_DIR =
+  "xcode/LionWallet/LionWallet/Assets.xcassets/LargeIcon.imageset";
 const XCODE_TOOLBAR_IMAGESET =
   "xcode/LionWallet/LionWallet Extension/ToolbarItemIcon.xcassets/ToolbarItemIcon.imageset";
 const XCODE_RESOURCES_ICON = "xcode/LionWallet/LionWallet/Resources/Icon.png";
@@ -45,7 +56,9 @@ function pawSvgWithFill(fill: string): string {
 }
 
 async function renderPaw(fill: string, size: number): Promise<Buffer> {
-  return sharp(Buffer.from(pawSvgWithFill(fill), "utf8"), { limitInputPixels: false })
+  return sharp(Buffer.from(pawSvgWithFill(fill), "utf8"), {
+    limitInputPixels: false,
+  })
     .resize(size, size)
     .png({ palette: false, compressionLevel: 9 })
     .toBuffer();
@@ -93,7 +106,11 @@ for (const size of XCODE_APP_ICON_SIZES) {
 }
 writeFileSync(
   resolve(XCODE_APP_ICON_DIR, "Contents.json"),
-  JSON.stringify({ images: appIconImages, info: { author: "xcode", version: 1 } }, null, 2),
+  JSON.stringify(
+    { images: appIconImages, info: { author: "xcode", version: 1 } },
+    null,
+    2,
+  ),
 );
 console.log("Xcode AppIcon written to", XCODE_APP_ICON_DIR);
 
@@ -112,15 +129,25 @@ for (const [scale, mult] of [
 }
 writeFileSync(
   resolve(XCODE_LARGE_ICON_DIR, "Contents.json"),
-  JSON.stringify({ images: largeIconImages, info: { author: "xcode", version: 1 } }, null, 2),
+  JSON.stringify(
+    { images: largeIconImages, info: { author: "xcode", version: 1 } },
+    null,
+    2,
+  ),
 );
 console.log("Xcode LargeIcon written to", XCODE_LARGE_ICON_DIR);
 
 // 4. Toolbar icon asset catalog
 const toolbar1x = await renderPaw(PAW_FILL, TOOLBAR_PT);
 const toolbar2x = await renderPaw(PAW_FILL, TOOLBAR_PT * 2);
-writeFileSync(resolve(XCODE_TOOLBAR_IMAGESET, "ToolbarItemIcon.png"), toolbar1x);
-writeFileSync(resolve(XCODE_TOOLBAR_IMAGESET, "ToolbarItemIcon@2x.png"), toolbar2x);
+writeFileSync(
+  resolve(XCODE_TOOLBAR_IMAGESET, "ToolbarItemIcon.png"),
+  toolbar1x,
+);
+writeFileSync(
+  resolve(XCODE_TOOLBAR_IMAGESET, "ToolbarItemIcon@2x.png"),
+  toolbar2x,
+);
 console.log("Toolbar asset catalog written to", XCODE_TOOLBAR_IMAGESET);
 
 // 5. Container app Resources/Icon.png

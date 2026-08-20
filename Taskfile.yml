@@ -1,0 +1,408 @@
+version: "3"
+
+vars:
+  VERSION:
+    sh: pnpm pkg get version | tr -d '"'
+  NODE_PATH:
+    sh: echo "$PWD/node_modules/.bin:${PATH}"
+
+# ── Development ────────────────────────────────────────────
+
+tasks:
+  dev:
+    desc: Start the Vite dev server for the popup UI
+    cmds:
+      - PATH="./node_modules/.bin:$PATH" vite
+
+  dev-mock:
+    desc: Same as dev, but with mocked background (no extension needed)
+    env:
+      VITE_MOCK: "true"
+    cmds:
+      - vite
+
+  # ── Typechecking ───────────────────────────────────────────
+
+  typecheck:
+    desc: Typecheck source files only
+    cmds:
+      - PATH="./node_modules/.bin:$PATH" tsgo --noEmit
+
+  typecheck-all:
+    desc: Typecheck source + build scripts
+    deps: [typecheck]
+    cmds:
+      - PATH="./node_modules/.bin:$PATH" tsgo -p tsconfig.scripts.json --noEmit
+
+  # ── Code generation ────────────────────────────────────────
+
+  gen:
+    desc: Generate chain list + optimize SVGs (cached)
+    sources:
+      - scripts/gen-chains.ts
+      - scripts/chain-list.ts
+      - src/icons/icon.svg
+      - scripts/optimize-svg.ts
+    generates:
+      - src/shared/chains.generated.ts
+      - src/popup/chain-ui.generated.ts
+      - src/icons/icon.generated.svg
+    cmds:
+      - node scripts/gen-chains.ts
+      - node scripts/optimize-svg.ts
+
+  icons:
+    desc: Generate icon PNGs from brand SVGs (cached)
+    sources:
+      - scripts/icons.ts
+      - brand/lion.svg
+      - brand/lion-paw-toolbar.svg
+    generates:
+      - src/icons/generated/icon-16.png
+      - brand/store-icon-128.png
+    cmds:
+      - node scripts/icons.ts
+
+  # ── Building ───────────────────────────────────────────────
+
+  build:
+    desc: Quick build — typecheck + bundle (assumes generated files exist)
+    deps: [typecheck]
+    cmds:
+      - node scripts/build.ts
+
+  build-ext:
+    desc: Full build — generate, typecheck all, icons, bundle
+    deps: [gen, typecheck-all, icons]
+    cmds:
+      - node scripts/build.ts
+
+  build-chrome:
+    desc: Full build for Chrome (polyfill banner, chrome manifest, zip)
+    deps: [gen, typecheck-all, icons]
+    cmds:
+      - node scripts/build.ts --chrome
+
+  build-companion:
+    desc: Build Safari companion app (native messaging host binary)
+    deps: [build-ext]
+    cmds:
+      - |
+        set -euo pipefail
+        echo "==> Building companion app (native messaging host)..."
+        xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj \
+          -scheme LionWallet \
+          -configuration Debug \
+          -derivedDataPath build/safari \
+          build \
+          -allowProvisioningUpdates
+        echo ""
+        echo "Companion app built."
+
+  build-safari:
+    desc: Full Safari build — extension bundle + companion app
+    deps: [build-ext, build-companion]
+
+  # ── Chrome ─────────────────────────────────────────────────
+
+  gen-chrome-key:
+    desc: Generate/read Chrome extension signing key, update manifest + postinstall
+    generates:
+      - chrome-extension.pem
+    cmds:
+      - |
+        set -euo pipefail
+        PEM="chrome-extension.pem"
+        MANIFEST="src/manifest.chrome.json"
+        POSTINSTALL="installer/postinstall"
+        if [ ! -f "$PEM" ]; then
+          openssl genrsa 2048 2>/dev/null | openssl pkcs8 -topk8 -nocrypt -out "$PEM" 2>/dev/null
+          echo "Created: $PEM"
+        else
+          echo "Using existing key: $PEM"
+        fi
+        KEY=$(openssl rsa -in "$PEM" -pubout -outform DER 2>/dev/null | openssl base64 -A)
+        ID=$(openssl rsa -in "$PEM" -pubout -outform DER 2>/dev/null | shasum -a 256 | head -c32 | tr 0-9a-f a-p)
+        echo "Extension ID: $ID"
+        node -e "
+          const fs = require('fs');
+          const m = JSON.parse(fs.readFileSync('$MANIFEST', 'utf8'));
+          m.key = '$KEY';
+          fs.writeFileSync('$MANIFEST', JSON.stringify(m, null, 2) + '\n');
+        "
+        sed -i '' "s/^EXTENSION_ID=.*/EXTENSION_ID=\"$ID\"/" "$POSTINSTALL"
+        echo "Updated: $MANIFEST, $POSTINSTALL"
+
+  install-chrome-host:
+    desc: Install Chrome native messaging host manifest
+    vars:
+      EXT_ID: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: test -f "build/safari/Build/Products/Debug/LionWallet.app/Contents/MacOS/LionWallet"
+        msg: "Companion app not found. Run 'task build-companion' first."
+      - sh: test -n "{{.EXT_ID}}"
+        msg: "Usage: task install-chrome-host -- <extension-id>"
+    cmds:
+      - |
+        set -euo pipefail
+        BIN="$PWD/build/safari/Build/Products/Debug/LionWallet.app/Contents/MacOS/LionWallet"
+        DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
+        mkdir -p "$DIR"
+        cat > "$DIR/app.lionwallet.json" <<JSON
+        {
+          "name": "app.lionwallet",
+          "description": "Lion Wallet — Keychain bridge for Chrome",
+          "path": "$BIN",
+          "type": "stdio",
+          "allowed_origins": ["chrome-extension://{{.EXT_ID}}/"]
+        }
+        JSON
+        echo "Installed: $DIR/app.lionwallet.json"
+
+  uninstall-chrome-host:
+    desc: Remove Chrome native messaging host manifest
+    cmds:
+      - rm -f "$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts/app.lionwallet.json"
+      - echo "Removed native messaging host manifest."
+
+  # ── Running ────────────────────────────────────────────────
+
+  run-safari:
+    desc: Build Safari extension + companion, then open the app
+    deps: [build-safari]
+    cmds:
+      - open build/safari/Build/Products/Debug/LionWallet.app
+
+  run-chrome:
+    desc: Build companion + Chrome extension, install host manifest, launch Chrome
+    deps: [build-companion, build-chrome]
+    cmds:
+      - |
+        set -euo pipefail
+        EXT_DIR="$PWD/build/chrome"
+        BIN="$PWD/build/safari/Build/Products/Debug/LionWallet.app/Contents/MacOS/LionWallet"
+        HOST_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
+
+        # Compute Chrome extension ID from path hash (SHA-256 → a-p hex)
+        EXT_PATH=$(cd "$EXT_DIR" && pwd)
+        HASH=$(printf '%s' "$EXT_PATH" | shasum -a 256 | cut -d' ' -f1)
+        EXT_ID=""
+        HEX="${HASH:0:32}"
+        for (( i=0; i<${#HEX}; i++ )); do
+          NIBBLE=$(( 0x${HEX:$i:1} ))
+          printf -v CH '\x%x' $(( 97 + NIBBLE ))
+          EXT_ID="${EXT_ID}${CH}"
+        done
+        echo "Extension ID: $EXT_ID"
+
+        # Install native messaging host manifest
+        mkdir -p "$HOST_DIR"
+        cat > "$HOST_DIR/app.lionwallet.json" <<JSON
+        {
+          "name": "app.lionwallet",
+          "description": "Lion Wallet — Keychain bridge for Chrome",
+          "path": "$BIN",
+          "type": "stdio",
+          "allowed_origins": ["chrome-extension://$EXT_ID/"]
+        }
+        JSON
+        echo "Native messaging host installed: $HOST_DIR/app.lionwallet.json"
+
+        # Close Chrome + relaunch with the extension loaded
+        echo "==> Closing Chrome..."
+        osascript -e 'quit app "Google Chrome"' 2>/dev/null || true
+        while pgrep -x "Google Chrome" > /dev/null 2>&1; do sleep 0.5; done
+
+        echo "==> Launching Chrome with Lion Wallet loaded..."
+        open -a "Google Chrome" --args --load-extension="$EXT_DIR" --enable-logging=stderr
+        echo ""
+        echo "Done. Chrome launched."
+
+  # ── Installer ──────────────────────────────────────────────
+
+  package-installers:
+    desc: Create .pkg and .dmg from a built LionWallet.app
+    vars:
+      APP_DIR: '{{.APP_DIR}}'
+    preconditions:
+      - sh: test -d "{{.APP_DIR}}"
+        msg: "APP_DIR not found. Pass APP_DIR=path/to/LionWallet.app"
+    cmds:
+      - |
+        set -euo pipefail
+        APP_DIR="{{.APP_DIR}}"
+        VERSION="{{.VERSION}}"
+
+        echo "==> Embedding Chrome assets in app bundle..."
+        cp "build/lion-wallet-chrome-${VERSION}.zip" "$APP_DIR/Contents/Resources/lion-wallet-chrome.zip"
+        cp installer/postinstall "$APP_DIR/Contents/Resources/.install-chrome-host.sh"
+
+        # ── PKG ──
+        PKG_ROOT="build/pkg-root"
+        FINAL_PKG="build/LionWallet-${VERSION}.pkg"
+        COMPONENT_PKG="build/LionWallet-component.pkg"
+
+        echo "==> Preparing pkg root..."
+        rm -rf "$PKG_ROOT"
+        mkdir -p "$PKG_ROOT/Applications"
+        cp -R "$APP_DIR" "$PKG_ROOT/Applications/LionWallet.app"
+
+        echo "==> Building component pkg..."
+        pkgbuild \
+          --root "$PKG_ROOT" \
+          --identifier app.lionwallet.pkg \
+          --version "$VERSION" \
+          --scripts installer \
+          "$COMPONENT_PKG"
+
+        echo "==> Building final pkg..."
+        productbuild \
+          --distribution installer/distribution.xml \
+          --resources installer \
+          --package-path build \
+          "$FINAL_PKG"
+
+        rm -f "$COMPONENT_PKG"
+        rm -rf "$PKG_ROOT"
+        echo "PKG ready: $FINAL_PKG"
+
+        # ── DMG ──
+        DMG_STAGE="build/dmg-stage"
+        FINAL_DMG="build/LionWallet-${VERSION}.dmg"
+
+        echo "==> Building DMG..."
+        rm -rf "$DMG_STAGE" "$FINAL_DMG"
+        mkdir -p "$DMG_STAGE"
+
+        cp -R "$APP_DIR" "$DMG_STAGE/LionWallet.app"
+        cp "build/lion-wallet-chrome-${VERSION}.zip" "$DMG_STAGE/Chrome Extension.zip"
+        ln -s /Applications "$DMG_STAGE/Applications"
+        cp installer/README.rtf "$DMG_STAGE/README — Chrome Setup.rtf"
+        cp installer/postinstall "$DMG_STAGE/.install-chrome-host.sh"
+
+        if command -v osacompile &>/dev/null; then
+          osacompile -o "$DMG_STAGE/Open Chrome Extensions.app" -e \
+            'do shell script "open -a \"Google Chrome\" \"chrome://extensions\""'
+        fi
+
+        hdiutil create \
+          -volname "LionWallet ${VERSION}" \
+          -srcfolder "$DMG_STAGE" \
+          -ov \
+          -format UDZO \
+          "$FINAL_DMG"
+
+        rm -rf "$DMG_STAGE"
+        echo "DMG ready: $FINAL_DMG"
+
+  installer:
+    desc: Build everything + create macOS .pkg and .dmg
+    deps: [build-safari, build-chrome]
+    cmds:
+      - task: package-installers
+        vars:
+          APP_DIR: build/safari/Build/Products/Debug/LionWallet.app
+
+  dist:
+    desc: Ad-hoc-signed Release zip for GitHub Releases / Homebrew
+    deps: [build-ext]
+    cmds:
+      - task: build-chrome
+      - |
+        set -euo pipefail
+        VERSION="{{.VERSION}}"
+        APP_DIR="build/safari/Build/Products/Release/LionWallet.app"
+        ZIP="build/LionWallet-${VERSION}.zip"
+
+        echo "==> Building unsigned Release app..."
+        xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj \
+          -scheme LionWallet \
+          -configuration Release \
+          CODE_SIGN_IDENTITY="" CODE_SIGNING_ALLOWED=NO \
+          build \
+          -derivedDataPath build/safari
+
+        echo "==> Ad-hoc codesigning..."
+        codesign --force --deep --sign - "$APP_DIR"
+
+        echo "==> Embedding Chrome assets..."
+        mkdir -p "$APP_DIR/Contents/Resources"
+        cp "build/lion-wallet-chrome-${VERSION}.zip" "$APP_DIR/Contents/Resources/lion-wallet-chrome.zip"
+        cp installer/postinstall "$APP_DIR/Contents/Resources/.install-chrome-host.sh"
+
+        echo "==> Zipping..."
+        rm -f "$ZIP"
+        ditto -c -k --keepParent --norsrc --noextattr "$APP_DIR" "$ZIP"
+        echo "ZIP ready: $ZIP"
+        shasum -a 256 "$ZIP"
+
+  # ── Code quality ───────────────────────────────────────────
+
+  lint:
+    desc: Check linting
+    cmds:
+      - PATH="./node_modules/.bin:$PATH" biome check src/ scripts/
+
+  lint-fix:
+    desc: Check + auto-fix linting
+    cmds:
+      - biome check --write src/ scripts/
+
+  format:
+    desc: Auto-format all source files
+    cmds:
+      - PATH="./node_modules/.bin:$PATH" biome format --write src/ scripts/
+
+  # ── Release ────────────────────────────────────────────────
+
+  release:
+    desc: Bump version, commit, and tag (patch|minor|major)
+    vars:
+      BUMP: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: test "{{.BUMP}}" = "patch" -o "{{.BUMP}}" = "minor" -o "{{.BUMP}}" = "major"
+        msg: "Usage: task release -- [patch|minor|major]"
+    cmds:
+      - |
+        set -e
+        npm version "{{.BUMP}}" --no-git-tag-version
+        git add package.json
+        git commit -m "release: v{{.VERSION}}"
+        git tag "v{{.VERSION}}"
+        echo "Tagged v{{.VERSION}}"
+
+  brew-release:
+    desc: Tag, upload GitHub Release, and bump the Homebrew tap
+    cmds:
+      - scripts/brew-release.sh {{.CLI_ARGS}}
+
+  push:
+    desc: Push to publish remote, push tags, then cleanup the remote
+    cmds:
+      - git remote remove publish 2>/dev/null || true
+      - git remote add publish git@github-personal:lsheva/lion-wallet.git
+      - git push publish HEAD --follow-tags
+      - git remote remove publish
+
+  repush-tag:
+    desc: Delete and re-create the current version tag, force-push it
+    cmds:
+      - git tag -d v{{.VERSION}} || true
+      - git tag v{{.VERSION}}
+      - git remote remove publish 2>/dev/null || true
+      - git remote add publish git@github-personal:lsheva/lion-wallet.git
+      - git push publish HEAD
+      - git push publish v{{.VERSION}} --force
+      - git remote remove publish
+
+  # ── Housekeeping ───────────────────────────────────────────
+
+  clean:
+    desc: Remove all generated files, dist/, and build/
+    cmds:
+      - node scripts/clean.ts
+
+  analyze:
+    desc: Analyze bundle sizes
+    cmds:
+      - node scripts/analyze.ts

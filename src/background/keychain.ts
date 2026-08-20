@@ -13,9 +13,35 @@ interface NativeResponse {
   error?: string;
 }
 
+/**
+ * Raised when the native messaging bridge itself is unreachable — i.e. the
+ * Lion Wallet companion app could not be launched/contacted (not installed,
+ * not enabled, or blocked by code-signing). This is distinct from an
+ * authentication being cancelled or a keychain item being missing, so callers
+ * surface it verbatim instead of collapsing it into "Authentication cancelled".
+ */
+export class NativeBridgeError extends Error {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
+    super(message);
+    this.name = "NativeBridgeError";
+  }
+}
+
+const NATIVE_UNREACHABLE_MESSAGE =
+  "Couldn't reach the Lion Wallet app. Make sure it's installed and enabled, then try again.";
+
 async function sendNative(message: Record<string, unknown>): Promise<NativeResponse> {
   bgLog("[keychain] sendNative:", message.action);
-  const res = (await browser.runtime.sendNativeMessage(APP_ID, message)) as NativeResponse;
+  let res: NativeResponse;
+  try {
+    res = (await browser.runtime.sendNativeMessage(APP_ID, message)) as NativeResponse;
+  } catch (e) {
+    bgLog("[keychain] sendNative bridge error:", toErrorMessage(e));
+    throw new NativeBridgeError(NATIVE_UNREACHABLE_MESSAGE, e);
+  }
   bgLog("[keychain] response:", JSON.stringify(res));
   return res;
 }
@@ -91,6 +117,7 @@ export async function retrieveMnemonicForKeyring(
     });
     return res.ok ? (res.value ?? null) : null;
   } catch (e) {
+    if (e instanceof NativeBridgeError) throw e;
     bgLog("[keychain] retrieveMnemonicForKeyring exception:", toErrorMessage(e));
     return null;
   }
@@ -146,6 +173,7 @@ export async function retrieveImportedKey(address: Address, reason?: string): Pr
     });
     return res.ok ? ((res.value as Hex) ?? null) : null;
   } catch (e) {
+    if (e instanceof NativeBridgeError) throw e;
     bgLog("[keychain] retrieveImportedKey exception:", toErrorMessage(e));
     return null;
   }
