@@ -1,6 +1,6 @@
 {
   "name": "lion-wallet",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Lion Wallet — lightweight Ethereum wallet browser extension with native Keychain integration and multi-chain support",
   "private": true,
   "license": "GPL-3.0-only",
