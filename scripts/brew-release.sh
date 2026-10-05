@@ -72,11 +72,16 @@ gh auth status >/dev/null 2>&1 || die "gh is not logged in (gh auth status)"
 git rev-parse --is-inside-work-tree >/dev/null
 [[ -z "$(git status --porcelain)" ]] || die "working tree is dirty; commit or stash first"
 
+# Resume-friendly: allow re-running after a partial failure (e.g. the tap push).
+TAG_EXISTS=0
 if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-    die "tag v$VERSION already exists"
+    echo "==> tag v$VERSION already exists; skipping bump/commit/tag"
+    TAG_EXISTS=1
 fi
+RELEASE_EXISTS=0
 if gh release view "v$VERSION" --repo "$APP_REPO" >/dev/null 2>&1; then
-    die "GitHub release v$VERSION already exists"
+    echo "==> GitHub release v$VERSION already exists; skipping release upload"
+    RELEASE_EXISTS=1
 fi
 
 TAG="v$VERSION"
@@ -93,49 +98,60 @@ fi
 
 # ------------------------------------------------------------------ bump ----
 
-current="$(pnpm pkg get version | tr -d '"')"
-if [[ "$current" != "$VERSION" ]]; then
-    npm version "$VERSION" --no-git-tag-version --allow-same-version
-fi
+if [[ "$TAG_EXISTS" -eq 0 ]]; then
+    current="$(pnpm pkg get version | tr -d '"')"
+    if [[ "$current" != "$VERSION" ]]; then
+        npm version "$VERSION" --no-git-tag-version --allow-same-version
+    fi
 
-git add package.json
-if git diff --cached --quiet; then
-    die "package.json did not change (already at $VERSION?)"
-fi
-git commit -m "Release ${VERSION}."
+    git add package.json
+    if git diff --cached --quiet; then
+        echo "==> package.json already at $VERSION; skipping commit"
+    else
+        git commit -m "Release ${VERSION}."
+    fi
 
-echo "==> Pushing HEAD"
-git remote remove publish 2>/dev/null || true
-git remote add publish "$PUBLISH_REMOTE"
-git push publish HEAD
-git remote remove publish
+    echo "==> Pushing HEAD"
+    git remote remove publish 2>/dev/null || true
+    git remote add publish "$PUBLISH_REMOTE"
+    git push publish HEAD
+    git remote remove publish
+fi
 
 # ------------------------------------------------------------------ build ---
 
-echo "==> Building ad-hoc zip"
-task dist
-[[ -f "$ZIP" ]] || die "expected zip at $ZIP"
-# build.ts rewrites this tracked file; keep the Release commit as the tag tip
-git checkout -- bundle-sizes.txt
+if [[ -f "$ZIP" ]]; then
+    echo "==> Reusing existing zip $ZIP"
+else
+    echo "==> Building ad-hoc zip"
+    task dist
+    [[ -f "$ZIP" ]] || die "expected zip at $ZIP"
+    # build.ts rewrites this tracked file; keep the Release commit as the tag tip
+    git checkout -- bundle-sizes.txt
+fi
 SHA="$(shasum -a 256 "$ZIP" | awk '{print $1}')"
 echo "==> sha256  $SHA"
 
 # ------------------------------------------------------------------ github --
 
-echo "==> Tagging $TAG"
-git tag -a "$TAG" -m "${APP_NAME} ${VERSION}"
+if [[ "$TAG_EXISTS" -eq 0 ]]; then
+    echo "==> Tagging $TAG"
+    git tag -a "$TAG" -m "${APP_NAME} ${VERSION}"
 
-echo "==> Pushing tag"
-git remote remove publish 2>/dev/null || true
-git remote add publish "$PUBLISH_REMOTE"
-git push publish "$TAG"
-git remote remove publish
+    echo "==> Pushing tag"
+    git remote remove publish 2>/dev/null || true
+    git remote add publish "$PUBLISH_REMOTE"
+    git push publish "$TAG"
+    git remote remove publish
+fi
 
-echo "==> Uploading GitHub Release"
-gh release create "$TAG" "$ZIP" \
-    --repo "$APP_REPO" \
-    --title "${APP_NAME} ${VERSION}" \
-    --notes "$NOTES"
+if [[ "$RELEASE_EXISTS" -eq 0 ]]; then
+    echo "==> Uploading GitHub Release"
+    gh release create "$TAG" "$ZIP" \
+        --repo "$APP_REPO" \
+        --title "${APP_NAME} ${VERSION}" \
+        --notes "$NOTES"
+fi
 
 # ------------------------------------------------------------------ brew ----
 
