@@ -193,6 +193,8 @@ cask "${CASK_TOKEN}" do
   postflight do
     system_command "/usr/bin/xattr",
                    args: ["-cr", "#{appdir}/${APP_NAME}.app"]
+    system_command "/usr/bin/open",
+                   args: ["#{appdir}/${APP_NAME}.app"]
   end
 
   caveats <<~EOS
