@@ -314,16 +314,16 @@ tasks:
         APP_DIR="build/safari/Build/Products/Release/LionWallet.app"
         ZIP="build/LionWallet-${VERSION}.zip"
 
-        echo "==> Building ad-hoc signed Release app (with entitlements)..."
+        echo "==> Building unsigned Release app..."
         xcodebuild -project xcode/LionWallet/LionWallet.xcodeproj \
           -scheme LionWallet \
           -configuration Release \
-          CODE_SIGN_STYLE=Manual \
-          CODE_SIGN_IDENTITY="-" \
-          DEVELOPMENT_TEAM="" \
-          PROVISIONING_PROFILE_SPECIFIER="" \
+          CODE_SIGN_IDENTITY="" CODE_SIGNING_ALLOWED=NO \
           build \
           -derivedDataPath build/safari
+
+        echo "==> Ad-hoc codesigning..."
+        codesign --force --deep --sign - "$APP_DIR"
 
         echo "==> Embedding Chrome assets..."
         mkdir -p "$APP_DIR/Contents/Resources"
