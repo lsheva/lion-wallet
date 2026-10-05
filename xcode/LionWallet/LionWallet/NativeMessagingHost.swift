@@ -37,7 +37,8 @@ struct NativeMessagingHost {
 
         case "keychain_store":
             guard let key = message["key"] as? String,
-                  let value = message["value"] as? String else {
+                let value = message["value"] as? String
+            else {
                 writeMessage(["ok": false, "error": "Missing key or value"])
                 return
             }
@@ -58,7 +59,8 @@ struct NativeMessagingHost {
             var response: [String: Any] = ["ok": false, "error": "Authentication timed out"]
 
             let laContext = LAContext()
-            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authError in
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) {
+                success, authError in
                 if !success {
                     let msg = authError?.localizedDescription ?? "Authentication failed"
                     os_log(.error, "LAContext auth failed: %{public}@", msg)
@@ -89,12 +91,34 @@ struct NativeMessagingHost {
             let exists = KeychainHelper.has(key: key)
             writeMessage(["ok": true, "exists": exists])
 
+        /// One-shot recovery: authenticate once, then return every item under the
+        /// service (keys + values) so the background can rebuild wiped metadata.
+        case "keychain_recover":
+            let reason = message["reason"] as? String ?? "Recover your wallet from Keychain"
+            let semaphore = DispatchSemaphore(value: 0)
+            var response: [String: Any] = ["ok": false, "error": "Authentication timed out"]
+            let laContext = LAContext()
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) {
+                success, authError in
+                if !success {
+                    let msg = authError?.localizedDescription ?? "Authentication failed"
+                    os_log(.error, "LAContext recover auth failed: %{public}@", msg)
+                    response = ["ok": false, "error": msg]
+                } else {
+                    response = ["ok": true, "items": KeychainHelper.listAll(context: laContext)]
+                }
+                semaphore.signal()
+            }
+            semaphore.wait()
+            writeMessage(response)
+
         case "keychain_authenticate":
             let reason = message["reason"] as? String ?? "Confirm action"
             let semaphore = DispatchSemaphore(value: 0)
             var response: [String: Any] = ["ok": false, "error": "Authentication timed out"]
             let laContext = LAContext()
-            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authError in
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) {
+                success, authError in
                 if success {
                     response = ["ok": true]
                 } else {
@@ -128,7 +152,8 @@ struct NativeMessagingHost {
         guard messageData.count == Int(messageLength) else { return nil }
 
         guard let json = try? JSONSerialization.jsonObject(with: messageData),
-              let dict = json as? [String: Any] else { return nil }
+            let dict = json as? [String: Any]
+        else { return nil }
 
         return dict
     }

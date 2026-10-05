@@ -40,13 +40,13 @@
 
 ══════════════════════════════════════════════════════════════════════════════════
   Background
-  output: 342.8 kB │ gzip: 105.5 kB
+  output: 344.5 kB │ gzip: 106.0 kB
 ──────────────────────────────────────────────────────────────────────────────────
-  viem  247.9 kB  40.5%
+  viem  247.9 kB  40.3%
     └ node_modules/viem/_esm/actions/public/call.js  19.5 kB
     └ node_modules/viem/_esm/errors/rpc.js  13.1 kB
     └ node_modules/viem/_esm/errors/abi.js  9.9 kB
-  (project)  203.5 kB  33.3%
+  (project)  206.6 kB  33.6%
     └ src/shared/chains.generated.ts  48.1 kB
     └ src/background/activity/index.ts  22.0 kB
     └ src/background/chain-discovery.ts  11.4 kB

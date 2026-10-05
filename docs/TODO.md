@@ -165,7 +165,6 @@ True hardware-enclave signing for Ethereum. The P-256 private key lives inside t
 
 [x] - batch token sending (for privatekey and smartcontract wallets)
 
-
 ## Remove Individual Account
 
 Separate from full reset — allow removing a single account from the wallet without touching the mnemonic or other accounts. Useful for cleaning up unused derived accounts or removing an imported private key.
@@ -282,7 +281,32 @@ Detect all tokens an address holds across all supported chains without requiring
 [] - add portfolio / cross-chain overview UI showing all token holdings grouped by chain
 [] - allow user to trigger manual cross-chain rescan from settings or portfolio view
 
+## Keychain metadata backup
+
+Mirror non-secret wallet state into the macOS Keychain so it survives a `browser.storage.local` wipe / extension-identity change — the same store that already preserves the seed phrase. Falls back to `browser.storage.local` when there is no Keychain (vault mode).
+
+### Behavior
+
+- Keychain mode: `AccountsMeta` and the HD derived-address map are mirrored to the Keychain on every metadata write, in addition to `browser.storage.local`.
+- Metadata items are stored **without** `.userPresence` (they hold no secrets — addresses and labels are public), so the popup still renders accounts without Touch ID.
+- Imported private keys stay in their existing `.userPresence` `imported-<addr>` items.
+- Recovery (`GET_STATE` when local `accountsMeta` is empty):
+  - If `meta-accounts` exists → restore it + `meta-hd-derived` + `storageMode` exactly (names, order, active account, hidden/skipped, discovery-seen addresses, derived candidates). No Touch ID, no RPC re-scan.
+  - Else → fall back to reconstruct-from-secrets (account 0 only).
+- Reset wallet deletes both Keychain meta items.
+
+### Steps
+
+[] - Swift: add `storeMeta`/`retrieveMeta`/`deleteMeta` (no `.userPresence`) in `KeychainHelper`
+[] - Swift: add `keychain_meta_get`/`keychain_meta_set`/`keychain_meta_delete` to `SafariWebExtensionHandler` + `NativeMessagingHost`
+[] - `keychain.ts`: add `storeMeta`/`retrieveMeta`/`deleteMeta` wrappers
+[] - `keychain-meta.ts`: serialize/parse + read/write helpers for `meta-accounts` and `meta-hd-derived`
+[] - `vault.ts`: mirror `AccountsMeta` to Keychain in `saveAccountsMeta` (keychain mode only); delete in `clearVault`
+[] - `hd-addresses.ts`: mirror `HdDerivedAddressMap` to Keychain in `saveHdDerivedAddressMap` (keychain mode only)
+[] - `keychain-recovery.ts`: rehydrate from `meta-accounts`/`meta-hd-derived` before reconstruct-from-secrets
+
 # Bugs
+
 [] - base sepolia doesnt show correct balance of base eth
 [x] - clear data does not clear popup cache, only backend one
 [x] - background and popup errors show be displayed to the user via popup message
@@ -292,6 +316,7 @@ Detect all tokens an address holds across all supported chains without requiring
 [] - do not pause before loading transaction approval page
 
 # Features
+
 [] = signer for cli apps so keys are not stored in envs
 [] - missing MAX button when sending tokens
 [] - do not close popup when sending tokens (action initiated from popup, not inpage script)

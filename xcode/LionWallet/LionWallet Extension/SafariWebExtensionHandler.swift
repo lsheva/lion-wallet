@@ -5,9 +5,9 @@
 //  Created by Oleksandr Shevchuk on 20.03.2026.
 //
 
+import LocalAuthentication
 import SafariServices
 import Security
-import LocalAuthentication
 import os.log
 
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
@@ -23,7 +23,8 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         }
 
         guard let dict = message as? [String: Any],
-              let action = dict["action"] as? String else {
+            let action = dict["action"] as? String
+        else {
             respond(context: context, payload: ["ok": false, "error": "Invalid message"])
             return
         }
@@ -41,7 +42,8 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
         case "keychain_store":
             guard let key = dict["key"] as? String,
-                  let value = dict["value"] as? String else {
+                let value = dict["value"] as? String
+            else {
                 respond(context: context, payload: ["ok": false, "error": "Missing key or value"])
                 return
             }
@@ -59,7 +61,8 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             }
             let reason = dict["reason"] as? String ?? "Authenticate to access wallet"
             let laContext = LAContext()
-            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authError in
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) {
+                success, authError in
                 if !success {
                     let msg = authError?.localizedDescription ?? "Authentication failed"
                     os_log(.error, "LAContext auth failed: %{public}@", msg)
@@ -69,7 +72,8 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 if let value = KeychainHelper.retrieve(key: key, context: laContext) {
                     self.respond(context: context, payload: ["ok": true, "value": value])
                 } else {
-                    self.respond(context: context, payload: ["ok": false, "error": "Item not found"])
+                    self.respond(
+                        context: context, payload: ["ok": false, "error": "Item not found"])
                 }
             }
 
@@ -89,11 +93,29 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             let exists = KeychainHelper.has(key: key)
             respond(context: context, payload: ["ok": true, "exists": exists])
 
+        /// One-shot recovery: authenticate once, then return every item under the
+        /// service (keys + values) so the background can rebuild wiped metadata.
+        case "keychain_recover":
+            let reason = dict["reason"] as? String ?? "Recover your wallet from Keychain"
+            let laContext = LAContext()
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) {
+                success, authError in
+                if !success {
+                    let msg = authError?.localizedDescription ?? "Authentication failed"
+                    os_log(.error, "LAContext recover auth failed: %{public}@", msg)
+                    self.respond(context: context, payload: ["ok": false, "error": msg])
+                    return
+                }
+                let items = KeychainHelper.listAll(context: laContext)
+                self.respond(context: context, payload: ["ok": true, "items": items])
+            }
+
         /// Device-owner auth only (e.g. reset wallet) — no keychain read, avoids "Item not found" when meta ids drift.
         case "keychain_authenticate":
             let reason = dict["reason"] as? String ?? "Confirm action"
             let laContext = LAContext()
-            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authError in
+            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) {
+                success, authError in
                 if success {
                     self.respond(context: context, payload: ["ok": true])
                 } else {

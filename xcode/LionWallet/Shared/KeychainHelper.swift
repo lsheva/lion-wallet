@@ -3,8 +3,8 @@
 //  Lion Wallet
 //
 
-import Security
 import LocalAuthentication
+import Security
 import os.log
 
 let keychainService = "app.lionwallet"
@@ -18,12 +18,14 @@ struct KeychainHelper {
         }
 
         var acError: Unmanaged<CFError>?
-        guard let access = SecAccessControlCreateWithFlags(
-            nil,
-            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            .userPresence,
-            &acError
-        ) else {
+        guard
+            let access = SecAccessControlCreateWithFlags(
+                nil,
+                kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+                .userPresence,
+                &acError
+            )
+        else {
             let msg = "probe: SecAccessControlCreateWithFlags failed: \(acError.debugDescription)"
             os_log(.error, "%{public}@", msg)
             return (false, msg)
@@ -56,12 +58,14 @@ struct KeychainHelper {
         delete(key: key)
 
         var error: Unmanaged<CFError>?
-        guard let access = SecAccessControlCreateWithFlags(
-            nil,
-            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            .userPresence,
-            &error
-        ) else {
+        guard
+            let access = SecAccessControlCreateWithFlags(
+                nil,
+                kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+                .userPresence,
+                &error
+            )
+        else {
             let msg = "Access control creation failed: \(error.debugDescription)"
             os_log(.error, "Failed to create access control: %@", error.debugDescription)
             return (false, msg)
@@ -125,5 +129,35 @@ struct KeychainHelper {
         ]
         let status = SecItemCopyMatching(query as CFDictionary, nil)
         return status == errSecSuccess || status == errSecInteractionNotAllowed
+    }
+
+    /// Enumerate every `kSecAttrAccount` under this service, then read each value.
+    /// Requires a pre-authenticated `LAContext` (`.userPresence` items can't be
+    /// listed with `kSecUseAuthenticationUISkip`), and reuses that same context so
+    /// no further prompts are needed. Returns a dictionary keyed by account name.
+    static func listAll(context: LAContext) -> [String: String] {
+        let listQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecUseAuthenticationContext as String: context,
+        ]
+        var listResult: AnyObject?
+        let listStatus = SecItemCopyMatching(listQuery as CFDictionary, &listResult)
+        guard listStatus == errSecSuccess,
+            let items = listResult as? [[String: Any]]
+        else {
+            return [:]
+        }
+        let keys = items.compactMap { $0[kSecAttrAccount as String] as? String }
+
+        var out: [String: String] = [:]
+        for key in keys {
+            if let value = retrieve(key: key, context: context) {
+                out[key] = value
+            }
+        }
+        return out
     }
 }

@@ -15,6 +15,7 @@ import { runChainDiscovery } from "../../chain-discovery";
 import { clearConnectedOrigins } from "../../connected-origins";
 import { clearHdDerivedAddresses, resolveHdAddressMap } from "../../hd-addresses";
 import * as keychain from "../../keychain";
+import { tryRecoverFromKeychain } from "../../keychain-recovery";
 import { bgLog } from "../../log";
 import { getActiveNetworkId, setActiveNetworkId } from "../../networks";
 import {
@@ -30,7 +31,14 @@ import { retrieveHdMnemonicForKeyring } from "../../wallet-internal";
 import { retrieveImportedKey } from "./_shared";
 
 async function getWalletState(): Promise<WalletState> {
-  const meta = await loadAccountsMeta();
+  let meta = await loadAccountsMeta();
+  if (!meta || meta.accounts.length === 0) {
+    // Local storage may have been wiped (e.g. macOS update) while the Keychain
+    // still holds the secrets. Attempt to rebuild the metadata before treating
+    // the wallet as uninitialized.
+    await tryRecoverFromKeychain();
+    meta = await loadAccountsMeta();
+  }
   const mode = await getStorageMode();
   if (meta && meta.accounts.length > 0) {
     const visible = visibleAccounts(meta.accounts);

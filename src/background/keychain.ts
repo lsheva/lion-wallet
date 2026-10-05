@@ -10,6 +10,7 @@ interface NativeResponse {
   ok: boolean;
   value?: string;
   exists?: boolean;
+  items?: Record<string, string>;
   error?: string;
 }
 
@@ -33,11 +34,16 @@ export class NativeBridgeError extends Error {
 const NATIVE_UNREACHABLE_MESSAGE =
   "Couldn't reach the Lion Wallet app. Make sure it's installed and enabled, then try again.";
 
-async function sendNative(message: Record<string, unknown>): Promise<NativeResponse> {
+async function sendNative(
+  message: Record<string, unknown>,
+): Promise<NativeResponse> {
   bgLog("[keychain] sendNative:", message.action);
   let res: NativeResponse;
   try {
-    res = (await browser.runtime.sendNativeMessage(APP_ID, message)) as NativeResponse;
+    res = (await browser.runtime.sendNativeMessage(
+      APP_ID,
+      message,
+    )) as NativeResponse;
   } catch (e) {
     bgLog("[keychain] sendNative bridge error:", toErrorMessage(e));
     throw new NativeBridgeError(NATIVE_UNREACHABLE_MESSAGE, e);
@@ -90,7 +96,9 @@ export async function storeMnemonicForKeyring(
 }
 
 /** Face ID / Touch ID only — does not read keychain (use for reset, etc.). */
-export async function authenticateUser(reason?: string): Promise<{ ok: boolean; error?: string }> {
+export async function authenticateUser(
+  reason?: string,
+): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await sendNative({
       action: "keychain_authenticate",
@@ -118,22 +126,35 @@ export async function retrieveMnemonicForKeyring(
     return res.ok ? (res.value ?? null) : null;
   } catch (e) {
     if (e instanceof NativeBridgeError) throw e;
-    bgLog("[keychain] retrieveMnemonicForKeyring exception:", toErrorMessage(e));
+    bgLog(
+      "[keychain] retrieveMnemonicForKeyring exception:",
+      toErrorMessage(e),
+    );
     return null;
   }
 }
 
-export async function deleteMnemonicForKeyring(keyringId: string): Promise<void> {
+export async function deleteMnemonicForKeyring(
+  keyringId: string,
+): Promise<void> {
   try {
-    await sendNative({ action: "keychain_delete", key: keychainKeyringKey(keyringId) });
+    await sendNative({
+      action: "keychain_delete",
+      key: keychainKeyringKey(keyringId),
+    });
   } catch (e) {
     bgLog("[keychain] deleteMnemonicForKeyring exception:", toErrorMessage(e));
   }
 }
 
-export async function hasMnemonicForKeyring(keyringId: string): Promise<boolean> {
+export async function hasMnemonicForKeyring(
+  keyringId: string,
+): Promise<boolean> {
   try {
-    const res = await sendNative({ action: "keychain_has", key: keychainKeyringKey(keyringId) });
+    const res = await sendNative({
+      action: "keychain_has",
+      key: keychainKeyringKey(keyringId),
+    });
     return res.ok === true && res.exists === true;
   } catch (e) {
     bgLog("[keychain] hasMnemonicForKeyring exception:", toErrorMessage(e));
@@ -141,11 +162,39 @@ export async function hasMnemonicForKeyring(keyringId: string): Promise<boolean>
   }
 }
 
+/**
+ * One-shot keychain recovery: authenticate once (Touch ID), then return every
+ * item under the service as `{ account: value }`. Returns `{}` on failure,
+ * cancellation, or an empty keychain.
+ */
+export async function recoverAllKeychainItems(
+  reason?: string,
+): Promise<Record<string, string>> {
+  try {
+    const res = await sendNative({
+      action: "keychain_recover",
+      ...(reason && { reason }),
+    });
+    if (!res.ok || !res.items || typeof res.items !== "object") {
+      if (res.error)
+        bgLog("[keychain] recoverAllKeychainItems failed:", res.error);
+      return {};
+    }
+    return res.items;
+  } catch (e) {
+    bgLog("[keychain] recoverAllKeychainItems exception:", toErrorMessage(e));
+    return {};
+  }
+}
+
 function importedKeyId(address: Address): string {
   return `imported-${address.toLowerCase()}`;
 }
 
-export async function storeImportedKey(address: Address, privateKey: Hex): Promise<StoreResult> {
+export async function storeImportedKey(
+  address: Address,
+  privateKey: Hex,
+): Promise<StoreResult> {
   try {
     const res = await sendNative({
       action: "keychain_store",
@@ -164,7 +213,10 @@ export async function storeImportedKey(address: Address, privateKey: Hex): Promi
   }
 }
 
-export async function retrieveImportedKey(address: Address, reason?: string): Promise<Hex | null> {
+export async function retrieveImportedKey(
+  address: Address,
+  reason?: string,
+): Promise<Hex | null> {
   try {
     const res = await sendNative({
       action: "keychain_retrieve",
@@ -190,6 +242,8 @@ export async function deleteImportedKey(address: Address): Promise<void> {
   }
 }
 
-export async function deleteAllImportedKeys(addresses: Address[]): Promise<void> {
+export async function deleteAllImportedKeys(
+  addresses: Address[],
+): Promise<void> {
   await Promise.all(addresses.map(deleteImportedKey));
 }
